@@ -25,6 +25,8 @@ export class Loader {
     }
   }
 
+  public async reload(kyro: Kyro): Promise<void> { this.#names.clear(); await this.load(kyro); }
+
   async #use(item: Plugin, kyro: Kyro): Promise<void> {
     if (this.#names.has(item.name)) throw new Error(`Plugin "${item.name}" is already loaded.`);
     this.#names.add(item.name);

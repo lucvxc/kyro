@@ -8,6 +8,8 @@ export type { ErrorHandler } from "./commands/Router.ts";
 export { AutocompleteContext, type Choice } from "./commands/Autocomplete.ts";
 export { UserError, CommandError } from "./commands/Errors.ts";
 export { Moderation, type ModOptions } from "./commands/Moderation.ts";
+export type { Middleware, Next } from "./commands/Middleware.ts";
+export { Server } from "./guild/Server.ts";
 export { DrizzleDB, drizzle, type DrizzleOptions } from "./db/Drizzle.ts";
 export { Cache, type CacheOptions } from "./core/Cache.ts";
 export { Limit, type LimitOptions } from "./core/Limit.ts";

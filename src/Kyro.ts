@@ -15,6 +15,9 @@ import { help } from "./commands/Help.ts";
 import type { DrizzleDB } from "./db/Drizzle.ts";
 import { Loader as PluginLoader } from "./plugins/Loader.ts";
 import type { Plugin } from "./plugins/Plugin.ts";
+import { reload as reloadCommand } from "./commands/Reload.ts";
+import type { Middleware } from "./commands/Middleware.ts";
+import { version as versionCommand } from "./commands/Version.ts";
 import { isDeviceStatus, status, type DeviceStatus } from "./core/Status.ts";
 
 export interface PresenceConfig extends Omit<PresenceData, "status"> {
@@ -41,6 +44,8 @@ export interface KyroConfig {
   sync?: "global" | "guild" | "none";
   help?: boolean;
   plugins?: (string | Plugin)[];
+  middleware?: Middleware[];
+  ownerIDs?: string[];
 }
 
 export interface Options extends Partial<ClientConfig>, KyroConfig {
@@ -61,8 +66,11 @@ export class Kyro {
   public readonly appID: string;
   public readonly prefix: string;
   public readonly db: DrizzleDB<any> | undefined;
+  public readonly ownerIDs: readonly string[];
+  public readonly version = "0.1.0";
 
   readonly #connection: Connection;
+  #reload: (() => Promise<void>) | undefined;
   readonly #shutdown = (): void => { void this.stop(); };
 
   public constructor(options: Options) {
@@ -95,6 +103,7 @@ export class Kyro {
     this.appID = appID;
     this.prefix = config.prefix ?? "!";
     this.db = options.database;
+    this.ownerIDs = Object.freeze([...(config.ownerIDs ?? [])]);
     const clientOptions: ClientOptions = { intents: client.intents };
     if (client.partials !== undefined) clientOptions.partials = client.partials;
     if (client.shards !== undefined) clientOptions.shards = client.shards;
@@ -117,6 +126,7 @@ export class Kyro {
       prefix: this.prefix,
       guard: new Guard(config.cooldown),
       onError: options.onError,
+      middleware: config.middleware,
     });
 
     const registrar = new Registrar({
@@ -148,6 +158,8 @@ export class Kyro {
         await evtLoader?.load();
         await cmpLoader?.load();
         await pluginLoader?.load(this);
+        this.commands.add(reloadCommand(this));
+        this.commands.add(versionCommand(this));
         this.#validateIntents();
         this.commands.seal();
         log.info(`Loaded ${this.commands.size} command${this.commands.size === 1 ? "" : "s"}.`);
@@ -165,6 +177,25 @@ export class Kyro {
         await this.db?.close();
       },
     });
+    this.#reload = async () => {
+      if (!this.isReady) throw new Error("Kyro must be running before it can reload.");
+      router.detach();
+      cmpRouter?.detach();
+      evtLoader?.unload();
+      this.commands.reset();
+      await cmdLoader?.reload();
+      await evtLoader?.load();
+      await cmpLoader?.reload();
+      await pluginLoader?.reload(this);
+      if (config.help === true && !this.commands.get("help", "message")) this.commands.add(help(this.commands));
+      this.commands.add(reloadCommand(this));
+      this.commands.add(versionCommand(this));
+      this.commands.seal();
+      router.attach();
+      cmpRouter?.attach();
+      if (config.sync !== "none") await registrar.sync(this.commands);
+      log.info(`Reloaded ${this.commands.size} commands.`);
+    };
     process.once("SIGINT", this.#shutdown);
     process.once("SIGTERM", this.#shutdown);
   }
@@ -186,6 +217,11 @@ export class Kyro {
     process.off("SIGINT", this.#shutdown);
     process.off("SIGTERM", this.#shutdown);
     return this.#connection.stop();
+  }
+
+  public reload(): Promise<void> {
+    if (!this.#reload) return Promise.reject(new Error("Kyro is not initialized."));
+    return this.#reload();
   }
 
   #validateIntents(): void {

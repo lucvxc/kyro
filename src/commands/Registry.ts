@@ -97,6 +97,12 @@ export class Registry {
     this.#sealed = true;
   }
 
+  public reset(): void {
+    this.#commands.clear();
+    this.#aliases.clear();
+    this.#sealed = false;
+  }
+
   #assertAvailable(name: string): void {
     if (this.#commands.has(name) || this.#aliases.has(name)) {
       throw new Error(`The command name or alias "${name}" is already registered.`);

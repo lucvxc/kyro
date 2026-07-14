@@ -31,6 +31,8 @@ export class Loader {
 
     this.#loaded = true;
   }
+
+  public async reload(): Promise<void> { this.#registry.reset(); this.#loaded = false; await this.load(); }
 }
 
 function isCmd(value: unknown): value is Cmd {

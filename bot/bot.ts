@@ -24,6 +24,7 @@ const bot = new Kyro({
     },
   },
   config: {
+    ownerIDs: [process.env.OWNER_ID!],
     commands: "./bot/commands",
     events: "./bot/events",
     components: "./bot/components",
@@ -31,7 +32,7 @@ const bot = new Kyro({
     cooldown: 3,
     prefix: "$",
     help: false,
-  },
+      },
   database: drizzle(process.env.POSTGRES!, { schema }),
 });
 

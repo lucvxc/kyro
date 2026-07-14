@@ -25,6 +25,8 @@ export class Loader {
     this.#loaded = true;
   }
 
+  public async reload(): Promise<void> { this.#items.length = 0; this.#loaded = false; await this.load(); }
+
   public get(id: string): { item: Cmp; params: string[] } | undefined {
     for (const item of this.#items) {
       if (typeof item.id === "string") {

@@ -16,6 +16,7 @@ import { parse } from "./Parser.ts";
 import type { Container } from "../ui/Container.ts";
 import type { Embed } from "../ui/Embed.ts";
 import { Moderation } from "./Moderation.ts";
+import { Server } from "../guild/Server.ts";
 
 export type Source = "slash" | "message";
 export type Input = ChatInputCommandInteraction | Message;
@@ -77,6 +78,10 @@ export class Context {
   }
   public get mod(): Moderation {
     return new Moderation(this.client, this.guild, this.author);
+  }
+  public get server(): Server {
+    if (!this.guild) throw new Error("This action can only be used in a server.");
+    return new Server(this.guild);
   }
 
   public string(name: string): string | null {
@@ -142,6 +147,16 @@ export class Context {
   public async showModal(modal: ModalBuilder): Promise<void> {
     if (!this.interaction) throw new Error("Modals can only be opened from slash commands.");
     await this.interaction.showModal(modal);
+  }
+
+  public async collect(options: object = {}) {
+    const message = this.message ?? await this.inputInteraction().fetchReply();
+    return message.createMessageComponentCollector(options as never);
+  }
+
+  private inputInteraction(): ChatInputCommandInteraction {
+    if (!this.interaction) throw new Error("Collectors require an interaction or message context.");
+    return this.interaction;
   }
 
   #check(name: string, type: ArgType): void {

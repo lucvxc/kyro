@@ -14,6 +14,7 @@ import type { Registry } from "./Registry.ts";
 import { log } from "../core/Log.ts";
 import { AutocompleteContext } from "./Autocomplete.ts";
 import { UserError } from "./Errors.ts";
+import type { Middleware } from "./Middleware.ts";
 
 export type ErrorHandler = (
   error: unknown,
@@ -27,6 +28,7 @@ export interface RouterOptions {
   prefix: string;
   guard: Guard;
   onError?: ErrorHandler;
+  middleware?: readonly Middleware[];
 }
 
 export class Router {
@@ -35,6 +37,7 @@ export class Router {
   readonly #prefix: string;
   readonly #guard: Guard;
   readonly #onError: ErrorHandler;
+  readonly #middleware: readonly Middleware[];
   #attached = false;
 
   public constructor(options: RouterOptions) {
@@ -43,6 +46,7 @@ export class Router {
     this.#prefix = options.prefix;
     this.#guard = options.guard;
     this.#onError = options.onError ?? logError;
+    this.#middleware = options.middleware ?? [];
   }
 
   public attach(): void {
@@ -113,7 +117,7 @@ export class Router {
         return;
       }
 
-      await command.run(ctx);
+      await runMiddleware(this.#middleware, ctx, () => command.run(ctx));
     } catch (error) {
       await this.#onError(error, ctx, command);
       if (ctx.source === "slash" && !ctx.interaction?.replied && !ctx.interaction?.deferred) {
@@ -124,6 +128,12 @@ export class Router {
       }
     }
   }
+}
+
+async function runMiddleware(middleware: readonly Middleware[], ctx: Context, run: () => void | Promise<void>, index = 0): Promise<void> {
+  const current = middleware[index];
+  if (!current) { await run(); return; }
+  await current(ctx, () => runMiddleware(middleware, ctx, run, index + 1));
 }
 
 function getPath(interaction: ChatInputCommandInteraction | AutocompleteInteraction): string {

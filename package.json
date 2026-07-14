@@ -1,9 +1,12 @@
 {
-  "name": "kyro",
+  "name": "@lucvmf/kyro",
   "version": "0.1.0",
   "description": "A clean Discord.js framework for commands, events, components, and modals.",
   "license": "MIT",
   "private": false,
+  "publishConfig": {
+    "access": "restricted"
+  },
   "module": "index.ts",
   "main": "dist/index.js",
   "types": "index.ts",
