@@ -1,0 +1,49 @@
+import type {
+  ButtonInteraction,
+  Client,
+  Interaction,
+  ModalSubmitInteraction,
+  StringSelectMenuInteraction,
+  PermissionResolvable,
+} from "discord.js";
+import type { Container } from "../ui/Container.ts";
+import type { Embed } from "../ui/Embed.ts";
+
+export type ComponentInput = ButtonInteraction | StringSelectMenuInteraction | ModalSubmitInteraction;
+export type ComponentReply = string | Embed | Container;
+export type ComponentId = string | RegExp;
+
+export interface CmpContext {
+  readonly client: Client;
+  readonly interaction: ComponentInput;
+  readonly id: string;
+  readonly user: ComponentInput["user"];
+  readonly guild: ComponentInput["guild"];
+  readonly values: readonly string[];
+  readonly params: readonly string[];
+  field(name: string): string | null;
+  showModal(modal: import("discord.js").ModalBuilder): Promise<void>;
+  reply(content: ComponentReply): Promise<void>;
+  update(content: ComponentReply): Promise<void>;
+  defer(): Promise<void>;
+}
+
+export interface Cmp {
+  id: ComponentId;
+  permissions?: readonly PermissionResolvable[];
+  context?: "both" | "guild" | "dms";
+  cooldown?: number;
+  run(ctx: CmpContext): void | Promise<void>;
+  error?(error: unknown, ctx: CmpContext): void | Promise<void>;
+}
+
+export function cmp(value: Cmp): Cmp {
+  if (!value?.id || (typeof value.id === "string" && !value.id.trim()) || typeof value.run !== "function") {
+    throw new TypeError("A component needs an id and run function.");
+  }
+  return value;
+}
+
+export function isComponentInteraction(value: Interaction): value is ComponentInput {
+  return value.isButton() || value.isAnySelectMenu() || value.isModalSubmit();
+}

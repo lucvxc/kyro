@@ -1,0 +1,42 @@
+{
+  "name": "kyro",
+  "version": "0.1.0",
+  "description": "A clean Discord.js framework for commands, events, components, and modals.",
+  "license": "MIT",
+  "private": false,
+  "module": "index.ts",
+  "main": "dist/index.js",
+  "types": "index.ts",
+  "exports": {
+    ".": {
+      "bun": "./index.ts",
+      "import": "./dist/index.js",
+      "types": "./index.ts"
+    }
+  },
+  "type": "module",
+  "scripts": {
+    "bot": "bun run bot/bot.ts",
+    "test": "bun test",
+    "check": "bunx tsc --noEmit",
+    "build": "bun build index.ts --outdir dist --target bun",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "prepublishOnly": "bun run check && bun test"
+  },
+  "files": ["dist", "src", "index.ts", "README.md", "LICENSE"],
+  "devDependencies": {
+    "@types/bun": "latest",
+    "drizzle-kit": "^0.31.10"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "chalk": "^5.6.2",
+    "discord.js": "^14.26.5",
+    "dotenv": "^17.4.2",
+    "drizzle-orm": "^0.45.2",
+    "postgres": "^3.4.9"
+  }
+}

@@ -1,0 +1,138 @@
+import {
+  Events,
+  type ChatInputCommandInteraction,
+  type AutocompleteInteraction,
+  type Client,
+  type Interaction,
+  type Message,
+} from "discord.js";
+
+import type { Entry } from "./Cmd.ts";
+import { Context } from "./Context.ts";
+import type { Guard } from "./Guard.ts";
+import type { Registry } from "./Registry.ts";
+import { log } from "../core/Log.ts";
+import { AutocompleteContext } from "./Autocomplete.ts";
+import { UserError } from "./Errors.ts";
+
+export type ErrorHandler = (
+  error: unknown,
+  ctx: Context,
+  command: Entry,
+) => void | Promise<void>;
+
+export interface RouterOptions {
+  client: Client;
+  registry: Registry;
+  prefix: string;
+  guard: Guard;
+  onError?: ErrorHandler;
+}
+
+export class Router {
+  readonly #client: Client;
+  readonly #registry: Registry;
+  readonly #prefix: string;
+  readonly #guard: Guard;
+  readonly #onError: ErrorHandler;
+  #attached = false;
+
+  public constructor(options: RouterOptions) {
+    this.#client = options.client;
+    this.#registry = options.registry;
+    this.#prefix = options.prefix;
+    this.#guard = options.guard;
+    this.#onError = options.onError ?? logError;
+  }
+
+  public attach(): void {
+    if (this.#attached) return;
+
+    this.#client.on(Events.InteractionCreate, this.#onInteraction);
+    this.#client.on(Events.MessageCreate, this.#onMessage);
+    this.#attached = true;
+  }
+
+  public detach(): void {
+    if (!this.#attached) return;
+
+    this.#client.off(Events.InteractionCreate, this.#onInteraction);
+    this.#client.off(Events.MessageCreate, this.#onMessage);
+    this.#attached = false;
+  }
+
+  readonly #onInteraction = (interaction: Interaction): void => {
+    if (interaction.isAutocomplete()) {
+      void this.#autocomplete(interaction);
+      return;
+    }
+    if (!interaction.isChatInputCommand()) return;
+
+    const path = getPath(interaction);
+    const command = this.#registry.get(path, "slash");
+    if (!command) return;
+
+    const ctx = new Context("slash", interaction, command);
+    void this.#run(command, ctx);
+  };
+
+  async #autocomplete(interaction: AutocompleteInteraction): Promise<void> {
+    const command = this.#registry.get(getPath(interaction), "slash");
+    if (!command?.autocomplete) return;
+    try {
+      const result = await command.autocomplete(new AutocompleteContext(interaction));
+      if (Array.isArray(result)) await interaction.respond(result.slice(0, 25) as never);
+      else if (!interaction.responded) await interaction.respond([]);
+    } catch (error) {
+      log.error(`Autocomplete for "${command.name}" failed.`, error);
+      if (!interaction.responded) await interaction.respond([]).catch(() => undefined);
+    }
+  }
+
+  readonly #onMessage = (message: Message): void => {
+    if (message.author.bot || !message.content.startsWith(this.#prefix)) return;
+
+    const match = this.#registry.match(message.content.slice(this.#prefix.length));
+    if (!match) return;
+
+    const ctx = new Context("message", message, match.command, match.args);
+    void this.#run(match.command, ctx);
+  };
+
+  async #run(command: Entry, ctx: Context): Promise<void> {
+    try {
+      const blocked = this.#guard.check(command, ctx);
+      if (blocked === null) return;
+      if (blocked) {
+        await ctx.reply(blocked);
+        return;
+      }
+
+      if (ctx.issue) {
+        await ctx.reply(ctx.issue);
+        return;
+      }
+
+      await command.run(ctx);
+    } catch (error) {
+      await this.#onError(error, ctx, command);
+      if (ctx.source === "slash" && !ctx.interaction?.replied && !ctx.interaction?.deferred) {
+        const message = error instanceof UserError
+          ? error.message
+          : "Something went wrong while running that command.";
+        await ctx.reply(message).catch(() => undefined);
+      }
+    }
+  }
+}
+
+function getPath(interaction: ChatInputCommandInteraction | AutocompleteInteraction): string {
+  const group = interaction.options.getSubcommandGroup(false);
+  const subcommand = interaction.options.getSubcommand(false);
+
+  return [interaction.commandName, group, subcommand].filter(Boolean).join(" ");
+}
+
+function logError(error: unknown, _ctx: Context, command: Entry): void {
+  log.error(`Command "${command.name}" failed.`, error);
+}
