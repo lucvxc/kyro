@@ -14,7 +14,7 @@ const bot = new Kyro({
     ],
     partials: [Partials.Channel],
     presence: {
-      status: "online",
+      status: "vr",
       activities: [
         {
           name: "with Kyro",

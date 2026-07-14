@@ -28,6 +28,7 @@ export {
   Shards,
   plugin,
   jsk,
+  status,
 } from "./src/index.ts";
 export type {
   Arg,
@@ -55,6 +56,8 @@ export type {
   ModOptions,
   ClientConfig,
   KyroConfig,
+  PresenceConfig,
+  DeviceStatus,
   DrizzleOptions,
   CacheOptions,
   LimitOptions,

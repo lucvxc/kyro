@@ -15,6 +15,11 @@ import { help } from "./commands/Help.ts";
 import type { DrizzleDB } from "./db/Drizzle.ts";
 import { Loader as PluginLoader } from "./plugins/Loader.ts";
 import type { Plugin } from "./plugins/Plugin.ts";
+import { isDeviceStatus, status, type DeviceStatus } from "./core/Status.ts";
+
+export interface PresenceConfig extends Omit<PresenceData, "status"> {
+  status?: PresenceData["status"] | DeviceStatus;
+}
 
 export interface ClientConfig {
   token: string;
@@ -23,7 +28,7 @@ export interface ClientConfig {
   partials?: ClientOptions["partials"];
   shards?: ClientOptions["shards"];
   shardCount?: ClientOptions["shardCount"];
-  presence?: PresenceData;
+  presence?: PresenceConfig;
 }
 
 export interface KyroConfig {
@@ -94,7 +99,15 @@ export class Kyro {
     if (client.partials !== undefined) clientOptions.partials = client.partials;
     if (client.shards !== undefined) clientOptions.shards = client.shards;
     if (client.shardCount !== undefined) clientOptions.shardCount = client.shardCount;
-    if (client.presence !== undefined) clientOptions.presence = client.presence;
+    if (client.presence !== undefined) {
+      if (isDeviceStatus(client.presence.status)) {
+        status(client.presence.status);
+        const { status: _device, ...presence } = client.presence;
+        clientOptions.presence = presence;
+      } else {
+        clientOptions.presence = client.presence as PresenceData;
+      }
+    }
     this.client = new Client(clientOptions);
     this.commands = new Registry();
 

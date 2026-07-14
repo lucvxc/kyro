@@ -19,7 +19,7 @@
     "bot": "bun run bot/bot.ts",
     "test": "bun test",
     "check": "bunx tsc --noEmit",
-    "build": "bun build index.ts --outdir dist --target bun",
+    "build": "bun build index.ts --outdir dist --target bun --packages external",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "prepublishOnly": "bun run check && bun test"
@@ -33,6 +33,7 @@
     "typescript": "^5"
   },
   "dependencies": {
+    "@discordjs/ws": "^1.2.3",
     "chalk": "^5.6.2",
     "discord.js": "^14.26.5",
     "dotenv": "^17.4.2",

@@ -1,4 +1,4 @@
-export { Kyro, type Options, type ClientConfig, type KyroConfig } from "./Kyro.ts";
+export { Kyro, type Options, type ClientConfig, type KyroConfig, type PresenceConfig } from "./Kyro.ts";
 export type { Arg, Args, ArgType } from "./commands/Arg.ts";
 export { cmd, type Cmd, type CmdContext, type CmdType } from "./commands/Cmd.ts";
 export { Context, type Source } from "./commands/Context.ts";
@@ -12,6 +12,7 @@ export { DrizzleDB, drizzle, type DrizzleOptions } from "./db/Drizzle.ts";
 export { Cache, type CacheOptions } from "./core/Cache.ts";
 export { Limit, type LimitOptions } from "./core/Limit.ts";
 export { Shards, type ShardOptions } from "./core/Shards.ts";
+export { status, type DeviceStatus } from "./core/Status.ts";
 export { plugin, type Plugin } from "./plugins/Plugin.ts";
 export { jsk } from "./plugins/Jsk.ts";
 export { cmp, type Cmp, type CmpContext } from "./components/Cmp.ts";
