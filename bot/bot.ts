@@ -1,4 +1,4 @@
-import { GatewayIntentBits, Partials } from "discord.js";
+import { ActivityType, GatewayIntentBits, Partials } from "discord.js";
 import { Kyro, drizzle, jsk } from "../index.ts";
 import * as schema from "./db/schema.ts";
 
@@ -13,6 +13,15 @@ const bot = new Kyro({
       GatewayIntentBits.DirectMessages,
     ],
     partials: [Partials.Channel],
+    presence: {
+      status: "online",
+      activities: [
+        {
+          name: "with Kyro",
+          type: ActivityType.Playing,
+        },
+      ],
+    },
   },
   config: {
     commands: "./bot/commands",

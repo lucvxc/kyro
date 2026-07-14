@@ -1,4 +1,4 @@
-import { Client, GatewayIntentBits, Partials, type ClientOptions } from "discord.js";
+import { Client, GatewayIntentBits, Partials, type ClientOptions, type PresenceData } from "discord.js";
 
 import type { Cmd } from "./commands/Cmd.ts";
 import { Guard } from "./commands/Guard.ts";
@@ -23,6 +23,7 @@ export interface ClientConfig {
   partials?: ClientOptions["partials"];
   shards?: ClientOptions["shards"];
   shardCount?: ClientOptions["shardCount"];
+  presence?: PresenceData;
 }
 
 export interface KyroConfig {
@@ -93,6 +94,7 @@ export class Kyro {
     if (client.partials !== undefined) clientOptions.partials = client.partials;
     if (client.shards !== undefined) clientOptions.shards = client.shards;
     if (client.shardCount !== undefined) clientOptions.shardCount = client.shardCount;
+    if (client.presence !== undefined) clientOptions.presence = client.presence;
     this.client = new Client(clientOptions);
     this.commands = new Registry();
 
