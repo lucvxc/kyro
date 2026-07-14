@@ -17,6 +17,7 @@ import { Loader as PluginLoader } from "./plugins/Loader.ts";
 import type { Plugin } from "./plugins/Plugin.ts";
 import { reload as reloadCommand } from "./commands/Reload.ts";
 import type { Middleware } from "./commands/Middleware.ts";
+import type { PrefixResolver, AliasResolver } from "./commands/RouterTypes.ts";
 import { version as versionCommand } from "./commands/Version.ts";
 import { isDeviceStatus, status, type DeviceStatus } from "./core/Status.ts";
 
@@ -24,7 +25,7 @@ export interface PresenceConfig extends Omit<PresenceData, "status"> {
   status?: PresenceData["status"] | DeviceStatus;
 }
 
-export interface ClientConfig {
+export type ClientConfig = Omit<Partial<ClientOptions>, "presence" | "intents" | "partials"> & {
   token: string;
   appID: string;
   intents: ClientOptions["intents"];
@@ -32,14 +33,15 @@ export interface ClientConfig {
   shards?: ClientOptions["shards"];
   shardCount?: ClientOptions["shardCount"];
   presence?: PresenceConfig;
-}
+};
 
 export interface KyroConfig {
   commands?: string;
   events?: string;
   components?: string;
   cooldown?: number;
-  prefix?: string;
+  prefix?: string | PrefixResolver;
+  resolveAlias?: AliasResolver;
   guildID?: string;
   sync?: "global" | "guild" | "none";
   help?: boolean;
@@ -55,7 +57,8 @@ export interface Options extends Partial<ClientConfig>, KyroConfig {
   events?: string;
   components?: string;
   cooldown?: number;
-  prefix?: string;
+  prefix?: string | PrefixResolver;
+  resolveAlias?: AliasResolver;
   onError?: ErrorHandler;
   database?: DrizzleDB<any>;
 }
@@ -64,7 +67,7 @@ export class Kyro {
   public readonly client: Client;
   public readonly commands: Registry;
   public readonly appID: string;
-  public readonly prefix: string;
+  public readonly prefix: string | PrefixResolver;
   public readonly db: DrizzleDB<any> | undefined;
   public readonly ownerIDs: readonly string[];
   public readonly version = "0.1.0";
@@ -104,7 +107,9 @@ export class Kyro {
     this.prefix = config.prefix ?? "!";
     this.db = options.database;
     this.ownerIDs = Object.freeze([...(config.ownerIDs ?? [])]);
-    const clientOptions: ClientOptions = { intents: client.intents };
+    const clientOptions: ClientOptions = { ...client, intents: client.intents };
+    delete (clientOptions as Record<string, unknown>).token;
+    delete (clientOptions as Record<string, unknown>).appID;
     if (client.partials !== undefined) clientOptions.partials = client.partials;
     if (client.shards !== undefined) clientOptions.shards = client.shards;
     if (client.shardCount !== undefined) clientOptions.shardCount = client.shardCount;
@@ -124,6 +129,7 @@ export class Kyro {
       client: this.client,
       registry: this.commands,
       prefix: this.prefix,
+      resolveAlias: config.resolveAlias,
       guard: new Guard(config.cooldown),
       onError: options.onError,
       middleware: config.middleware,
@@ -138,7 +144,7 @@ export class Kyro {
       ? new CmdLoader(this.commands, config.commands)
       : undefined;
     const evtLoader = config.events
-      ? new EvtLoader(this.client, config.events)
+      ? new EvtLoader(this.client, config.events, this)
       : undefined;
     const cmpLoader = config.components
       ? new CmpLoader(config.components)

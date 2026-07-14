@@ -15,6 +15,7 @@ import { log } from "../core/Log.ts";
 import { AutocompleteContext } from "./Autocomplete.ts";
 import { UserError } from "./Errors.ts";
 import type { Middleware } from "./Middleware.ts";
+import type { PrefixResolver, AliasResolver } from "./RouterTypes.ts";
 
 export type ErrorHandler = (
   error: unknown,
@@ -25,7 +26,8 @@ export type ErrorHandler = (
 export interface RouterOptions {
   client: Client;
   registry: Registry;
-  prefix: string;
+  prefix: string | PrefixResolver;
+  resolveAlias?: AliasResolver;
   guard: Guard;
   onError?: ErrorHandler;
   middleware?: readonly Middleware[];
@@ -34,7 +36,8 @@ export interface RouterOptions {
 export class Router {
   readonly #client: Client;
   readonly #registry: Registry;
-  readonly #prefix: string;
+  readonly #prefix: string | PrefixResolver;
+  readonly #resolveAlias: AliasResolver | undefined;
   readonly #guard: Guard;
   readonly #onError: ErrorHandler;
   readonly #middleware: readonly Middleware[];
@@ -44,6 +47,7 @@ export class Router {
     this.#client = options.client;
     this.#registry = options.registry;
     this.#prefix = options.prefix;
+    this.#resolveAlias = options.resolveAlias;
     this.#guard = options.guard;
     this.#onError = options.onError ?? logError;
     this.#middleware = options.middleware ?? [];
@@ -93,15 +97,27 @@ export class Router {
     }
   }
 
-  readonly #onMessage = (message: Message): void => {
-    if (message.author.bot || !message.content.startsWith(this.#prefix)) return;
+  readonly #onMessage = (message: Message): void => { void this.#message(message); };
 
-    const match = this.#registry.match(message.content.slice(this.#prefix.length));
+  async #message(message: Message): Promise<void> {
+    if (message.author.bot) return;
+    const input = message.content;
+    const resolved = typeof this.#prefix === "function" ? await this.#prefix(message) : this.#prefix;
+    const prefixes = typeof resolved === "string" ? [resolved] : resolved;
+    const prefix = prefixes.find(value => input.startsWith(value));
+    if (!prefix) return;
+    const body = input.slice(prefix.length).trim();
+    let match = this.#registry.match(body);
+    if (!match && this.#resolveAlias) {
+      const name = await this.#resolveAlias(message, body);
+      const command = name ? this.#registry.get(name, "message") : undefined;
+      if (command) match = this.#registry.matchAs(command, body.split(/\s+/).slice(1).join(" "));
+    }
     if (!match) return;
 
     const ctx = new Context("message", message, match.command, match.args);
     void this.#run(match.command, ctx);
-  };
+  }
 
   async #run(command: Entry, ctx: Context): Promise<void> {
     try {

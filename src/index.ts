@@ -9,6 +9,7 @@ export { AutocompleteContext, type Choice } from "./commands/Autocomplete.ts";
 export { UserError, CommandError } from "./commands/Errors.ts";
 export { Moderation, type ModOptions } from "./commands/Moderation.ts";
 export type { Middleware, Next } from "./commands/Middleware.ts";
+export type { PrefixResolver, AliasResolver } from "./commands/RouterTypes.ts";
 export { Server } from "./guild/Server.ts";
 export { DrizzleDB, drizzle, type DrizzleOptions } from "./db/Drizzle.ts";
 export { Cache, type CacheOptions } from "./core/Cache.ts";

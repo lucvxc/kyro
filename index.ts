@@ -62,6 +62,8 @@ export type {
   DrizzleOptions,
   Middleware,
   Next,
+  PrefixResolver,
+  AliasResolver,
   CacheOptions,
   LimitOptions,
   ShardOptions,

@@ -4,6 +4,7 @@ import type { Client, ClientEvents } from "discord.js";
 
 import { scan } from "../core/Files.ts";
 import { log } from "../core/Log.ts";
+import type { Kyro } from "../Kyro.ts";
 
 interface LoadedEvt {
   name: keyof ClientEvents;
@@ -21,12 +22,14 @@ interface Listener {
 
 export class Loader {
   readonly #client: Client;
+  readonly #bot: Kyro | undefined;
   readonly #directory: string;
   readonly #listeners: Listener[] = [];
   #loaded = false;
 
-  public constructor(client: Client, directory: string) {
+  public constructor(client: Client, directory: string, bot?: Kyro) {
     this.#client = client;
+    this.#bot = bot;
     this.#directory = resolve(directory);
   }
 
@@ -77,7 +80,7 @@ export class Loader {
             this.#client.off(event.name, run as never);
           }
 
-          await event.run(...args);
+          await event.run(...args, ...(this.#bot ? [this.#bot] : []));
         } catch (error) {
           await this.#error(event, error, args);
         } finally {

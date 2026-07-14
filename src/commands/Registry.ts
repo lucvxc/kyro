@@ -89,6 +89,8 @@ export class Registry {
     return undefined;
   }
 
+  public matchAs(command: Entry, input: string): Match { return { command, args: tokenize(input) }; }
+
   public values(): Entry[] {
     return [...this.#commands.values()];
   }

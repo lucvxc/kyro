@@ -14,6 +14,7 @@ export interface Cmd {
   args?: Args;
   context?: CmdContext;
   permissions?: readonly PermissionResolvable[];
+  meta?: Readonly<Record<string, unknown>>;
   run(ctx: Context): void | Promise<void>;
   autocomplete?(ctx: AutocompleteContext): readonly Choice[] | Promise<readonly Choice[]> | void | Promise<void>;
 }

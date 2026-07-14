@@ -62,6 +62,7 @@ export class Context {
       ? (this.input as ChatInputCommandInteraction).user
       : (this.input as Message).author;
   }
+  public get command(): Entry { return this.#entry; }
 
   public get guild(): Guild | null {
     return this.input.guild;
