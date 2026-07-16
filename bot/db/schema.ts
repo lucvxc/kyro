@@ -1,4 +1,4 @@
-import { boolean, integer, jsonb, pgTable, text, timestamp, varchar } from "drizzle-orm/pg-core";
+import { boolean, index, integer, jsonb, pgTable, primaryKey, serial, text, timestamp, varchar } from "drizzle-orm/pg-core";
 import type {
   AutoMessage,
   AutoResponse,
@@ -51,7 +51,7 @@ export const guilds = pgTable("guilds", {
   reactionRoles: jsonb("reaction_roles").$type<RoleMenu[]>().notNull().default([]),
   buttonRoles: jsonb("button_roles").$type<RoleMenu[]>().notNull().default([]),
   boosterRoles: jsonb("booster_roles").$type<BoosterRole[]>().notNull().default([]),
-  stickyRoles: jsonb("sticky_roles").$type<string[]>().notNull().default([]),
+  stickyRoles: boolean("sticky_roles").notNull().default(false),
   fakePermissions: jsonb("fake_permissions").$type<FakePermissionMap>().notNull().default({}),
 
   counting: jsonb("counting").$type<CountingSettings>().notNull().default({}),
@@ -69,3 +69,32 @@ export const guilds = pgTable("guilds", {
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });
+
+export const warnings = pgTable("warnings", {
+  id: serial("id").primaryKey(),
+  guildId: text("guild_id").notNull(),
+  userId: text("user_id").notNull(),
+  moderatorId: text("moderator_id").notNull(),
+  reason: text("reason").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, table => [
+  index("warnings_member_idx").on(table.guildId, table.userId),
+]);
+
+export const tempRoles = pgTable("temp_roles", {
+  guildId: text("guild_id").notNull(),
+  userId: text("user_id").notNull(),
+  roleId: text("role_id").notNull(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+}, table => [
+  primaryKey({ columns: [table.guildId, table.userId, table.roleId] }),
+  index("temp_roles_expiry_idx").on(table.expiresAt),
+]);
+
+export const stickyMembers = pgTable("sticky_members", {
+  guildId: text("guild_id").notNull(),
+  userId: text("user_id").notNull(),
+  roleId: text("role_id").notNull(),
+}, table => [
+  primaryKey({ columns: [table.guildId, table.userId, table.roleId] }),
+]);

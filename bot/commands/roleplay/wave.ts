@@ -1,3 +1,3 @@
-import { target } from "../../utils/roleplay.ts";
+import { target } from "../../utils/api/nekos/roleplay.ts";
 
 export default target("wave", "waves at");

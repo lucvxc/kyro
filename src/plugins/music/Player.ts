@@ -14,10 +14,21 @@ export class Player {
   public set loop(value: Loop) { this.raw.setLoop(value); }
   public get paused(): boolean { return this.raw.paused; }
   public get volume(): number { return this.raw.volume; }
+  public get position(): number {
+    const current = this.raw.current as (MoonTrack & { time?: number }) | null;
+    if (!current) return 0;
+
+    const updated = typeof current.time === "number" ? current.time : this.raw.lastPositionTime;
+    let position = current.position ?? this.raw.lastPosition ?? 0;
+    if (this.raw.playing && !this.raw.paused && Number.isFinite(updated)) position += Date.now() - updated;
+
+    if (current.isStream) return Math.max(0, position);
+    return Math.max(0, Math.min(position, current.duration));
+  }
   public get state(): PlayerState {
     return {
       time: Date.now(),
-      position: this.raw.lastPosition,
+      position: this.position,
       connected: this.raw.connected,
       ping: this.raw.ping,
     };
@@ -28,7 +39,11 @@ export class Player {
   }
 
   public async setVolume(value: number): Promise<void> { this.raw.setVolume(value); }
-  public async seek(position: number): Promise<void> { await this.raw.seek(position); }
+  public async seek(position: number): Promise<void> {
+    await this.raw.seek(position);
+    this.raw.lastPosition = position;
+    this.raw.lastPositionTime = Date.now();
+  }
   public shuffle(): void { this.raw.shuffle(); }
   public async destroy(): Promise<void> { await this.raw.destroy("Kyro stopped the player."); }
 }

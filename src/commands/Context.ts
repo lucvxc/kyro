@@ -8,6 +8,7 @@ import type {
   Message,
   MessageComponentInteraction,
   Role,
+  ThreadChannel,
   User,
 } from "discord.js";
 
@@ -107,6 +108,11 @@ export class Context {
     const music = musicFor(this.client);
     if (!music) throw new UserError("The NodeLink music plugin is not enabled.");
     return music.context(this);
+  }
+  public get thread(): ThreadChannel {
+    const channel = this.guild?.channels.cache.get(this.input.channelId);
+    if (!channel?.isThread()) throw new UserError("This command can only be used inside a thread.");
+    return channel;
   }
 
   public string(name: string): string | null {
@@ -211,6 +217,11 @@ export class Context {
 
     await interaction.reply(options as never);
     this.#response = await interaction.fetchReply();
+  }
+
+  public async send(channel: GuildBasedChannel, content: Reply): Promise<void> {
+    if (!channel.isSendable()) throw new UserError("Messages cannot be sent in that channel.");
+    await channel.send(replyOptions(content) as never);
   }
 
   public async showModal(modal: ModalBuilder): Promise<void> {

@@ -22,6 +22,11 @@ export interface CmpContext {
   readonly values: readonly string[];
   readonly params: readonly string[];
   field(name: string): string | null;
+  strings(name: string): readonly string[];
+  files(name: string): readonly import("discord.js").Attachment[];
+  radio(name: string): string | null;
+  checkbox(name: string): boolean | null;
+  checks(name: string): readonly string[];
   showModal(modal: import("discord.js").ModalBuilder): Promise<void>;
   reply(content: ComponentReply): Promise<void>;
   update(content: ComponentReply): Promise<void>;

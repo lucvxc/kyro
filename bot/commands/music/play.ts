@@ -1,4 +1,5 @@
-import { cmd, song } from "../../../index.ts";
+import { cmd, container, song, thumb } from "../../../index.ts";
+import { colors } from "../../utils/config/config.ts";
 
 export default cmd({
   name: "play",
@@ -13,8 +14,17 @@ export default cmd({
     const result = await ctx.music.play(ctx.string("query")!);
     const added = result.tracks.length;
     if (result.playlist) {
-      return ctx.reply(`${result.started ? "Playing" : "Added"} **${added} songs** from **${result.playlist}**.`);
+      return ctx.reply(container()
+        .accent(colors.default)
+        .text(`## ${result.started ? "Playing Playlist" : "Playlist Added"}\n**${added} songs** from **${result.playlist}**.`));
     }
-    return ctx.reply(`${result.started ? "Playing" : "Added"} ${song(result.tracks[0]!)}${result.started ? "." : " to the queue."}`);
+
+    const track = result.tracks[0]!;
+    return ctx.reply(container()
+      .accent(colors.default)
+      .section(
+        `## ${result.started ? "Now Playing" : "Added to Queue"}\n${song(track)}`,
+        track.info.artworkUrl ? thumb(track.info.artworkUrl) : undefined,
+      ));
   },
 });

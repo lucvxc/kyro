@@ -4,7 +4,6 @@ import embeds from "../../utils/config/embeds.ts";
 
 export default cmd({
   name: "role",
-  aliases: ["togglerole", "tr"],
   description: "Add or remove a role from a member.",
   type: "message",
   context: "guild",

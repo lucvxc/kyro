@@ -6,11 +6,13 @@ import {
   type GuildMember,
   type Message,
   type Role,
+  type ThreadChannel,
   type User,
 } from "discord.js";
 import { UserError } from "../commands/Errors.ts";
 
 type Target = User | string;
+export type CleanMessages = "bots" | "links" | "images" | "embeds" | "files";
 
 export class Server {
   public readonly roles: Roles;
@@ -65,17 +67,57 @@ class Channels {
     const deleted = await channel.bulkDelete(selected, true);
     return deleted.size;
   }
+  public async nuke(channel: GuildBasedChannel, reason?: string): Promise<GuildBasedChannel> {
+    if (!("clone" in channel) || typeof channel.clone !== "function") throw new UserError("This channel cannot be nuked.");
+    const replacement = await channel.clone({ reason });
+    await replacement.setPosition(channel.rawPosition, { reason });
+    await channel.delete(reason);
+    return replacement;
+  }
+  public async clean(channel: GuildBasedChannel, kind: CleanMessages, amount = 100): Promise<number> {
+    if (!("messages" in channel) || !("bulkDelete" in channel)) throw new UserError("Messages cannot be deleted in this channel.");
+    const messages = await channel.messages.fetch({ limit: 100 });
+    const matches = {
+      bots: (message: Message) => message.author.bot,
+      links: (message: Message) => /https?:\/\/\S+/i.test(message.content),
+      images: (message: Message) => message.attachments.some(file => file.contentType?.startsWith("image/")),
+      embeds: (message: Message) => message.embeds.length > 0,
+      files: (message: Message) => message.attachments.size > 0,
+    }[kind];
+    const selected = [...messages.values()].filter(matches).slice(0, Math.min(100, Math.max(1, amount)));
+    const deleted = await channel.bulkDelete(selected, true);
+    return deleted.size;
+  }
+  public async lockAll(reason?: string): Promise<number> { return this.#all({ SendMessages: false }, reason, true); }
+  public async unlockAll(reason?: string): Promise<number> { return this.#all({ SendMessages: null }, reason, true); }
+  public async hideAll(reason?: string): Promise<number> { return this.#all({ ViewChannel: false }, reason); }
+  public async showAll(reason?: string): Promise<number> { return this.#all({ ViewChannel: null }, reason); }
 
   async #overwrite(channel: GuildBasedChannel, permissions: object, reason?: string): Promise<void> {
     if (!("permissionOverwrites" in channel)) throw new UserError("Permissions cannot be changed for this channel.");
     await channel.permissionOverwrites.edit(this.guild.roles.everyone.id, permissions, { reason });
+  }
+  async #all(permissions: object, reason?: string, textOnly = false): Promise<number> {
+    const channels = [...this.guild.channels.cache.values()].filter(channel =>
+      "permissionOverwrites" in channel && (!textOnly || channel.isTextBased()));
+    await Promise.all(channels.map(channel => this.#overwrite(channel, permissions, reason)));
+    return channels.length;
   }
 }
 
 class Threads {
   public constructor(private readonly guild: Guild) {}
   public async create(message: Message, name: string, reason?: string) { if (message.guildId !== this.guild.id) throw new UserError("That message is not in this server."); return message.startThread({ name, reason }); }
-  public async archive(thread: { setArchived(value: boolean, reason?: string): Promise<unknown> }, reason?: string): Promise<void> { await thread.setArchived(true, reason); }
+  public async archive(thread: ThreadChannel, value = true, reason?: string): Promise<void> { await thread.setArchived(value, reason); }
+  public async lock(thread: ThreadChannel, value = true, reason?: string): Promise<void> { await thread.setLocked(value, reason); }
+  public async name(thread: ThreadChannel, value: string, reason?: string): Promise<void> {
+    if (!value.trim()) throw new UserError("Thread names cannot be empty.");
+    await thread.setName(value, reason);
+  }
+  public async slowmode(thread: ThreadChannel, seconds: number, reason?: string): Promise<void> {
+    if (!Number.isInteger(seconds) || seconds < 0 || seconds > 21_600) throw new UserError("Thread slowmode must be between 0 seconds and 6 hours.");
+    await thread.setRateLimitPerUser(seconds, reason);
+  }
 }
 
 class Permissions {

@@ -18,7 +18,35 @@ export class ComponentContext {
   }
   public get params(): readonly string[] { return this.id.split(":").slice(1); }
   public field(name: string): string | null {
-    return this.interaction.isModalSubmit() ? this.interaction.fields.getTextInputValue(name) || null : null;
+    if (!this.interaction.isModalSubmit()) return null;
+    const interaction = this.interaction;
+    return safe(() => interaction.fields.getTextInputValue(name) || null, null);
+  }
+  public strings(name: string): readonly string[] {
+    if (!this.interaction.isModalSubmit()) return [];
+    const interaction = this.interaction;
+    return safe(() => interaction.fields.getStringSelectValues(name), []);
+  }
+  public files(name: string): readonly import("discord.js").Attachment[] {
+    if (!this.interaction.isModalSubmit()) return [];
+    const interaction = this.interaction;
+    const files = safe(() => interaction.fields.getUploadedFiles(name), null);
+    return files ? [...files.values()] : [];
+  }
+  public radio(name: string): string | null {
+    if (!this.interaction.isModalSubmit()) return null;
+    const interaction = this.interaction;
+    return safe(() => interaction.fields.getRadioGroup(name), null);
+  }
+  public checkbox(name: string): boolean | null {
+    if (!this.interaction.isModalSubmit()) return null;
+    const interaction = this.interaction;
+    return safe(() => interaction.fields.getCheckbox(name), null);
+  }
+  public checks(name: string): readonly string[] {
+    if (!this.interaction.isModalSubmit()) return [];
+    const interaction = this.interaction;
+    return safe(() => interaction.fields.getCheckboxGroup(name), []);
   }
   public showModal(modal: import("discord.js").ModalBuilder): Promise<void> {
     if (!this.interaction.isButton()) throw new Error("Only buttons can show modals.");
@@ -39,6 +67,10 @@ export class ComponentContext {
   public defer(): Promise<void> {
     return this.interaction.deferUpdate().then(() => undefined);
   }
+}
+
+function safe<T>(run: () => T, fallback: T): T {
+  try { return run(); } catch { return fallback; }
 }
 
 function toReply(value: ComponentReply): object {

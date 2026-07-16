@@ -1,10 +1,9 @@
 import { ActivityType, GatewayIntentBits, Partials } from "discord.js";
-import { Kyro, drizzle, jsk, nodelink } from "../index.ts";
-import * as schema from "./db/schema.ts";
+import { Kyro, jsk, nodelink } from "../index.ts";
+import { database } from "./db/database.ts";
 import embeds from "./utils/config/embeds.ts";
 import { fakePerms } from "./utils/fakepermissions.ts";
 
-const database = drizzle(process.env.POSTGRES!, { schema });
 fakePerms.use(database.db);
 
 const bot = new Kyro({
@@ -14,6 +13,7 @@ const bot = new Kyro({
     intents: [
       GatewayIntentBits.Guilds,
       GatewayIntentBits.GuildMessages,
+      GatewayIntentBits.GuildMembers,
       GatewayIntentBits.MessageContent,
       GatewayIntentBits.DirectMessages,
       GatewayIntentBits.GuildVoiceStates,

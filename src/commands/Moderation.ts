@@ -70,6 +70,37 @@ export class Moderation {
     return add;
   }
 
+  public async strip(user: User, options: ModOptions = {}): Promise<Role[]> {
+    const member = await this.check(user, "strip roles from", PermissionFlagsBits.ManageRoles);
+    const me = member.guild.members.me!;
+    const roles = [...member.roles.cache.values()].filter(role =>
+      role.id !== member.guild.id && !role.managed && role.position < me.roles.highest.position);
+    if (!roles.length) throw new UserError("That member has no roles I can remove.");
+    await member.roles.remove(roles, this.#reason(options));
+    return roles;
+  }
+
+  public async stripRole(role: Role, options: ModOptions = {}): Promise<number> {
+    const guild = this.#guild();
+    const me = guild.members.me;
+    const actor = await guild.members.fetch(this.actor.id);
+    if (!me?.permissions.has(PermissionFlagsBits.ManageRoles)) throw new UserError("I do not have permission to manage roles.");
+    if (role.managed || role.position >= me.roles.highest.position) throw new UserError("That role is too high for me to manage.");
+    if (actor.id !== guild.ownerId && role.position >= actor.roles.highest.position) throw new UserError("That role is too high for you to manage.");
+    const members = [...role.members.values()].filter(member =>
+      member.id !== guild.ownerId &&
+      member.roles.highest.position < me.roles.highest.position &&
+      (actor.id === guild.ownerId || member.roles.highest.position < actor.roles.highest.position));
+    await Promise.all(members.map(member => member.roles.remove(role, this.#reason(options))));
+    return members.length;
+  }
+
+  public async check(user: User, action: string, permission: bigint): Promise<GuildMember> {
+    const member = await this.#member(this.#guild(), user);
+    await this.#check(member, action, permission);
+    return member;
+  }
+
   async #role(member: GuildMember, role: Role, add: boolean, options: ModOptions): Promise<void> {
     await this.#check(member, `${add ? "give a role to" : "remove a role from"}`, PermissionFlagsBits.ManageRoles);
     const me = member.guild.members.me!;
@@ -93,6 +124,11 @@ export class Moderation {
   public async deafen(user: User, value: boolean, options: ModOptions = {}): Promise<void> {
     const member = await this.#voice(user, value ? "deafen" : "undeafen", PermissionFlagsBits.DeafenMembers);
     await member.voice.setDeaf(value, this.#reason(options));
+  }
+
+  public async voiceMute(user: User, value: boolean, options: ModOptions = {}): Promise<void> {
+    const member = await this.#voice(user, value ? "mute" : "unmute", PermissionFlagsBits.MuteMembers);
+    await member.voice.setMute(value, this.#reason(options));
   }
 
   #guild(): Guild { if (!this.guild) throw new UserError("This moderation command can only be used in a server."); return this.guild; }

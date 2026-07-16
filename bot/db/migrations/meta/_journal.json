@@ -8,6 +8,20 @@
       "when": 1784134935435,
       "tag": "0000_clear_umar",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1784209289150,
+      "tag": "0001_sticky_bulldozer",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1784209534750,
+      "tag": "0002_absent_kingpin",
+      "breakpoints": true
     }
   ]
 }

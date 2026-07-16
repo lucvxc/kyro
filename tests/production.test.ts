@@ -20,4 +20,25 @@ describe("production APIs", () => {
     expect(value.custom_id).toBe("profile");
     expect(value.components).toHaveLength(1);
   });
+
+  test("builds modern modal selects and file uploads", () => {
+    const value = modal({
+      id: "customize",
+      title: "Customize",
+      inputs: [
+        { type: "file", id: "avatar", label: "Avatar", required: false, max: 1 },
+        {
+          type: "string",
+          id: "style",
+          label: "Style",
+          required: false,
+          min: 0,
+          options: [{ label: "Glow", value: "glow" }],
+        },
+      ],
+    }).toJSON();
+
+    expect(value.components[0]).toMatchObject({ type: 18, component: { type: 19, custom_id: "avatar" } });
+    expect(value.components[1]).toMatchObject({ type: 18, component: { type: 3, custom_id: "style" } });
+  });
 });

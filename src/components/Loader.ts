@@ -15,7 +15,9 @@ export class Loader {
     for (const file of await scan(this.#directory)) {
       const module = await import(pathToFileURL(file).href) as { default?: unknown };
       const value = module.default;
-      if (!value || typeof value !== "object" || typeof (value as Cmp).id !== "string" || typeof (value as Cmp).run !== "function") {
+      const id = (value as Cmp | undefined)?.id;
+      const validID = typeof id === "string" || id instanceof RegExp;
+      if (!value || typeof value !== "object" || !validID || typeof (value as Cmp).run !== "function") {
         throw new TypeError(`Component file "${file}" must have a default component export.`);
       }
       const item = value as Cmp;

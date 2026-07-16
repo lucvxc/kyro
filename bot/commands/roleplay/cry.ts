@@ -1,3 +1,3 @@
-import { solo } from "../../utils/roleplay.ts";
+import { solo } from "../../utils/api/nekos/roleplay.ts";
 
 export default solo("cry", "cries");

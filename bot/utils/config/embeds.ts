@@ -16,14 +16,19 @@ const embeds = {
 
 const replys = {
   usage: (text: string, options?: EmbedOptions) => embeds.info(`Usage **${text}**`, options),
-  subcommands: (_group: string, commands: readonly Entry[], prefix: string, message: Message) => container()
-    .accent(colors.default)
-    .section(
-      `## ${commands[0]?.path[0] ?? "Command"} Subcommands`,
-      thumb(message.client.user!.displayAvatarURL({ size: 256, extension: "png" })),
-    )
-    .separator()
-    .text(commands.map(command => `**${prefix}${command.syntax}**\n-# ${command.description}`).join("\n\n")),
+  subcommands: (_group: string, commands: readonly Entry[], prefix: string, message: Message) => {
+    const root = commands[0]?.path[0] ?? "command";
+    const names = commands.map(command => `\`${command.name}\``).join(", ");
+
+    return container()
+      .accent(colors.default)
+      .section(
+        `## ${root} commands\n-# Use \`${prefix}help <command>\` to view usage and examples.`,
+        thumb(message.client.user!.displayAvatarURL({ size: 256, extension: "png" })),
+      )
+      .separator()
+      .text(names);
+  },
 };
 
 export default { ...embeds, ...replys };

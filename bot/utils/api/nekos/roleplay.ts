@@ -1,5 +1,5 @@
-import { cmd, container, UserError, type Context } from "../../index.ts";
-import { neko } from "./api/nekos.ts";
+import { cmd, container, UserError, type Context } from "../../../../index.ts";
+import { neko } from "./index.ts";
 
 export function solo(name: string, action: string) {
   return make(name, action, ctx => `${ctx.author} ${action}`);
