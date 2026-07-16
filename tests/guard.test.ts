@@ -12,6 +12,8 @@ const command = (values: Partial<Entry> = {}): Entry => ({
   context: "both",
   aliases: [],
   permissions: [],
+  category: "general",
+  syntax: "test",
   path: ["test"],
   run: () => undefined,
   ...values,
@@ -26,21 +28,21 @@ const context = (guild: boolean, permissions?: PermissionsBitField): Context =>
   }) as unknown as Context;
 
 describe("Guard", () => {
-  test("enforces command contexts", () => {
+  test("enforces command contexts", async () => {
     const guard = new Guard();
 
-    expect(guard.check(command({ context: "guild" }), context(false))).toBe(
+    expect(await guard.check(command({ context: "guild" }), context(false))).toBe(
       "This command can only be used in a server.",
     );
-    expect(guard.check(command({ context: "dms" }), context(true))).toBe(
+    expect(await guard.check(command({ context: "dms" }), context(true))).toBe(
       "This command can only be used in DMs.",
     );
   });
 
-  test("reports missing permissions", () => {
+  test("reports missing permissions", async () => {
     const guard = new Guard();
     const permissions = new PermissionsBitField(PermissionFlagsBits.SendMessages);
-    const result = guard.check(
+    const result = await guard.check(
       command({ context: "guild", permissions: [PermissionFlagsBits.ManageMessages] }),
       context(true, permissions),
     );
@@ -48,12 +50,23 @@ describe("Guard", () => {
     expect(result).toBe("Missing permissions: Manage Messages.");
   });
 
-  test("applies cooldowns and only warns once", () => {
+  test("allows a custom permission resolver", async () => {
+    const guard = new Guard(0, async (_ctx, missing) => missing.includes("ManageMessages"));
+    const permissions = new PermissionsBitField(PermissionFlagsBits.SendMessages);
+    const result = await guard.check(
+      command({ context: "guild", permissions: [PermissionFlagsBits.ManageMessages] }),
+      context(true, permissions),
+    );
+
+    expect(result).toBeUndefined();
+  });
+
+  test("applies cooldowns and only warns once", async () => {
     const guard = new Guard(3);
     const ctx = context(false);
 
-    expect(guard.check(command(), ctx)).toBeUndefined();
-    expect(guard.check(command(), ctx)).toBe("Try again in 3s.");
-    expect(guard.check(command(), ctx)).toBeNull();
+    expect(await guard.check(command(), ctx)).toBeUndefined();
+    expect(await guard.check(command(), ctx)).toBe("Try again in 3s.");
+    expect(await guard.check(command(), ctx)).toBeNull();
   });
 });

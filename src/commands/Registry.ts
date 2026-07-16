@@ -1,5 +1,6 @@
 import type { Cmd, CmdType, Entry } from "./Cmd.ts";
 import { checkArgs } from "./Arg.ts";
+import { Catalog } from "./Catalog.ts";
 
 export interface Match {
   command: Entry;
@@ -10,6 +11,7 @@ export class Registry {
   readonly #commands = new Map<string, Entry>();
   readonly #aliases = new Map<string, Entry>();
   #sealed = false;
+  #catalog: Catalog | undefined;
 
   public get size(): number {
     return this.#commands.size;
@@ -27,6 +29,10 @@ export class Registry {
     );
   }
 
+  public get catalog(): Catalog {
+    return this.#catalog ??= new Catalog(this.values());
+  }
+
   public add(command: Cmd): this {
     if (this.#sealed) {
       throw new Error("Commands must be added before Kyro starts.");
@@ -37,6 +43,8 @@ export class Registry {
     const context = command.context ?? "both";
     const aliases = (command.aliases ?? []).map(normalize);
     const permissions = command.permissions ?? [];
+    const category = normalizeCategory(command.category ?? "general");
+    const syntax = command.syntax?.trim() || makeSyntax(path.join(" "), command.args);
 
     validate(command, path, type, aliases, context);
 
@@ -53,8 +61,11 @@ export class Registry {
       context,
       aliases,
       permissions,
+      category,
+      syntax,
     });
     this.#commands.set(name, registered);
+    this.#catalog = undefined;
 
     for (const alias of aliases) this.#aliases.set(alias, registered);
     return this;
@@ -91,6 +102,16 @@ export class Registry {
 
   public matchAs(command: Entry, input: string): Match { return { command, args: tokenize(input) }; }
 
+  public subs(input: string): readonly Entry[] {
+    const name = normalize(input);
+    if (!name) return [];
+
+    return this.values().filter(command =>
+      command.type !== "slash" &&
+      command.meta?.help !== false &&
+      [command.name, ...command.aliases].some(path => path.startsWith(`${name} `)));
+  }
+
   public values(): Entry[] {
     return [...this.#commands.values()];
   }
@@ -103,6 +124,7 @@ export class Registry {
     this.#commands.clear();
     this.#aliases.clear();
     this.#sealed = false;
+    this.#catalog = undefined;
   }
 
   #assertAvailable(name: string): void {
@@ -124,6 +146,17 @@ function parsePath(name: string): readonly string[] {
 
 function normalize(name: string): string {
   return name.trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+function normalizeCategory(value: string): string {
+  const category = value.trim().toLowerCase();
+  if (!category) throw new TypeError("Command categories cannot be empty.");
+  return category;
+}
+
+function makeSyntax(name: string, args: Cmd["args"]): string {
+  const values = Object.entries(args ?? {}).map(([key, arg]) => arg.required ? `<${key}>` : `(${key})`);
+  return [name, ...values].join(" ");
 }
 
 function validate(

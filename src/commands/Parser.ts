@@ -24,6 +24,8 @@ export function parse(
 
   for (const [position, [name, arg]] of entries.entries()) {
     const lastString = arg.type === "string" && position === entries.length - 1;
+    const remaining = entries.slice(position + 1).filter(([, value]) => value.required).length;
+    const role = arg.type === "role" ? readRole(tokens, index, remaining, resolve) : undefined;
     const token = lastString ? tokens.slice(index).join(" ") : tokens[index];
 
     if (!token) {
@@ -31,20 +33,30 @@ export function parse(
       continue;
     }
 
-    const value = read(arg.type, token, resolve);
+    const value = role?.value ?? read(arg.type, token, resolve);
     if (value === undefined) {
       return { values, issue: `Invalid ${arg.type} value for "${name}".` };
     }
 
     values.set(name, value);
-    index = lastString ? tokens.length : index + 1;
-  }
-
-  if (index < tokens.length) {
-    return { values, issue: "Too many arguments were provided." };
+    index = lastString ? tokens.length : index + (role?.used ?? 1);
   }
 
   return { values };
+}
+
+function readRole(
+  tokens: readonly string[],
+  index: number,
+  remaining: number,
+  resolve: Resolvers,
+): { value: Role; used: number } | undefined {
+  const available = tokens.length - index - remaining;
+  for (let used = available; used > 0; used -= 1) {
+    const value = resolve.role(readID(tokens.slice(index, index + used).join(" ")));
+    if (value) return { value, used };
+  }
+  return undefined;
 }
 
 function read(type: Args[string]["type"], token: string, resolve: Resolvers): unknown {
@@ -73,5 +85,5 @@ function readBoolean(value: string): boolean | undefined {
 }
 
 function readID(value: string): string {
-  return value.match(/\d+/)?.[0] ?? value;
+  return value.match(/^<(?:@!?|@&|#)(\d+)>$/)?.[1] ?? value;
 }

@@ -2,6 +2,7 @@ import {
   ChannelType,
   PermissionFlagsBits,
   type Guild,
+  type GuildBasedChannel,
   type GuildMember,
   type Message,
   type Role,
@@ -47,7 +48,28 @@ class Channels {
   public constructor(private readonly guild: Guild) {}
   public create(name: string, type: ChannelType = ChannelType.GuildText, reason?: string) { return this.guild.channels.create({ name, type: type as never, reason }); }
   public async delete(channel: { delete(reason?: string): Promise<unknown> }, reason?: string): Promise<void> { await channel.delete(reason); }
-  public async lock(channel: { permissionOverwrites: { edit(target: string, permissions: object, reason?: string): Promise<unknown> } }, reason?: string): Promise<void> { await channel.permissionOverwrites.edit(this.guild.roles.everyone.id, { SendMessages: false }, reason); }
+  public async lock(channel: GuildBasedChannel, reason?: string): Promise<void> { await this.#overwrite(channel, { SendMessages: false }, reason); }
+  public async unlock(channel: GuildBasedChannel, reason?: string): Promise<void> { await this.#overwrite(channel, { SendMessages: null }, reason); }
+  public async hide(channel: GuildBasedChannel, reason?: string): Promise<void> { await this.#overwrite(channel, { ViewChannel: false }, reason); }
+  public async show(channel: GuildBasedChannel, reason?: string): Promise<void> { await this.#overwrite(channel, { ViewChannel: null }, reason); }
+  public async slowmode(channel: GuildBasedChannel, seconds: number, reason?: string): Promise<void> {
+    if (!Number.isInteger(seconds) || seconds < 0 || seconds > 21_600) throw new UserError("Slowmode must be between 0 seconds and 6 hours.");
+    if (!("setRateLimitPerUser" in channel) || typeof channel.setRateLimitPerUser !== "function") throw new UserError("This channel does not support slowmode.");
+    await channel.setRateLimitPerUser(seconds, reason);
+  }
+  public async purge(channel: GuildBasedChannel, amount: number, userID?: string): Promise<number> {
+    if (!Number.isInteger(amount) || amount < 1 || amount > 100) throw new UserError("You can delete between 1 and 100 messages.");
+    if (!("messages" in channel) || !("bulkDelete" in channel)) throw new UserError("Messages cannot be deleted in this channel.");
+    const messages = await channel.messages.fetch({ limit: 100 });
+    const selected = [...messages.values()].filter(message => !userID || message.author.id === userID).slice(0, amount);
+    const deleted = await channel.bulkDelete(selected, true);
+    return deleted.size;
+  }
+
+  async #overwrite(channel: GuildBasedChannel, permissions: object, reason?: string): Promise<void> {
+    if (!("permissionOverwrites" in channel)) throw new UserError("Permissions cannot be changed for this channel.");
+    await channel.permissionOverwrites.edit(this.guild.roles.everyone.id, permissions, { reason });
+  }
 }
 
 class Threads {

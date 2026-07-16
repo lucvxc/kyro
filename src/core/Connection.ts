@@ -5,6 +5,7 @@ export interface ConnectionOptions {
   token: string;
   beforeStart?: () => void | Promise<void>;
   afterStart?: () => void | Promise<void>;
+  beforeStop?: () => void | Promise<void>;
   afterStop?: () => void | Promise<void>;
 }
 
@@ -13,6 +14,7 @@ export class Connection {
   readonly #token: string;
   readonly #beforeStart: (() => void | Promise<void>) | undefined;
   readonly #afterStart: (() => void | Promise<void>) | undefined;
+  readonly #beforeStop: (() => void | Promise<void>) | undefined;
   readonly #afterStop: (() => void | Promise<void>) | undefined;
   #startPromise: Promise<void> | undefined;
   #stopPromise: Promise<void> | undefined;
@@ -22,6 +24,7 @@ export class Connection {
     this.#token = options.token;
     this.#beforeStart = options.beforeStart;
     this.#afterStart = options.afterStart;
+    this.#beforeStop = options.beforeStop;
     this.#afterStop = options.afterStop;
   }
 
@@ -57,11 +60,12 @@ export class Connection {
       await this.#client.login(this.#token);
       await this.#afterStart?.();
     } catch (error) {
-      if (this.#client.token) {
-        await this.#client.destroy().catch(() => undefined);
+      try {
+        await this.#beforeStop?.();
+      } finally {
+        if (this.#client.token) await this.#client.destroy().catch(() => undefined);
+        await this.#afterStop?.();
       }
-
-      await this.#afterStop?.();
       throw error;
     }
   }
@@ -71,11 +75,12 @@ export class Connection {
       await startPromise.catch(() => undefined);
     }
 
-    if (this.#client.token) {
-      await this.#client.destroy();
+    try {
+      await this.#beforeStop?.();
+    } finally {
+      if (this.#client.token) await this.#client.destroy();
+      await this.#afterStop?.();
     }
-
-    await this.#afterStop?.();
   }
 
   #clearAfter(promise: Promise<void>, operation: "start" | "stop"): void {

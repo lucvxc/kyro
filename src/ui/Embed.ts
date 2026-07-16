@@ -19,12 +19,41 @@ export interface Field {
   inline?: boolean;
 }
 
+export interface EmbedOptions {
+  title?: string;
+  description?: string;
+  color?: Color;
+  url?: string;
+  author?: string | Author;
+  footer?: string | Footer;
+  thumbnail?: string;
+  image?: string;
+  fields?: readonly Field[];
+  timestamp?: boolean | Date | number;
+}
+
 export class Embed {
   public readonly kind = "embed";
   readonly #builder: EmbedBuilder;
 
   public constructor(data?: APIEmbed) {
     this.#builder = new EmbedBuilder(data);
+  }
+
+  public get empty(): boolean { return Object.keys(this.#builder.toJSON()).length === 0; }
+
+  public set(options: EmbedOptions): this {
+    if (options.title) this.title(options.title);
+    if (options.description) this.desc(options.description);
+    if (options.color !== undefined) this.color(options.color);
+    if (options.url) this.url(options.url);
+    if (options.author) this.author(options.author);
+    if (options.footer) this.footer(options.footer);
+    if (options.thumbnail) this.thumb(options.thumbnail);
+    if (options.image) this.image(options.image);
+    if (options.fields?.length) this.fields(...options.fields);
+    if (options.timestamp) this.time(options.timestamp === true ? Date.now() : options.timestamp);
+    return this;
   }
 
   public title(value: string): this {
@@ -98,6 +127,6 @@ export class Embed {
   }
 }
 
-export function embed(data?: APIEmbed): Embed {
-  return new Embed(data);
+export function embed(options: EmbedOptions = {}): Embed {
+  return new Embed().set(options);
 }

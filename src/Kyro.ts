@@ -1,11 +1,11 @@
 import { Client, GatewayIntentBits, Partials, type ClientOptions, type PresenceData } from "discord.js";
 
 import type { Cmd } from "./commands/Cmd.ts";
-import { Guard } from "./commands/Guard.ts";
+import { Guard, type PermissionResolver } from "./commands/Guard.ts";
 import { Loader as CmdLoader } from "./commands/Loader.ts";
 import { Registrar } from "./commands/Registrar.ts";
 import { Registry } from "./commands/Registry.ts";
-import { Router, type ErrorHandler } from "./commands/Router.ts";
+import { Router, type CommandReplies, type ErrorHandler } from "./commands/Router.ts";
 import { Connection } from "./core/Connection.ts";
 import { Loader as EvtLoader } from "./events/Loader.ts";
 import { Loader as CmpLoader } from "./components/Loader.ts";
@@ -20,6 +20,7 @@ import type { Middleware } from "./commands/Middleware.ts";
 import type { PrefixResolver, AliasResolver } from "./commands/RouterTypes.ts";
 import { version as versionCommand } from "./commands/Version.ts";
 import { isDeviceStatus, status, type DeviceStatus } from "./core/Status.ts";
+import { musicFor, type Music } from "./plugins/music/index.ts";
 
 export interface PresenceConfig extends Omit<PresenceData, "status"> {
   status?: PresenceData["status"] | DeviceStatus;
@@ -60,6 +61,8 @@ export interface Options extends Partial<ClientConfig>, KyroConfig {
   prefix?: string | PrefixResolver;
   resolveAlias?: AliasResolver;
   onError?: ErrorHandler;
+  replies?: CommandReplies;
+  permissions?: PermissionResolver;
   database?: DrizzleDB<any>;
 }
 
@@ -74,7 +77,7 @@ export class Kyro {
 
   readonly #connection: Connection;
   #reload: (() => Promise<void>) | undefined;
-  readonly #shutdown = (): void => { void this.stop(); };
+  readonly #shutdown = (): void => { void this.stop().catch(error => log.error("Shutdown failed.", error)); };
 
   public constructor(options: Options) {
     const client = options.client ?? options;
@@ -107,9 +110,14 @@ export class Kyro {
     this.prefix = config.prefix ?? "!";
     this.db = options.database;
     this.ownerIDs = Object.freeze([...(config.ownerIDs ?? [])]);
-    const clientOptions: ClientOptions = { ...client, intents: client.intents };
-    delete (clientOptions as Record<string, unknown>).token;
-    delete (clientOptions as Record<string, unknown>).appID;
+    const clientOptions = { ...(client as Partial<ClientOptions>), intents: client.intents } as ClientOptions;
+    delete (clientOptions as unknown as Record<string, unknown>).token;
+    delete (clientOptions as unknown as Record<string, unknown>).appID;
+    clientOptions.allowedMentions = {
+      parse: [],
+      repliedUser: false,
+      ...client.allowedMentions,
+    };
     if (client.partials !== undefined) clientOptions.partials = client.partials;
     if (client.shards !== undefined) clientOptions.shards = client.shards;
     if (client.shardCount !== undefined) clientOptions.shardCount = client.shardCount;
@@ -130,9 +138,10 @@ export class Kyro {
       registry: this.commands,
       prefix: this.prefix,
       resolveAlias: config.resolveAlias,
-      guard: new Guard(config.cooldown),
+      guard: new Guard(config.cooldown, options.permissions),
       onError: options.onError,
       middleware: config.middleware,
+      replies: options.replies,
     });
 
     const registrar = new Registrar({
@@ -176,10 +185,13 @@ export class Kyro {
         if (config.sync !== "none") await registrar.sync(this.commands);
         log.info(`Kyro is online (${config.sync === "guild" ? "guild" : config.sync === "none" ? "sync disabled" : "global"} commands).`);
       },
-      afterStop: async () => {
+      beforeStop: async () => {
         router.detach();
         cmpRouter?.detach();
         evtLoader?.unload();
+        await pluginLoader?.unload(this);
+      },
+      afterStop: async () => {
         await this.db?.close();
       },
     });
@@ -209,6 +221,8 @@ export class Kyro {
   public get isReady(): boolean {
     return this.#connection.isReady;
   }
+
+  public get music(): Music | undefined { return musicFor(this.client); }
 
   public command(cmd: Cmd): this {
     this.commands.add(cmd);

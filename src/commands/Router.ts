@@ -8,7 +8,7 @@ import {
 } from "discord.js";
 
 import type { Entry } from "./Cmd.ts";
-import { Context } from "./Context.ts";
+import { Context, replyOptions, type Reply } from "./Context.ts";
 import type { Guard } from "./Guard.ts";
 import type { Registry } from "./Registry.ts";
 import { log } from "../core/Log.ts";
@@ -23,6 +23,12 @@ export type ErrorHandler = (
   command: Entry,
 ) => void | Promise<void>;
 
+export interface CommandReplies {
+  usage?(text: string): Reply | Promise<Reply>;
+  error?(text: string): Reply | Promise<Reply>;
+  subcommands?(group: string, commands: readonly Entry[], prefix: string, message: Message): Reply | Promise<Reply>;
+}
+
 export interface RouterOptions {
   client: Client;
   registry: Registry;
@@ -31,6 +37,7 @@ export interface RouterOptions {
   guard: Guard;
   onError?: ErrorHandler;
   middleware?: readonly Middleware[];
+  replies?: CommandReplies;
 }
 
 export class Router {
@@ -41,6 +48,7 @@ export class Router {
   readonly #guard: Guard;
   readonly #onError: ErrorHandler;
   readonly #middleware: readonly Middleware[];
+  readonly #replies: CommandReplies;
   #attached = false;
 
   public constructor(options: RouterOptions) {
@@ -51,6 +59,7 @@ export class Router {
     this.#guard = options.guard;
     this.#onError = options.onError ?? logError;
     this.#middleware = options.middleware ?? [];
+    this.#replies = options.replies ?? {};
   }
 
   public attach(): void {
@@ -80,7 +89,7 @@ export class Router {
     const command = this.#registry.get(path, "slash");
     if (!command) return;
 
-    const ctx = new Context("slash", interaction, command);
+    const ctx = new Context("slash", interaction, command, [], this.#registry.catalog);
     void this.#run(command, ctx);
   };
 
@@ -113,36 +122,52 @@ export class Router {
       const command = name ? this.#registry.get(name, "message") : undefined;
       if (command) match = this.#registry.matchAs(command, body.split(/\s+/).slice(1).join(" "));
     }
-    if (!match) return;
+    if (!match) {
+      const commands = this.#registry.subs(body);
+      if (!commands.length) return;
+      const reply = this.#replies.subcommands
+        ? await this.#replies.subcommands(body, commands, prefix, message)
+        : defaultSubs(commands, prefix);
+      await message.reply(replyOptions(reply) as never);
+      return;
+    }
 
-    const ctx = new Context("message", message, match.command, match.args);
+    const ctx = new Context("message", message, match.command, match.args, this.#registry.catalog, prefix);
     void this.#run(match.command, ctx);
   }
 
   async #run(command: Entry, ctx: Context): Promise<void> {
     try {
-      const blocked = this.#guard.check(command, ctx);
+      const blocked = await this.#guard.check(command, ctx);
       if (blocked === null) return;
       if (blocked) {
-        await ctx.reply(blocked);
+        await ctx.reply(await this.#error(blocked));
         return;
       }
 
       if (ctx.issue) {
-        await ctx.reply(ctx.issue);
+        await ctx.reply(this.#replies.usage
+          ? await this.#replies.usage(`\`${ctx.prefix}${ctx.command.syntax}\``)
+          : `Usage: \`${ctx.prefix}${ctx.command.syntax}\``);
         return;
       }
 
       await runMiddleware(this.#middleware, ctx, () => command.run(ctx));
     } catch (error) {
+      if (error instanceof UserError) {
+        await ctx.reply(await this.#error(error.message)).catch(() => undefined);
+        return;
+      }
+
       await this.#onError(error, ctx, command);
       if (ctx.source === "slash" && !ctx.interaction?.replied && !ctx.interaction?.deferred) {
-        const message = error instanceof UserError
-          ? error.message
-          : "Something went wrong while running that command.";
-        await ctx.reply(message).catch(() => undefined);
+        await ctx.reply(await this.#error("Something went wrong while running that command.")).catch(() => undefined);
       }
     }
+  }
+
+  async #error(message: string): Promise<Reply> {
+    return this.#replies.error ? this.#replies.error(message) : message;
   }
 }
 
@@ -161,4 +186,8 @@ function getPath(interaction: ChatInputCommandInteraction | AutocompleteInteract
 
 function logError(error: unknown, _ctx: Context, command: Entry): void {
   log.error(`Command "${command.name}" failed.`, error);
+}
+
+function defaultSubs(commands: readonly Entry[], prefix: string): string {
+  return commands.map(command => `**${prefix}${command.syntax}**\n${command.description}`).join("\n\n");
 }

@@ -14,6 +14,9 @@ export interface Cmd {
   args?: Args;
   context?: CmdContext;
   permissions?: readonly PermissionResolvable[];
+  category?: string;
+  syntax?: string;
+  example?: string;
   meta?: Readonly<Record<string, unknown>>;
   run(ctx: Context): void | Promise<void>;
   autocomplete?(ctx: AutocompleteContext): readonly Choice[] | Promise<readonly Choice[]> | void | Promise<void>;
@@ -25,6 +28,8 @@ export interface Entry extends Cmd {
   readonly aliases: readonly string[];
   readonly context: CmdContext;
   readonly permissions: readonly PermissionResolvable[];
+  readonly category: string;
+  readonly syntax: string;
 }
 
 export function cmd(command: Cmd): Cmd {

@@ -7,6 +7,15 @@ import { Registry } from "../src/commands/Registry.ts";
 const run = (): void => undefined;
 
 describe("Registry", () => {
+  test("builds a visible catalog without hidden framework commands", () => {
+    const registry = new Registry()
+      .add({ name: "ping", description: "Ping", category: "utility", run })
+      .add({ name: "kyro reload", description: "Reload", meta: { help: false }, run });
+
+    expect(registry.catalog.visible.commands.map(command => command.name)).toEqual(["ping"]);
+    expect(registry.catalog.visible.categories[0]?.roots).toEqual(["ping"]);
+  });
+
   test("normalizes and matches hybrid command paths", () => {
     const registry = new Registry().add({
       name: "LastFM   Account",
@@ -43,6 +52,7 @@ describe("Registry", () => {
 
     expect(registry.get("lfm account", "message")?.name).toBe("lastfm account");
     expect(registry.get("lfm account", "slash")).toBeUndefined();
+    expect(registry.subs("lfm").map(command => command.name)).toEqual(["lastfm account"]);
   });
 
   test("rejects duplicate command paths", () => {

@@ -47,11 +47,13 @@ export class Container {
   }
 
   public section(content: string, accessory?: ButtonBuilder | ThumbnailBuilder): this {
+    if (!accessory) return this.text(content);
+
     const section = new SectionBuilder().addTextDisplayComponents(
       new TextDisplayBuilder().setContent(content),
     );
     if (accessory instanceof ButtonBuilder) section.setButtonAccessory(accessory);
-    else if (accessory) section.setThumbnailAccessory(accessory);
+    else section.setThumbnailAccessory(accessory);
     this.#builder.addSectionComponents(section);
     return this;
   }

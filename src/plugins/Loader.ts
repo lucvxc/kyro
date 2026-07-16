@@ -8,6 +8,7 @@ import { log } from "../core/Log.ts";
 export class Loader {
   readonly #items: readonly (string | Plugin)[];
   readonly #names = new Set<string>();
+  readonly #loaded: Plugin[] = [];
   public constructor(items: readonly (string | Plugin)[]) { this.#items = items.map(item => typeof item === "string" ? resolve(item) : item); }
   public async load(kyro: Kyro): Promise<void> {
     for (const path of this.#items) {
@@ -25,12 +26,19 @@ export class Loader {
     }
   }
 
-  public async reload(kyro: Kyro): Promise<void> { this.#names.clear(); await this.load(kyro); }
+  public async unload(kyro: Kyro): Promise<void> {
+    for (const item of this.#loaded.reverse()) await item.stop?.(kyro);
+    this.#loaded.length = 0;
+    this.#names.clear();
+  }
+
+  public async reload(kyro: Kyro): Promise<void> { await this.unload(kyro); await this.load(kyro); }
 
   async #use(item: Plugin, kyro: Kyro): Promise<void> {
     if (this.#names.has(item.name)) throw new Error(`Plugin "${item.name}" is already loaded.`);
     this.#names.add(item.name);
     await item.setup(kyro);
+    this.#loaded.push(item);
     log.info(`Plugin "${item.name}" loaded.`);
   }
 }

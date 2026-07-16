@@ -12,5 +12,12 @@ describe("Loader", () => {
     await new Loader(registry, directory).load();
 
     expect(registry.get("ping", "slash")?.description).toBe("Replies with pong");
+    expect(registry.get("avatar", "slash")).toMatchObject({
+      category: "info",
+      syntax: "avatar (user)",
+      example: "avatar @user",
+    });
+    expect(registry.catalog.category("admin")?.roots).toEqual(["settings"]);
+    expect(registry.catalog.subs("settings").map(command => command.name)).toEqual(["settings prefix"]);
   });
 });

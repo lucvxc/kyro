@@ -1,4 +1,4 @@
-import { resolve } from "node:path";
+import { dirname, relative, resolve, sep } from "node:path";
 import { pathToFileURL } from "node:url";
 
 import { scan } from "../core/Files.ts";
@@ -26,7 +26,11 @@ export class Loader {
         throw new TypeError(`Command file "${file}" must have a default command export.`);
       }
 
-      this.#registry.add(module.default);
+      const folder = relative(this.#directory, dirname(file)).split(sep)[0];
+      this.#registry.add({
+        ...module.default,
+        category: module.default.category ?? (folder || "general"),
+      });
     }
 
     this.#loaded = true;

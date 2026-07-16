@@ -4,6 +4,7 @@ export interface Plugin {
   name: string;
   version?: string;
   setup(kyro: Kyro): void | Promise<void>;
+  stop?(kyro: Kyro): void | Promise<void>;
 }
 
 export function plugin(value: Plugin): Plugin {

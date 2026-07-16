@@ -46,4 +46,27 @@ describe("parse", () => {
 
     expect(parsed.issue).toBe('Invalid boolean value for "enabled".');
   });
+
+  test("ignores arguments a message command does not use", () => {
+    const parsed = parse(undefined, ["@user"], resolve);
+
+    expect(parsed.issue).toBeUndefined();
+    expect(parsed.values.size).toBe(0);
+  });
+
+  test("accepts unquoted multi-word role names", () => {
+    const role = { id: "1", name: "Senior Moderators" } as never;
+    const parsed = parse(
+      {
+        role: { type: "role", required: true },
+        permission: { type: "string", required: true },
+      },
+      ["Senior", "Moderators", "Ban", "Members"],
+      { ...resolve, role: value => value === "Senior Moderators" ? role : undefined },
+    );
+
+    expect(parsed.issue).toBeUndefined();
+    expect(parsed.values.get("role")).toBe(role);
+    expect(parsed.values.get("permission")).toBe("Ban Members");
+  });
 });

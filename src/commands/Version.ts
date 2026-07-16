@@ -7,6 +7,7 @@ export function version(kyro: Kyro): ReturnType<typeof cmd> {
     name: "kyro version",
     description: "Show Kyro runtime information",
     type: "message",
+    meta: { help: false },
     run: (ctx) => ctx.reply([
       `Kyro: **${kyro.version}**`,
       `Node: **${process.version}**`,

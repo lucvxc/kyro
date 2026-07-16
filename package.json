@@ -25,22 +25,28 @@
     "build": "bun build index.ts --outdir dist --target bun --packages external",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
+    "db:nuke": "bun run scripts/nuke.ts --confirm",
+    "db:push": "drizzle-kit push",
     "prepublishOnly": "bun run check && bun test"
   },
   "files": ["dist", "src", "index.ts", "README.md", "LICENSE"],
   "devDependencies": {
     "@types/bun": "latest",
+    "axios": "^1.18.1",
+    "discord.js": "^14.26.5",
     "drizzle-kit": "^0.31.10"
   },
   "peerDependencies": {
+    "discord.js": "^14.26.5",
     "typescript": "^5"
   },
   "dependencies": {
     "@discordjs/ws": "^1.2.3",
     "chalk": "^5.6.2",
-    "discord.js": "^14.26.5",
     "dotenv": "^17.4.2",
     "drizzle-orm": "^0.45.2",
-    "postgres": "^3.4.9"
+    "moonlink.js": "^5.2.0",
+    "postgres": "^3.4.9",
+    "sharp": "^0.35.3"
   }
 }
