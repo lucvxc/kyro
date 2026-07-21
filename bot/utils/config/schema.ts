@@ -93,3 +93,12 @@ export type AutoMessage = MessageSettings & {
 };
 
 export type FakePermissionMap = Record<string, string[]>;
+export type SavedEmbed = {
+  id: string;
+  name: string;
+  userId: string;
+  code: string;
+  savedAt: string;
+};
+
+export type SavedEmbedMap = Record<string, SavedEmbed>;

@@ -7,101 +7,116 @@ import type {
   PartialMessage,
   VoiceState,
 } from "discord.js";
-import { embed, type Embed } from "../../../index.ts";
+import { container, thumb, type Container } from "../../../index.ts";
 import { colors } from "./config.ts";
 
 type Member = GuildMember | PartialGuildMember;
 type AnyMessage = Message | PartialMessage;
+type Actor = { id: string };
 
-const base = (title: string, color: string, description: string, thumbnail?: string): Embed => embed({
-  title,
-  color,
-  description,
-  thumbnail,
-  timestamp: true,
-});
+function card(title: string, color: string, body: string, thumbnail?: string): Container {
+  return container()
+    .accent(color)
+    .section(
+      `## ${title}\n-# <t:${Math.floor(Date.now() / 1_000)}:R>`,
+      thumbnail ? thumb(thumbnail) : undefined,
+    )
+    .separator()
+    .text(body);
+}
 
-const user = (id: string): string => `<@${id}> (\`${id}\`)`;
-const content = (value?: string | null, limit = 1_000): string => value?.slice(0, limit) || "No content";
+const user = (id: string): string => `<@${id}>  ·  \`${id}\``;
+const value = (label: string, content: string): string => `**${label}**\n${content}`;
+const quote = (content?: string | null, limit = 1_000): string =>
+  `> ${(content?.slice(0, limit) || "No content").replace(/\n/g, "\n> ")}`;
 
-export const loggerEmbeds = {
-  configured: (channelId: string) => base(
+export const loggerCards = {
+  configured: (channelId: string) => card(
     "Logger configured",
     colors.success,
-    `Logs will be sent to <#${channelId}>.`,
+    `${value("Destination", `<#${channelId}>`)}\n${value("Coverage", "All supported events")}`,
   ),
 
-  messageDelete: (message: AnyMessage) => base(
+  messageDelete: (message: AnyMessage, actor?: Actor) => card(
     "Message deleted",
     colors.error,
-    `**Author:** ${message.author ? user(message.author.id) : "Unknown"}\n**Channel:** <#${message.channelId}>\n\n**Content**\n${content(message.content)}`,
+    `${value("Author", message.author ? user(message.author.id) : "Unknown")}${actor && actor.id !== message.author?.id ? `\n${value("Deleted by", user(actor.id))}` : ""}\n${value("Channel", `<#${message.channelId}>`)}\n\n${value("Deleted content", quote(message.content))}`,
     message.author?.displayAvatarURL(),
   ),
 
-  messageEdit: (before: AnyMessage, after: AnyMessage) => base(
+  messageEdit: (before: AnyMessage, after: AnyMessage) => card(
     "Message edited",
     colors.warning,
-    `**Author:** ${after.author ? user(after.author.id) : "Unknown"}\n**Channel:** <#${after.channelId}>\n\n**Before**\n${content(before.content, 700)}\n\n**After**\n${content(after.content, 700)}`,
+    `${value("Author", after.author ? user(after.author.id) : "Unknown")}\n${value("Channel", `<#${after.channelId}>`)}\n\n${value("Before", quote(before.content, 650))}\n\n${value("After", quote(after.content, 650))}`,
     after.author?.displayAvatarURL(),
   ),
 
   memberJoin: (member: Member) => {
     const age = Math.floor((Date.now() - member.user.createdTimestamp) / 86_400_000);
-    const warning = age < 7 ? "\n\n⚠️ This account is less than seven days old." : "";
-    return base(
+    const risk = age < 7 ? "\n\n> ⚠ New account · less than seven days old" : "";
+    return card(
       "Member joined",
       colors.success,
-      `**User:** ${user(member.id)}\n**Account created:** <t:${Math.floor(member.user.createdTimestamp / 1_000)}:R>\n**Member count:** ${member.guild.memberCount}${warning}`,
+      `${value("Member", user(member.id))}\n${value("Account created", `<t:${Math.floor(member.user.createdTimestamp / 1_000)}:R>`)}\n${value("Population", member.guild.memberCount.toLocaleString())}${risk}`,
       member.user.displayAvatarURL(),
     );
   },
 
-  memberLeave: (member: Member) => base(
-    "Member left",
-    colors.default,
-    `**User:** ${user(member.id)}\n**Joined:** ${member.joinedTimestamp ? `<t:${Math.floor(member.joinedTimestamp / 1_000)}:R>` : "Unknown"}\n**Member count:** ${member.guild.memberCount}`,
+  memberLeave: (member: Member, actor?: Actor) => card(
+    actor ? "Member kicked" : "Member left",
+    actor ? colors.error : colors.default,
+    `${value("Member", user(member.id))}${actor ? `\n${value("Kicked by", user(actor.id))}` : ""}\n${value("Joined", member.joinedTimestamp ? `<t:${Math.floor(member.joinedTimestamp / 1_000)}:R>` : "Unknown")}\n${value("Population", member.guild.memberCount.toLocaleString())}`,
     member.user.displayAvatarURL(),
   ),
 
-  memberBan: (ban: GuildBan) => base(
+  memberBan: (ban: GuildBan, actor?: Actor) => card(
     "Member banned",
     colors.error,
-    `**User:** ${user(ban.user.id)}\n**Reason:** ${ban.reason || "No reason provided"}`,
+    `${value("Member", user(ban.user.id))}${actor ? `\n${value("Banned by", user(actor.id))}` : ""}\n\n${value("Reason", quote(ban.reason || "No reason provided", 700))}`,
     ban.user.displayAvatarURL(),
   ),
 
-  memberUnban: (ban: GuildBan) => base(
+  memberUnban: (ban: GuildBan, actor?: Actor) => card(
     "Member unbanned",
     colors.success,
-    `**User:** ${user(ban.user.id)}`,
+    `${value("Member", user(ban.user.id))}${actor ? `\n${value("Unbanned by", user(actor.id))}` : ""}`,
     ban.user.displayAvatarURL(),
   ),
 
-  timeout: (member: GuildMember, removed = false) => base(
+  timeout: (member: GuildMember, removed = false, actor?: Actor) => card(
     removed ? "Timeout removed" : "Member timed out",
     removed ? colors.success : colors.warning,
-    `**User:** ${user(member.id)}${removed ? "" : `\n**Until:** <t:${Math.floor(member.communicationDisabledUntilTimestamp! / 1_000)}:F>`}`,
+    `${value("Member", user(member.id))}${actor ? `\n${value("Updated by", user(actor.id))}` : ""}${removed ? "" : `\n${value("Expires", `<t:${Math.floor(member.communicationDisabledUntilTimestamp! / 1_000)}:F>`)}`}`,
     member.user.displayAvatarURL(),
   ),
 
-  roles: (member: GuildMember, added: readonly string[], removed: readonly string[]) => base(
+  roles: (member: GuildMember, added: readonly string[], removed: readonly string[], actor?: Actor) => card(
     "Member roles updated",
     colors.default,
-    [`**User:** ${user(member.id)}`, added.length ? `**Added:** ${added.map(id => `<@&${id}>`).join(", ")}` : "", removed.length ? `**Removed:** ${removed.map(id => `<@&${id}>`).join(", ")}` : ""].filter(Boolean).join("\n"),
+    [
+      value("Member", user(member.id)),
+      actor ? value("Updated by", user(actor.id)) : "",
+      added.length ? value("Granted", added.map(id => `<@&${id}>`).join("  ·  ")) : "",
+      removed.length ? value("Removed", removed.map(id => `<@&${id}>`).join("  ·  ")) : "",
+    ].filter(Boolean).join("\n\n"),
     member.user.displayAvatarURL(),
   ),
 
-  voice: (state: VoiceState, action: "joined" | "left" | "moved", from?: string, to?: string) => base(
-    `Voice channel ${action}`,
+  voice: (state: VoiceState, action: "joined" | "left" | "moved", from?: string, to?: string) => card(
+    action === "moved" ? "Voice channel moved" : `Voice channel ${action}`,
     action === "joined" ? colors.success : action === "left" ? colors.error : colors.default,
-    [`**User:** ${user(state.id)}`, from ? `**From:** <#${from}>` : "", to ? `**To:** <#${to}>` : ""].filter(Boolean).join("\n"),
+    [
+      value("Member", user(state.id)),
+      from ? value("From", `<#${from}>`) : "",
+      to ? value("To", `<#${to}>`) : "",
+    ].filter(Boolean).join("\n"),
     state.member?.user.displayAvatarURL(),
   ),
 
-  invite: (invite: Invite) => base(
+  invite: (invite: Invite) => card(
     "Invite created",
     colors.success,
-    `**Code:** \`${invite.code}\`\n**Channel:** ${invite.channelId ? `<#${invite.channelId}>` : "Unknown"}\n**Created by:** ${invite.inviter ? user(invite.inviter.id) : "Unknown"}\n**Uses:** ${invite.maxUses || "Unlimited"}\n**Expires:** ${invite.expiresTimestamp ? `<t:${Math.floor(invite.expiresTimestamp / 1_000)}:R>` : "Never"}`,
+    `${value("Code", `\`${invite.code}\``)}\n${value("Channel", invite.channelId ? `<#${invite.channelId}>` : "Unknown")}\n${value("Created by", invite.inviter ? user(invite.inviter.id) : "Unknown")}\n${value("Usage", invite.maxUses ? `${invite.maxUses} maximum` : "Unlimited")}\n${value("Expires", invite.expiresTimestamp ? `<t:${Math.floor(invite.expiresTimestamp / 1_000)}:R>` : "Never")}`,
     invite.inviter?.displayAvatarURL(),
   ),
 };

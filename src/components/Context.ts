@@ -63,6 +63,10 @@ export class ComponentContext {
     return this.interaction.reply(toReply(content) as never).then(() => undefined);
   }
 
+  public private(content: ComponentReply): Promise<void> {
+    return this.interaction.reply(toReply(content, true) as never).then(() => undefined);
+  }
+
   public update(content: ComponentReply): Promise<void> {
     if (!this.interaction.isMessageComponent()) {
       throw new Error("Only buttons and selects can update their message.");
@@ -79,8 +83,15 @@ function safe<T>(run: () => T, fallback: T): T {
   try { return run(); } catch { return fallback; }
 }
 
-function toReply(value: ComponentReply): object {
-  if (typeof value === "string") return { content: value };
-  if (value.kind === "embed") return { embeds: [value.toJSON()] };
-  return { components: [value.toJSON()], flags: MessageFlags.IsComponentsV2, files: value.files };
+function toReply(value: ComponentReply, ephemeral = false): object {
+  const privateFlag = ephemeral ? MessageFlags.Ephemeral : undefined;
+  if (typeof value === "string") return { content: value, flags: privateFlag };
+  if (value.kind === "embed") return { embeds: [value.toJSON()], flags: privateFlag };
+  return {
+    components: [value.toJSON()],
+    flags: ephemeral
+      ? MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral
+      : MessageFlags.IsComponentsV2,
+    files: value.files,
+  };
 }

@@ -1,4 +1,4 @@
-import { boolean, index, integer, jsonb, pgTable, primaryKey, serial, text, timestamp, varchar } from "drizzle-orm/pg-core";
+import { boolean, index, integer, jsonb, pgTable, primaryKey, serial, text, timestamp, uniqueIndex, varchar } from "drizzle-orm/pg-core";
 import type {
   AutoMessage,
   AutoResponse,
@@ -79,6 +79,20 @@ export const warnings = pgTable("warnings", {
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 }, table => [
   index("warnings_member_idx").on(table.guildId, table.userId),
+]);
+
+export const savedEmbeds = pgTable("saved_embeds", {
+  id: varchar("id", { length: 12 }).primaryKey(),
+  userId: text("user_id").notNull(),
+  name: varchar("name", { length: 100 }).notNull(),
+  code: text("code").notNull(),
+  isPublic: boolean("is_public").notNull().default(false),
+  shareCode: varchar("share_code", { length: 16 }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+}, table => [
+  index("saved_embeds_user_idx").on(table.userId),
+  uniqueIndex("saved_embeds_share_code_idx").on(table.shareCode),
 ]);
 
 export const tempRoles = pgTable("temp_roles", {

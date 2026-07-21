@@ -31,6 +31,7 @@ export interface CmpContext {
   checks(name: string): readonly string[];
   showModal(modal: import("discord.js").ModalBuilder): Promise<void>;
   reply(content: ComponentReply): Promise<void>;
+  private(content: ComponentReply): Promise<void>;
   update(content: ComponentReply): Promise<void>;
   defer(): Promise<void>;
 }
