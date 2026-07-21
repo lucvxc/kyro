@@ -1,7 +1,7 @@
 import { and, desc, eq } from "drizzle-orm";
-import { db } from "../db/database.ts";
-import { guilds, warnings } from "../db/schema.ts";
-import type { WarnPunishment } from "../utils/config/schema.ts";
+import { db } from "../../db/database.ts";
+import { guilds, warnings } from "../../db/schema.ts";
+import type { WarnPunishment } from "../../utils/config/schema.ts";
 
 export type Warning = typeof warnings.$inferSelect;
 
@@ -39,11 +39,11 @@ export async function punishments(guildId: string): Promise<WarnPunishment[]> {
 
 export async function setPunishment(guildId: string, value: WarnPunishment | number): Promise<boolean> {
   const current = await punishments(guildId);
-  const warnings = typeof value === "number" ? value : value.warnings;
-  const exists = current.some(item => item.warnings === warnings);
+  const count = typeof value === "number" ? value : value.warnings;
+  const exists = current.some(item => item.warnings === count);
   const next = typeof value === "number"
-    ? current.filter(item => item.warnings !== warnings)
-    : [...current.filter(item => item.warnings !== warnings), value].sort((a, b) => a.warnings - b.warnings);
+    ? current.filter(item => item.warnings !== count)
+    : [...current.filter(item => item.warnings !== count), value].sort((a, b) => a.warnings - b.warnings);
 
   await db.insert(guilds).values({ id: guildId, warnPunishments: next })
     .onConflictDoUpdate({ target: guilds.id, set: { warnPunishments: next, updatedAt: new Date() } });

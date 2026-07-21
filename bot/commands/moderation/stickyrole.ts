@@ -1,7 +1,7 @@
 import { PermissionFlagsBits } from "discord.js";
 import { cmd } from "../../../index.ts";
 import embeds from "../../utils/config/embeds.ts";
-import { toggleSticky } from "../../services/roles.ts";
+import { toggleSticky } from "../../services/roles/sticky.ts";
 
 export default cmd({
   name: "stickyrole", description: "Toggle restoring member roles when they rejoin.", type: "message", context: "guild",

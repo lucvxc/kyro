@@ -1,7 +1,7 @@
 import { PermissionFlagsBits } from "discord.js";
 import { cmd } from "../../../index.ts";
 import embeds from "../../utils/config/embeds.ts";
-import { punishments } from "../../services/warnings.ts";
+import { punishments } from "../../services/moderation/warnings.ts";
 
 export default cmd({
   name: "warn punishments", description: "List configured warning threshold punishments.", type: "message", context: "guild",

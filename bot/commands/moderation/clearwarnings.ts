@@ -1,7 +1,7 @@
 import { PermissionFlagsBits } from "discord.js";
 import { cmd } from "../../../index.ts";
 import embeds from "../../utils/config/embeds.ts";
-import { clearWarnings } from "../../services/warnings.ts";
+import { clearWarnings } from "../../services/moderation/warnings.ts";
 
 export default cmd({
   name: "clearwarnings", aliases: ["clearwarns"], description: "Clear every warning from a member.", type: "message", context: "guild",

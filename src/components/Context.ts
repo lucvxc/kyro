@@ -1,8 +1,10 @@
 import { MessageFlags } from "discord.js";
 import type { ComponentInput, ComponentReply } from "./Cmp.ts";
+import { Server } from "../guild/Server.ts";
 
 export class ComponentContext {
   public readonly client;
+  #server: Server | undefined;
 
   public constructor(
     public readonly interaction: ComponentInput,
@@ -13,6 +15,10 @@ export class ComponentContext {
 
   public get user() { return this.interaction.user; }
   public get guild() { return this.interaction.guild; }
+  public get server(): Server {
+    if (!this.guild) throw new Error("This action can only be used in a server.");
+    return this.#server ??= new Server(this.guild);
+  }
   public get values(): readonly string[] {
     return "values" in this.interaction ? this.interaction.values : [];
   }

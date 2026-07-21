@@ -1,7 +1,7 @@
 import { PermissionFlagsBits } from "discord.js";
 import { cmd } from "../../../index.ts";
 import embeds from "../../utils/config/embeds.ts";
-import { warn } from "../../services/warnings.ts";
+import { warn } from "../../services/moderation/warnings.ts";
 
 export default cmd({
   name: "warn", description: "Warn a member and apply configured punishments.", type: "message", context: "guild",

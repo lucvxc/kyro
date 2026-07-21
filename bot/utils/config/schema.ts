@@ -22,6 +22,7 @@ export type AutoResponse = {
 
 export type LogSettings = {
   channelId?: string;
+  enabled?: boolean;
   events?: string[];
   ignoredChannels?: string[];
 };

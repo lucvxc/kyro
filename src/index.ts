@@ -14,6 +14,17 @@ export { Moderation, type ModOptions } from "./commands/Moderation.ts";
 export type { Middleware, Next } from "./commands/Middleware.ts";
 export type { PrefixResolver, AliasResolver } from "./commands/RouterTypes.ts";
 export { Server } from "./guild/Server.ts";
+export {
+  BotProfile,
+  botProfileFonts,
+  botProfileEffects,
+  type BotProfileColor,
+  type BotProfileEffect,
+  type BotProfileFont,
+  type BotProfileImage,
+  type BotProfileStyle,
+  type BotProfileUpdate,
+} from "./guild/BotProfile.ts";
 export { GuildStats, type GuildWithStats } from "./guild/Stats.ts";
 export { ChannelStats } from "./guild/ChannelStats.ts";
 export { EmojiStats } from "./guild/EmojiStats.ts";

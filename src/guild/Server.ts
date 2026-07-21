@@ -10,6 +10,7 @@ import {
   type User,
 } from "discord.js";
 import { UserError } from "../commands/Errors.ts";
+import { BotProfile } from "./BotProfile.ts";
 
 type Target = User | string;
 export type CleanMessages = "bots" | "links" | "images" | "embeds" | "files";
@@ -21,6 +22,7 @@ export class Server {
   public readonly threads: Threads;
   public readonly permissions: Permissions;
   public readonly settings: Settings;
+  public readonly profile: BotProfile;
 
   public constructor(public readonly guild: Guild) {
     this.roles = new Roles(guild);
@@ -29,6 +31,7 @@ export class Server {
     this.threads = new Threads(guild);
     this.permissions = new Permissions(guild);
     this.settings = new Settings(guild);
+    this.profile = new BotProfile(guild);
   }
 }
 
@@ -37,6 +40,20 @@ class Roles {
   public async add(target: Target, role: Role | string, reason?: string): Promise<GuildMember> { const member = await memberOf(this.guild, target); const value = findRole(this.guild, role); hierarchy(this.guild, value); await member.roles.add(value, reason); return member; }
   public async remove(target: Target, role: Role | string, reason?: string): Promise<GuildMember> { const member = await memberOf(this.guild, target); const value = findRole(this.guild, role); await member.roles.remove(value, reason); return member; }
   public async create(name: string, color?: number | string, reason?: string): Promise<Role> { if (!name.trim()) throw new UserError("Role names cannot be empty."); const role = await this.guild.roles.create({ name, color: color as never, reason }); return role; }
+  public async snapshot(target: Target): Promise<string[]> {
+    const member = await memberOf(this.guild, target);
+    return [...member.roles.cache.values()]
+      .filter(role => role.id !== this.guild.id && !role.managed && role.editable)
+      .map(role => role.id);
+  }
+  public async restore(target: Target, roleIDs: readonly string[], reason?: string): Promise<Role[]> {
+    const member = await memberOf(this.guild, target);
+    const roles = roleIDs
+      .map(id => this.guild.roles.cache.get(id))
+      .filter((role): role is Role => Boolean(role?.editable));
+    if (roles.length) await member.roles.add(roles, reason);
+    return roles;
+  }
 }
 
 class Members {

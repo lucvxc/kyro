@@ -1,6 +1,5 @@
 import { PermissionFlagsBits } from "discord.js";
 import { cmd } from "../../../../index.ts";
-import { clean, customize } from "../../../utils/customize.ts";
 import embeds from "../../../utils/config/embeds.ts";
 
 export default cmd({
@@ -15,7 +14,7 @@ export default cmd({
     bio: { type: "string", required: true, description: "New server bio" },
   },
   run: async ctx => {
-    await customize(ctx.client, ctx.guild!, clean({ bio: ctx.string("bio") }));
+    await ctx.server.profile.update({ bio: ctx.string("bio") });
     return ctx.reply(embeds.success("Updated my server bio."));
   },
 });

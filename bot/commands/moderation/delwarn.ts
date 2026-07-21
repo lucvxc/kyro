@@ -1,7 +1,7 @@
 import { PermissionFlagsBits } from "discord.js";
 import { cmd, UserError } from "../../../index.ts";
 import embeds from "../../utils/config/embeds.ts";
-import { removeWarning } from "../../services/warnings.ts";
+import { removeWarning } from "../../services/moderation/warnings.ts";
 
 export default cmd({
   name: "delwarn", aliases: ["unwarn"], description: "Delete a warning by its ID.", type: "message", context: "guild",

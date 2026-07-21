@@ -1,6 +1,5 @@
 import { PermissionFlagsBits } from "discord.js";
 import { cmd } from "../../../../index.ts";
-import { clean, customize, effect, font, styleColors } from "../../../utils/customize.ts";
 import embeds from "../../../utils/config/embeds.ts";
 
 export default cmd({
@@ -18,14 +17,13 @@ export default cmd({
     colors: { type: "string", description: "Hex colors" },
   },
   run: async ctx => {
-    const effectName = ctx.string("effect") ?? "solid";
-    const [hex1, hex2] = ctx.string("colors")?.split(/\s+/) ?? [];
-
-    await customize(ctx.client, ctx.guild!, clean({
-      display_name_font_id: font(ctx.string("font")) ?? 4,
-      display_name_effect_id: effect(effectName) ?? 1,
-      display_name_colors: styleColors(effectName, hex1, hex2) ?? [16777215],
-    }));
+    await ctx.server.profile.update({
+      style: {
+        font: ctx.string("font") ?? "jellybean",
+        effect: ctx.string("effect") ?? "solid",
+        colors: ctx.string("colors") ?? "#FFFFFF",
+      },
+    });
 
     return ctx.reply(embeds.success("Updated my display name style."));
   },

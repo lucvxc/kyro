@@ -1,6 +1,5 @@
 import { PermissionFlagsBits } from "discord.js";
-import { cmp, modal, UserError } from "../../index.ts";
-import { clean, customize, effect, font, image, styleColors } from "../utils/customize.ts";
+import { botProfileEffects, botProfileFonts, cmp, modal, UserError } from "../../index.ts";
 import embeds from "../utils/config/embeds.ts";
 
 export default cmp({
@@ -13,13 +12,15 @@ export default cmp({
       return ctx.showModal(ctx.id === "customize:profile" ? profile() : name(member.displayName));
     }
 
-    const displayNameStyle = style(ctx.strings("font")[0], ctx.strings("effect")[0], ctx.field("hex1"), ctx.field("hex2"));
-    await customize(ctx.client, ctx.guild!, clean({
-      nick: ctx.field("name") ?? undefined,
-      avatar: await image(ctx.files("avatar")[0]),
-      banner: await image(ctx.files("banner")[0]),
-      ...displayNameStyle,
-    }));
+    const font = ctx.strings("font")[0];
+    const effect = ctx.strings("effect")[0];
+    const colors = [ctx.field("hex1"), ctx.field("hex2")].filter((value): value is string => Boolean(value));
+    await ctx.server.profile.update({
+      name: ctx.field("name") ?? undefined,
+      avatar: ctx.files("avatar")[0],
+      banner: ctx.files("banner")[0],
+      style: font || effect || colors.length ? { font, effect, colors } : undefined,
+    });
 
     return ctx.reply(embeds.success("Updated my server customization."));
   },
@@ -43,16 +44,7 @@ function name(current: string) {
         label: "Font",
         required: false,
         min: 0,
-        options: [
-          { label: "Vampyre", value: "vampyre" },
-          { label: "8-Bit", value: "eightbit" },
-          { label: "Medieval", value: "medieval" },
-          { label: "Modern", value: "modern" },
-          { label: "Jellybean", value: "jellybean" },
-          { label: "Sakura", value: "sakura" },
-          { label: "Tempo", value: "tempo" },
-          { label: "GG Sans (Regular)", value: "ggsans" },
-        ],
+        options: Object.keys(botProfileFonts).map(value => ({ label: label(value), value })),
       },
       {
         type: "string",
@@ -60,13 +52,7 @@ function name(current: string) {
         label: "Effect",
         required: false,
         min: 0,
-        options: [
-          { label: "Solid", value: "solid" },
-          { label: "Gradient", value: "gradient" },
-          { label: "Neon", value: "neon" },
-          { label: "Toon", value: "toon" },
-          { label: "Pop", value: "pop" },
-        ],
+        options: Object.keys(botProfileEffects).map(value => ({ label: label(value), value })),
       },
       { id: "hex1", label: "Hex 1", placeholder: "#FFFFFF", required: false, max: 7 },
       { id: "hex2", label: "Hex 2", placeholder: "#A8D694", required: false, max: 7 },
@@ -85,13 +71,6 @@ function profile() {
   });
 }
 
-function style(fontName?: string, effectName?: string, hex1?: string | null, hex2?: string | null) {
-  const selected = styleColors(effectName, hex1, hex2);
-  if (!fontName && !effectName && !selected) return {};
-
-  return {
-    display_name_font_id: font(fontName),
-    display_name_effect_id: effect(effectName),
-    display_name_colors: selected,
-  };
+function label(value: string): string {
+  return value === "ggsans" ? "GG Sans" : value === "eightbit" ? "8-Bit" : value[0]!.toUpperCase() + value.slice(1);
 }

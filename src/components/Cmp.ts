@@ -8,6 +8,7 @@ import type {
 } from "discord.js";
 import type { Container } from "../ui/Container.ts";
 import type { Embed } from "../ui/Embed.ts";
+import type { Server } from "../guild/Server.ts";
 
 export type ComponentInput = ButtonInteraction | StringSelectMenuInteraction | ModalSubmitInteraction;
 export type ComponentReply = string | Embed | Container;
@@ -19,6 +20,7 @@ export interface CmpContext {
   readonly id: string;
   readonly user: ComponentInput["user"];
   readonly guild: ComponentInput["guild"];
+  readonly server: Server;
   readonly values: readonly string[];
   readonly params: readonly string[];
   field(name: string): string | null;

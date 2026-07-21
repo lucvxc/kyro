@@ -1,7 +1,7 @@
 import { PermissionFlagsBits } from "discord.js";
 import { cmd, container, time } from "../../../index.ts";
 import { colors } from "../../utils/config/config.ts";
-import { listWarnings } from "../../services/warnings.ts";
+import { listWarnings } from "../../services/moderation/warnings.ts";
 
 export default cmd({
   name: "warnings", aliases: ["warns"], description: "Show a member's warnings.", type: "message", context: "guild",

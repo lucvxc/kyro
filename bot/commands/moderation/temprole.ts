@@ -1,7 +1,7 @@
 import { PermissionFlagsBits } from "discord.js";
 import { cmd, duration, UserError } from "../../../index.ts";
 import embeds from "../../utils/config/embeds.ts";
-import { addTempRole } from "../../services/roles.ts";
+import { addTempRole } from "../../services/roles/temporary.ts";
 
 export default cmd({
   name: "temprole", description: "Give a member a role temporarily.", type: "message", context: "guild",

@@ -138,21 +138,7 @@ export class Router {
 
   async #run(command: Entry, ctx: Context): Promise<void> {
     try {
-      const blocked = await this.#guard.check(command, ctx);
-      if (blocked === null) return;
-      if (blocked) {
-        await ctx.reply(await this.#error(blocked));
-        return;
-      }
-
-      if (ctx.issue) {
-        await ctx.reply(this.#replies.usage
-          ? await this.#replies.usage(`\`${ctx.prefix}${ctx.command.syntax}\``)
-          : `Usage: \`${ctx.prefix}${ctx.command.syntax}\``);
-        return;
-      }
-
-      await runMiddleware(this.#middleware, ctx, () => command.run(ctx));
+      await runMiddleware(this.#middleware, ctx, () => this.#execute(command, ctx));
     } catch (error) {
       if (error instanceof UserError) {
         await ctx.reply(await this.#error(error.message)).catch(() => undefined);
@@ -164,6 +150,24 @@ export class Router {
         await ctx.reply(await this.#error("Something went wrong while running that command.")).catch(() => undefined);
       }
     }
+  }
+
+  async #execute(command: Entry, ctx: Context): Promise<void> {
+    const blocked = await this.#guard.check(command, ctx);
+    if (blocked === null) return;
+    if (blocked) {
+      await ctx.reply(await this.#error(blocked));
+      return;
+    }
+
+    if (ctx.issue) {
+      await ctx.reply(this.#replies.usage
+        ? await this.#replies.usage(`\`${ctx.prefix}${ctx.command.syntax}\``)
+        : `Usage: \`${ctx.prefix}${ctx.command.syntax}\``);
+      return;
+    }
+
+    await command.run(ctx);
   }
 
   async #error(message: string): Promise<Reply> {

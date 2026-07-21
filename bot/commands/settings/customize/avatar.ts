@@ -1,6 +1,5 @@
 import { PermissionFlagsBits } from "discord.js";
 import { cmd, UserError } from "../../../../index.ts";
-import { clean, customize, image } from "../../../utils/customize.ts";
 import embeds from "../../../utils/config/embeds.ts";
 
 export default cmd({
@@ -19,7 +18,7 @@ export default cmd({
     const url = ctx.string("url");
     if (!url && !file) throw new UserError("Send an image URL or attach an image.");
 
-    await customize(ctx.client, ctx.guild!, clean({ avatar: await image(file ?? url) }));
+    await ctx.server.profile.update({ avatar: file ?? url });
     return ctx.reply(embeds.success("Updated my server avatar."));
   },
 });
