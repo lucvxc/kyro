@@ -15,7 +15,10 @@ export default cmd({
     const card = container()
       .accent(await dominant(banner))
       .text(`## ${ctx.guild!.stats.name}'s Banner`)
-      .gallery({ url: banner, description: `${ctx.guild!.stats.name}'s Banner` })
+      .gallery({
+        url: banner,
+        description: `${ctx.guild!.stats.name}'s Banner`,
+      })
       .row(button({ label: "Open Banner", style: "link", url: banner }));
 
     return ctx.reply(card);

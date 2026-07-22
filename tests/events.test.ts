@@ -16,6 +16,8 @@ describe("event Loader", () => {
 
     await loader.load();
     expect(client.listenerCount(Events.ClientReady)).toBe(listeners + 1);
+    expect(client.listenerCount(Events.GuildCreate)).toBe(1);
+    expect(client.listenerCount(Events.GuildDelete)).toBe(1);
 
     loader.unload();
     expect(client.listenerCount(Events.ClientReady)).toBe(listeners);

@@ -7,11 +7,23 @@ export default evt({
   run: async (before, after) => {
     if (before.channelId === after.channelId) return;
     if (!before.channelId && after.channelId) {
-      await sendLog(after.guild, "voiceJoin", loggerCards.voice(after, "joined", undefined, after.channelId));
+      await sendLog(
+        after.guild,
+        "voiceJoin",
+        loggerCards.voice(after, "joined", undefined, after.channelId),
+      );
     } else if (before.channelId && !after.channelId) {
-      await sendLog(after.guild, "voiceLeave", loggerCards.voice(after, "left", before.channelId));
+      await sendLog(
+        after.guild,
+        "voiceLeave",
+        loggerCards.voice(after, "left", before.channelId),
+      );
     } else {
-      await sendLog(after.guild, "voiceMove", loggerCards.voice(after, "moved", before.channelId!, after.channelId!));
+      await sendLog(
+        after.guild,
+        "voiceMove",
+        loggerCards.voice(after, "moved", before.channelId!, after.channelId!),
+      );
     }
   },
 });

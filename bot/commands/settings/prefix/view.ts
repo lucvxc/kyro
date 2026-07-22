@@ -9,7 +9,7 @@ export default cmd({
   context: "guild",
   syntax: "prefix view",
   example: "prefix view",
-  run: async ctx => {
+  run: async (ctx) => {
     const prefix = await prefixFor(ctx.guild!.id);
     return ctx.reply(embeds.info(`This server's prefix is **${prefix}**.`));
   },

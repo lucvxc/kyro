@@ -11,10 +11,12 @@ export default cmd({
   args: { role: { type: "role", description: "The role to look up" } },
   run: async (ctx) => {
     const role = ctx.roleStats("role");
-    return ctx.reply(container()
-      .accent(await role.accent())
-      .text(`## ${role.name}\n-# ${role.mention}`)
-      .separator()
-      .text(`**Hex** \`${role.color}\`\n**Position** ${role.position}`));
+    return ctx.reply(
+      container()
+        .accent(await role.accent())
+        .text(`## ${role.name}\n-# ${role.mention}`)
+        .separator()
+        .text(`**Hex** \`${role.color}\`\n**Position** ${role.position}`),
+    );
   },
 });

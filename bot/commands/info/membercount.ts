@@ -9,8 +9,11 @@ export default cmd({
   syntax: "membercount",
   example: "membercount",
   context: "guild",
-  run: (ctx) => ctx.reply(embed({
-    color: colors.default,
-    description: `**${ctx.guild!.stats.name}** has **${ctx.guild!.stats.members.toLocaleString()}** members`,
-  })),
+  run: (ctx) =>
+    ctx.reply(
+      embed({
+        color: colors.default,
+        description: `**${ctx.guild!.stats.name}** has **${ctx.guild!.stats.members.toLocaleString()}** members`,
+      }),
+    ),
 });

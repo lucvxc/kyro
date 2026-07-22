@@ -8,6 +8,8 @@ export default cmd({
   context: "guild",
   run: async (ctx) => {
     const next = await ctx.music.skip();
-    return ctx.reply(next ? `Skipped to ${song(next)}.` : "Stopped—the queue is empty.");
+    return ctx.reply(
+      next ? `Skipped to ${song(next)}.` : "Stopped—the queue is empty.",
+    );
   },
 });

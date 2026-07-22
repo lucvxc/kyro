@@ -18,6 +18,8 @@ describe("Loader", () => {
       syntax: "avatar (user)",
       example: "avatar @user",
     });
+    expect(registry.get("alpha", "slash")?.description).toBe("First collected command");
+    expect(registry.get("beta", "slash")?.description).toBe("Second collected command");
     expect(registry.catalog.category("admin")?.roots).toEqual(["settings"]);
     expect(registry.catalog.subs("settings").map(command => command.name)).toEqual(["settings prefix"]);
   });

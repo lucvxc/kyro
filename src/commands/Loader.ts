@@ -21,16 +21,17 @@ export class Loader {
     const files = await scan(this.#directory);
     for (const file of files) {
       const module = (await import(pathToFileURL(file).href)) as { default?: unknown };
-
-      if (!isCmd(module.default)) {
-        throw new TypeError(`Command file "${file}" must have a default command export.`);
-      }
+      const commands = Array.isArray(module.default) ? module.default : [module.default];
+      if (!commands.length) throw new TypeError(`Command file "${file}" cannot export an empty array.`);
 
       const folder = relative(this.#directory, dirname(file)).split(sep)[0];
-      this.#registry.add({
-        ...module.default,
-        category: module.default.category ?? (folder || "general"),
-      });
+      for (const command of commands) {
+        validate(command, file);
+        this.#registry.add({
+          ...command,
+          category: command.category ?? (folder || "general"),
+        });
+      }
     }
 
     this.#loaded = true;
@@ -39,6 +40,16 @@ export class Loader {
   public async reload(): Promise<void> { this.#registry.reset(); this.#loaded = false; await this.load(); }
 }
 
-function isCmd(value: unknown): value is Cmd {
-  return typeof value === "object" && value !== null;
+function validate(value: unknown, file: string): asserts value is Cmd {
+  if (typeof value !== "object" || value === null) fail(file, "must export a command or command array");
+  const command = value as Partial<Cmd>;
+  if (!command.name?.trim()) fail(file, "has a command without a name");
+  if (!command.description?.trim()) fail(file, `command "${command.name}" needs a description`);
+  if (typeof command.run !== "function") fail(file, `command "${command.name}" needs a run function`);
+  if (command.type && !["slash", "message", "hybrid"].includes(command.type)) fail(file, `command "${command.name}" has an invalid type`);
+  if (command.context && !["both", "guild", "dms"].includes(command.context)) fail(file, `command "${command.name}" has an invalid context`);
+}
+
+function fail(file: string, issue: string): never {
+  throw new TypeError(`Command file "${file}" ${issue}.`);
 }

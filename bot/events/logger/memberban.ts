@@ -6,8 +6,12 @@ import { loggerCards } from "../../utils/config/logger.ts";
 
 export default evt({
   name: "guildBanAdd",
-  run: async ban => {
-    const actor = await auditActor(ban.guild, AuditLogEvent.MemberBanAdd, ban.user.id);
+  run: async (ban) => {
+    const actor = await auditActor(
+      ban.guild,
+      AuditLogEvent.MemberBanAdd,
+      ban.user.id,
+    );
     await sendLog(ban.guild, "memberBan", loggerCards.memberBan(ban, actor));
   },
 });

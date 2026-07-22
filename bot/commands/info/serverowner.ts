@@ -11,8 +11,10 @@ export default cmd({
   run: async (ctx) => {
     const owner = await ctx.ownerStats();
     const avatar = owner.avatar();
-    return ctx.reply(container()
-      .accent(await owner.accent())
-      .section(`## ${owner.tag}\n${owner.mention}`, thumb(avatar)));
+    return ctx.reply(
+      container()
+        .accent(await owner.accent())
+        .section(`## ${owner.tag}\n${owner.mention}`, thumb(avatar)),
+    );
   },
 });

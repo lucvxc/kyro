@@ -10,7 +10,7 @@ export default cmd({
   permissions: [PermissionFlagsBits.ManageGuild],
   syntax: "customize reset",
   example: "customize reset",
-  run: async ctx => {
+  run: async (ctx) => {
     await ctx.server.profile.reset();
 
     return ctx.reply(embeds.success("Reset my server customization."));

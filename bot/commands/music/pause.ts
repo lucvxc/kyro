@@ -5,5 +5,8 @@ export default cmd({
   description: "Pause the current song.",
   type: "message",
   context: "guild",
-  run: async (ctx) => { await ctx.music.pause(); return ctx.reply("Paused the music."); },
+  run: async (ctx) => {
+    await ctx.music.pause();
+    return ctx.reply("Paused the music.");
+  },
 });

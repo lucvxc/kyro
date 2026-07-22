@@ -1,5 +1,5 @@
-import { eq } from "drizzle-orm";
 import type { Message } from "discord.js";
+import { eq } from "drizzle-orm";
 import { Cache, UserError, type Middleware } from "../../../index.ts";
 import { db } from "../../db/database.ts";
 import { guilds } from "../../db/schema.ts";
@@ -11,39 +11,65 @@ export interface CommandSettings {
 
 const cache = new Cache<CommandSettings>({ ttl: 300, max: 10_000 });
 
-export async function commandSettings(guildId: string): Promise<CommandSettings> {
+export async function commandSettings(
+  guildId: string,
+): Promise<CommandSettings> {
   const cached = cache.get(guildId);
   if (cached) return cached;
 
-  const [guild] = await db.select({
-    disabled: guilds.disabledCommands,
-    aliases: guilds.customAliases,
-  }).from(guilds).where(eq(guilds.id, guildId)).limit(1);
+  const [guild] = await db
+    .select({
+      disabled: guilds.disabledCommands,
+      aliases: guilds.customAliases,
+    })
+    .from(guilds)
+    .where(eq(guilds.id, guildId))
+    .limit(1);
   const settings = freeze(guild?.disabled ?? [], guild?.aliases ?? {});
   cache.set(guildId, settings);
   return settings;
 }
 
-export async function disableCommand(guildId: string, name: string): Promise<boolean> {
+export async function disableCommand(
+  guildId: string,
+  name: string,
+): Promise<boolean> {
   const current = await commandSettings(guildId);
   if (current.disabled.includes(name)) return false;
   await save(guildId, [...current.disabled, name], current.aliases);
   return true;
 }
 
-export async function enableCommand(guildId: string, name: string): Promise<boolean> {
+export async function enableCommand(
+  guildId: string,
+  name: string,
+): Promise<boolean> {
   const current = await commandSettings(guildId);
   if (!current.disabled.includes(name)) return false;
-  await save(guildId, current.disabled.filter(value => value !== name), current.aliases);
+  await save(
+    guildId,
+    current.disabled.filter((value) => value !== name),
+    current.aliases,
+  );
   return true;
 }
 
-export async function addAlias(guildId: string, alias: string, command: string): Promise<void> {
+export async function addAlias(
+  guildId: string,
+  alias: string,
+  command: string,
+): Promise<void> {
   const current = await commandSettings(guildId);
-  await save(guildId, current.disabled, { ...current.aliases, [alias]: command });
+  await save(guildId, current.disabled, {
+    ...current.aliases,
+    [alias]: command,
+  });
 }
 
-export async function removeAlias(guildId: string, alias: string): Promise<boolean> {
+export async function removeAlias(
+  guildId: string,
+  alias: string,
+): Promise<boolean> {
   const current = await commandSettings(guildId);
   if (!(alias in current.aliases)) return false;
   const aliases = { ...current.aliases };
@@ -52,28 +78,51 @@ export async function removeAlias(guildId: string, alias: string): Promise<boole
   return true;
 }
 
-export async function resolveGuildAlias(message: Message, input: string): Promise<string | null> {
+export async function resolveGuildAlias(
+  message: Message,
+  input: string,
+): Promise<string | null> {
   if (!message.guildId) return null;
   const alias = input.trim().split(/\s+/, 1)[0]?.toLowerCase();
-  return alias ? (await commandSettings(message.guildId)).aliases[alias] ?? null : null;
+  return alias
+    ? ((await commandSettings(message.guildId)).aliases[alias] ?? null)
+    : null;
 }
 
 export const blockDisabledCommands: Middleware = async (ctx, next) => {
-  if (!ctx.guild || !(await commandSettings(ctx.guild.id)).disabled.includes(ctx.command.name)) {
+  if (
+    !ctx.guild ||
+    !(await commandSettings(ctx.guild.id)).disabled.includes(ctx.command.name)
+  ) {
     await next();
     return;
   }
-  throw new UserError(`The **${ctx.command.name}** command is disabled in this server.`);
+  throw new UserError(
+    `The **${ctx.command.name}** command is disabled in this server.`,
+  );
 };
 
-async function save(guildId: string, disabled: readonly string[], aliases: Readonly<Record<string, string>>): Promise<void> {
-  const values = { disabledCommands: [...disabled], customAliases: { ...aliases }, updatedAt: new Date() };
-  await db.insert(guilds).values({ id: guildId, ...values })
+async function save(
+  guildId: string,
+  disabled: readonly string[],
+  aliases: Readonly<Record<string, string>>,
+): Promise<void> {
+  const values = {
+    disabledCommands: [...disabled],
+    customAliases: { ...aliases },
+    updatedAt: new Date(),
+  };
+  await db
+    .insert(guilds)
+    .values({ id: guildId, ...values })
     .onConflictDoUpdate({ target: guilds.id, set: values });
   cache.set(guildId, freeze(disabled, aliases));
 }
 
-function freeze(disabled: readonly string[], aliases: Readonly<Record<string, string>>): CommandSettings {
+function freeze(
+  disabled: readonly string[],
+  aliases: Readonly<Record<string, string>>,
+): CommandSettings {
   return Object.freeze({
     disabled: Object.freeze([...disabled]),
     aliases: Object.freeze({ ...aliases }),

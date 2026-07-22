@@ -8,7 +8,8 @@ import {
 } from "discord.js";
 
 import type { Entry } from "./Cmd.ts";
-import { Context, replyOptions, type Reply } from "./Context.ts";
+import { Context, type Reply } from "./Context.ts";
+import { messageOptions } from "../ui/Message.ts";
 import type { Guard } from "./Guard.ts";
 import type { Registry } from "./Registry.ts";
 import { log } from "../core/Log.ts";
@@ -128,7 +129,7 @@ export class Router {
       const reply = this.#replies.subcommands
         ? await this.#replies.subcommands(body, commands, prefix, message)
         : defaultSubs(commands, prefix);
-      await message.reply(replyOptions(reply) as never);
+      await message.reply(messageOptions(reply) as never);
       return;
     }
 

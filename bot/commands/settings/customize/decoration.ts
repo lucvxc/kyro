@@ -16,7 +16,7 @@ export default cmd({
     effect: { type: "string", description: "Effect name or ID" },
     colors: { type: "string", description: "Hex colors" },
   },
-  run: async ctx => {
+  run: async (ctx) => {
     await ctx.server.profile.update({
       style: {
         font: ctx.string("font") ?? "jellybean",

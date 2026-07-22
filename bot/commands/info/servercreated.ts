@@ -8,9 +8,14 @@ export default cmd({
   syntax: "servercreated",
   example: "servercreated",
   context: "guild",
-  run: async (ctx) => ctx.reply(container()
-    .accent(await ctx.guild!.stats.accent())
-    .text(`## ${ctx.guild!.stats.name}`)
-    .separator()
-    .text(`**Created** ${time(ctx.guild!.stats.created)}\n**Age** ${time(ctx.guild!.stats.created, "R")}\n-# ID ${ctx.guild!.stats.id}`)),
+  run: async (ctx) =>
+    ctx.reply(
+      container()
+        .accent(await ctx.guild!.stats.accent())
+        .text(`## ${ctx.guild!.stats.name}`)
+        .separator()
+        .text(
+          `**Created** ${time(ctx.guild!.stats.created)}\n**Age** ${time(ctx.guild!.stats.created, "R")}\n-# ID ${ctx.guild!.stats.id}`,
+        ),
+    ),
 });

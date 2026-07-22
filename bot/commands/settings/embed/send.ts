@@ -4,21 +4,35 @@ import { renderEmbed, savedEmbed } from "../../../services/settings/embeds.ts";
 import { isEmbedFormat } from "../../../utils/parser.ts";
 
 export default cmd({
-  name: "embed send", description: "Send a saved embed or raw embed code.", type: "message", context: "guild",
-  permissions: [PermissionFlagsBits.ManageMessages], syntax: "embed send <name|code> (channel)", example: "embed send rules #rules",
-  run: async ctx => {
+  name: "embed send",
+  description: "Send a saved embed or raw embed code.",
+  type: "message",
+  context: "guild",
+  permissions: [PermissionFlagsBits.ManageMessages],
+  syntax: "embed send <name/code> (channel)",
+  example: "embed send rules #rules",
+  run: async (ctx) => {
     const input = [...ctx.raw];
     const possibleChannel = input.at(-1)?.match(/^<#(\d+)>$/)?.[1];
-    const selected = possibleChannel ? ctx.guild!.channels.cache.get(possibleChannel) : undefined;
+    const selected = possibleChannel
+      ? ctx.guild!.channels.cache.get(possibleChannel)
+      : undefined;
     if (selected) input.pop();
     const channel = selected ?? ctx.message!.channel;
-    if (!channel.isSendable()) throw new UserError("Choose a channel where I can send messages.");
+    if (!channel.isSendable())
+      throw new UserError("Choose a channel where I can send messages.");
 
     const query = input.join(" ").trim();
-    if (!query) throw new UserError(`Use **${ctx.prefix}embed send <name|code> (channel)**.`);
+    if (!query)
+      throw new UserError(
+        `Use **${ctx.prefix}embed send <name/code> (channel)**.`,
+      );
     const code = isEmbedFormat(query)
       ? query
-      : (await savedEmbed(ctx.guild!.id, ctx.author.id, query)).code;
-    await channel.send({ ...renderEmbed(code, ctx.guild!, ctx.author), allowedMentions: { parse: [] } });
+      : (await savedEmbed(ctx.author.id, query)).code;
+    await channel.send({
+      ...renderEmbed(code, ctx.guild!, ctx.author),
+      allowedMentions: { parse: [] },
+    });
   },
 });

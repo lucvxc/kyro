@@ -30,6 +30,7 @@ export function parse(
 
     if (!token) {
       if (arg.required) return { values, issue: `Missing required argument "${name}".` };
+      if (arg.default !== undefined) values.set(name, arg.default);
       continue;
     }
 

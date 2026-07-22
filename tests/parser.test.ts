@@ -54,6 +54,24 @@ describe("parse", () => {
     expect(parsed.values.size).toBe(0);
   });
 
+  test("applies defaults to omitted message arguments", () => {
+    const parsed = parse(
+      {
+        panel: { type: "string", default: "dropdown" },
+        limit: { type: "number", default: 0 },
+        enabled: { type: "boolean", default: true },
+      },
+      [],
+      resolve,
+    );
+
+    expect(Object.fromEntries(parsed.values)).toEqual({
+      panel: "dropdown",
+      limit: 0,
+      enabled: true,
+    });
+  });
+
   test("accepts unquoted multi-word role names", () => {
     const role = { id: "1", name: "Senior Moderators" } as never;
     const parsed = parse(

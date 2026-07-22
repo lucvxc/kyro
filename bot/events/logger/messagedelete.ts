@@ -6,11 +6,20 @@ import { loggerCards } from "../../utils/config/logger.ts";
 
 export default evt({
   name: "messageDelete",
-  run: async message => {
+  run: async (message) => {
     if (!message.guild || message.author?.bot) return;
     const actor = message.author
-      ? await auditActor(message.guild, AuditLogEvent.MessageDelete, message.author.id)
+      ? await auditActor(
+          message.guild,
+          AuditLogEvent.MessageDelete,
+          message.author.id,
+        )
       : undefined;
-    await sendLog(message.guild, "messageDelete", loggerCards.messageDelete(message, actor), message.channelId);
+    await sendLog(
+      message.guild,
+      "messageDelete",
+      loggerCards.messageDelete(message, actor),
+      message.channelId,
+    );
   },
 });

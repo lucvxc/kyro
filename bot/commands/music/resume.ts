@@ -5,5 +5,8 @@ export default cmd({
   description: "Resume the current song.",
   type: "message",
   context: "guild",
-  run: async (ctx) => { await ctx.music.resume(); return ctx.reply("Resumed the music."); },
+  run: async (ctx) => {
+    await ctx.music.resume();
+    return ctx.reply("Resumed the music.");
+  },
 });

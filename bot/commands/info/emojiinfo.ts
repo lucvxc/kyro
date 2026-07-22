@@ -9,17 +9,22 @@ export default cmd({
   example: "emojiinfo :wave:",
   context: "guild",
   args: {
-    emoji: { type: "string", description: "The emoji to look up", required: true },
+    emoji: {
+      type: "string",
+      description: "The emoji to look up",
+      required: true,
+    },
   },
   run: async (ctx) => {
     const emoji = await ctx.emojiStats("emoji");
     const image = emoji.image();
     const card = container()
-
       .accent(await emoji.accent())
       .text(`## ${emoji.name}`)
       .gallery({ url: image, description: `${emoji.name} emoji` })
-      .text(`**Animated** ${emoji.animated ? "Yes" : "No"}\n**Created** ${time(emoji.created)}\n-# ID ${emoji.id}`)
+      .text(
+        `**Animated** ${emoji.animated ? "Yes" : "No"}\n**Created** ${time(emoji.created)}\n-# ID ${emoji.id}`,
+      )
       .row(button({ label: "Open Emoji", style: "link", url: image }));
 
     return ctx.reply(card);

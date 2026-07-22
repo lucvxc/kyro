@@ -20,7 +20,9 @@ export default cmd({
       .text(`## #${channel.name}`)
       .text(channel.topic ? `> ${channel.topic}` : "-# No channel topic")
       .separator()
-      .text(`**Type** ${channel.type}\n**Category** ${channel.parent ?? "None"}\n**Position** ${channel.position}\n**Created** ${time(channel.created)}`)
+      .text(
+        `**Type** ${channel.type}\n**Category** ${channel.parent ?? "None"}\n**Position** ${channel.position}\n**Created** ${time(channel.created)}`,
+      )
       .text(`-# ID ${channel.id}`);
 
     return ctx.reply(card);

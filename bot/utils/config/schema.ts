@@ -2,15 +2,26 @@ export type MessageSettings = {
   channelId?: string;
   message?: string;
   enabled?: boolean;
+  stickerId?: string;
+  pingChannels?: string[];
+  reply?: boolean;
 };
 
-export type StickyMessage = MessageSettings & { channelId: string };
+export type StickyMessage = MessageSettings & {
+  channelId: string;
+  attachments?: string[];
+  stickerIds?: string[];
+  lastMessageId?: string;
+};
 
 export type StarboardSettings = {
   channelId?: string;
   emoji?: string;
+  emojis?: string[];
   threshold?: number;
+  thresholds?: Record<string, number>;
   selfStar?: boolean;
+  messages?: Record<string, string>;
 };
 
 export type AutoResponse = {
@@ -73,11 +84,14 @@ export type CountingSettings = {
   channelId?: string;
   count?: number;
   lastUserId?: string;
+  highScore?: number;
 };
 
 export type ConfessionSettings = {
   channelId?: string;
   logChannelId?: string;
+  enabled?: boolean;
+  blockedUserIds?: string[];
 };
 
 export type LevelSettings = {
@@ -88,17 +102,33 @@ export type LevelSettings = {
 };
 
 export type AutoMessage = MessageSettings & {
+  id: string;
   channelId: string;
   interval: number;
+  lastSent: number;
+};
+
+export type MessageFilterSettings = {
+  enabled?: boolean;
+  punishment?: "delete" | "warn" | "timeout" | "kick" | "ban";
+  whitelistedChannels?: string[];
+  whitelistedRoles?: string[];
+};
+
+export type VoiceMasterSettings = {
+  enabled?: boolean;
+  categoryId?: string;
+  joinChannelId?: string;
+  interfaceChannelId?: string;
+  defaultName?: string;
+  defaultLimit?: number;
+  panelType?: "dropdown" | "container" | "embed";
+  panelMessageId?: string;
+};
+
+export type BoosterRoleSettings = {
+  baseRoleId?: string;
+  awardRoleId?: string;
 };
 
 export type FakePermissionMap = Record<string, string[]>;
-export type SavedEmbed = {
-  id: string;
-  name: string;
-  userId: string;
-  code: string;
-  savedAt: string;
-};
-
-export type SavedEmbedMap = Record<string, SavedEmbed>;

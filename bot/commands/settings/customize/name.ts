@@ -11,9 +11,13 @@ export default cmd({
   syntax: "customize name <name>",
   example: "customize name june",
   args: {
-    name: { type: "string", required: true, description: "New server nickname" },
+    name: {
+      type: "string",
+      required: true,
+      description: "New server nickname",
+    },
   },
-  run: async ctx => {
+  run: async (ctx) => {
     await ctx.server.profile.update({ name: ctx.string("name") });
     return ctx.reply(embeds.success("Updated my server name."));
   },

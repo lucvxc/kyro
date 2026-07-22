@@ -25,7 +25,10 @@ export interface ParseOptions {
   allowVariableUrls?: boolean;
 }
 
-export function parseEmbedFormat(input: string, options: ParseOptions = {}): ParsedEmbed {
+export function parseEmbedFormat(
+  input: string,
+  options: ParseOptions = {},
+): ParsedEmbed {
   const card = embed();
   let content: string | undefined;
 
@@ -43,9 +46,17 @@ export function parseEmbedFormat(input: string, options: ParseOptions = {}): Par
     }
 
     if (directive.includes(" && ")) {
-      const values = Object.fromEntries(directive.split(" && ").map(part => pair(part)));
-      if (values.author) card.author({ name: values.author, icon: values.authoricon, url: values.authorurl });
-      if (values.footer) card.footer({ text: values.footer, icon: values.footericon });
+      const values = Object.fromEntries(
+        directive.split(" && ").map((part) => pair(part)),
+      );
+      if (values.author)
+        card.author({
+          name: values.author,
+          icon: values.authoricon,
+          url: values.authorurl,
+        });
+      if (values.footer)
+        card.footer({ text: values.footer, icon: values.footericon });
       continue;
     }
 
@@ -57,7 +68,10 @@ export function parseEmbedFormat(input: string, options: ParseOptions = {}): Par
   return { content, embed: card };
 }
 
-export function parseMessageFormat(input: string, options: ParseOptions = {}): ParsedMessage {
+export function parseMessageFormat(
+  input: string,
+  options: ParseOptions = {},
+): ParsedMessage {
   if (!isEmbedFormat(input)) return { content: input };
 
   const parsed = parseEmbedFormat(input, options);
@@ -70,13 +84,21 @@ export function parseMessageFormat(input: string, options: ParseOptions = {}): P
 }
 
 export function isEmbedFormat(input: string): boolean {
-  return /\$v/i.test(input)
-    || /\{(?:embed|timestamp)\}/i.test(input)
-    || /\{(?:content|title|description|color|url|thumbnail|image|field)\s*:/i.test(input)
-    || /\{(?:author|footer)\s*&&/i.test(input);
+  return (
+    /\$v/i.test(input) ||
+    /\{(?:embed|timestamp)\}/i.test(input) ||
+    /\{(?:content|title|description|color|url|thumbnail|image|field)\s*:/i.test(
+      input,
+    ) ||
+    /\{(?:author|footer)\s*&&/i.test(input)
+  );
 }
 
-export function parseWelcome(input: string, member: GuildMember, guild: Guild): string {
+export function parseWelcome(
+  input: string,
+  member: GuildMember,
+  guild: Guild,
+): string {
   const user = new UserStats(member.user, null);
   return fill(input, {
     ...userVars(member.user),
@@ -85,14 +107,22 @@ export function parseWelcome(input: string, member: GuildMember, guild: Guild): 
     "{user.avatar}": user.avatar(),
     "{member.joinedAt}": member.joinedAt ? time(member.joinedAt) : "",
     "{member.joinedAt.timestamp}": member.joinedAt ? unix(member.joinedAt) : "",
-    "{member.joinedAt.relative}": member.joinedAt ? time(member.joinedAt, "R") : "",
+    "{member.joinedAt.relative}": member.joinedAt
+      ? time(member.joinedAt, "R")
+      : "",
     "{member.createdAt}": time(member.user.createdAt),
     "{member.createdAt.timestamp}": unix(member.user.createdAt),
     "{member.createdAt.relative}": time(member.user.createdAt, "R"),
   });
 }
 
-export function parseTicketWelcome(input: string, userId: string, ticket: string, guildName: string, guild?: Guild): string {
+export function parseTicketWelcome(
+  input: string,
+  userId: string,
+  ticket: string,
+  guildName: string,
+  guild?: Guild,
+): string {
   return fill(input, {
     ...guildVars(guild, guildName),
     "{user.id}": userId,
@@ -119,7 +149,12 @@ export function parseBoost(input: string, user: User, guild: Guild): string {
   });
 }
 
-export function parseNuke(input: string, user: User, channel: GuildBasedChannel, guild: Guild): string {
+export function parseNuke(
+  input: string,
+  user: User,
+  channel: GuildBasedChannel,
+  guild: Guild,
+): string {
   const info = new ChannelStats(channel);
   return fill(input, {
     ...userVars(user),
@@ -132,7 +167,15 @@ export function parseNuke(input: string, user: User, channel: GuildBasedChannel,
   });
 }
 
-export function parseGiveaway(input: string, prize: string, winners: number, endTime: number, hostId: string, guildName: string, guild?: Guild): string {
+export function parseGiveaway(
+  input: string,
+  prize: string,
+  winners: number,
+  endTime: number,
+  hostId: string,
+  guildName: string,
+  guild?: Guild,
+): string {
   const end = unix(endTime);
   return fill(input, {
     ...guildVars(guild, guildName),
@@ -146,7 +189,21 @@ export function parseGiveaway(input: string, prize: string, winners: number, end
   });
 }
 
-export function parseLastFM(input: string, track: string, artist: string, album: string | null, trackUrl: string, imageUrl: string | null, nowPlaying: boolean, username: string, userId: string, dominantColor: string, userAvatarUrl?: string | null, userTag?: string, guild?: Guild): string {
+export function parseLastFM(
+  input: string,
+  track: string,
+  artist: string,
+  album: string | null,
+  trackUrl: string,
+  imageUrl: string | null,
+  nowPlaying: boolean,
+  username: string,
+  userId: string,
+  dominantColor: string,
+  userAvatarUrl?: string | null,
+  userTag?: string,
+  guild?: Guild,
+): string {
   return fill(input, {
     ...guildVars(guild),
     "{track}": track,
@@ -165,7 +222,12 @@ export function parseLastFM(input: string, track: string, artist: string, album:
   });
 }
 
-export function parseVanity(input: string, user: User, guild: Guild, vanity: string): string {
+export function parseVanity(
+  input: string,
+  user: User,
+  guild: Guild,
+  vanity: string,
+): string {
   return fill(input, {
     ...userVars(user),
     ...guildVars(guild),
@@ -178,7 +240,12 @@ export function parseGeneric(input: string, guild: Guild, user: User): string {
   return fill(input, { ...userVars(user), ...guildVars(guild) });
 }
 
-function apply(card: Embed, key: string, value: string, options: ParseOptions): void {
+function apply(
+  card: Embed,
+  key: string,
+  value: string,
+  options: ParseOptions,
+): void {
   const safeUrl = !options.allowVariableUrls || !/\{[^}]+\}/.test(value);
   if (key === "title") card.title(value);
   else if (key === "description") card.desc(value);
@@ -191,14 +258,19 @@ function apply(card: Embed, key: string, value: string, options: ParseOptions): 
 function pair(value: string): [string, string] {
   const colon = value.indexOf(":");
   if (colon < 0) return [value, ""];
-  return [value.slice(0, colon).trim(), clean(value.slice(colon + 1)).replace(/\\n/g, "\n")];
+  return [
+    value.slice(0, colon).trim(),
+    clean(value.slice(colon + 1)).replace(/\\n/g, "\n"),
+  ];
 }
 
 function clean(value: string): string {
   return value.trim().replace(/^"|"$/g, "");
 }
 
-function unwrap(value: string): string { return clean(value).replace(/^\{|\}$/g, ""); }
+function unwrap(value: string): string {
+  return clean(value).replace(/^\{|\}$/g, "");
+}
 
 function userVars(user: User): Record<string, string> {
   const info = new UserStats(user, null);
@@ -211,18 +283,22 @@ function userVars(user: User): Record<string, string> {
   };
 }
 
-function guildVars(guild?: Guild, fallback = ""): Record<string, string | number> {
-  if (!guild) return {
-    "{server}": fallback,
-    "{server.id}": "",
-    "{server.count}": 0,
-    "{server.count.format}": "0",
-    "{server.icon}": "",
-    "{server.pfp}": "",
-    "{server.banner}": "",
-    "{date}": time(),
-    "{time}": time(Date.now(), "R"),
-  };
+function guildVars(
+  guild?: Guild,
+  fallback = "",
+): Record<string, string | number> {
+  if (!guild)
+    return {
+      "{server}": fallback,
+      "{server.id}": "",
+      "{server.count}": 0,
+      "{server.count.format}": "0",
+      "{server.icon}": "",
+      "{server.pfp}": "",
+      "{server.banner}": "",
+      "{date}": time(),
+      "{time}": time(Date.now(), "R"),
+    };
 
   const info = new GuildStats(guild);
   return {

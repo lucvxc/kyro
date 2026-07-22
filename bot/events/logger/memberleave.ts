@@ -6,8 +6,16 @@ import { loggerCards } from "../../utils/config/logger.ts";
 
 export default evt({
   name: "guildMemberRemove",
-  run: async member => {
-    const actor = await auditActor(member.guild, AuditLogEvent.MemberKick, member.id);
-    await sendLog(member.guild, "memberLeave", loggerCards.memberLeave(member, actor));
+  run: async (member) => {
+    const actor = await auditActor(
+      member.guild,
+      AuditLogEvent.MemberKick,
+      member.id,
+    );
+    await sendLog(
+      member.guild,
+      "memberLeave",
+      loggerCards.memberLeave(member, actor),
+    );
   },
 });

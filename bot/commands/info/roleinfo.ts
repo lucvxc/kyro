@@ -18,10 +18,17 @@ export default cmd({
 
     const card = container()
       .accent(icon ? await role.accent() : colors.default)
-      .section(`## ${role.name}\n${role.mention}`, icon ? thumb(icon) : undefined)
+      .section(
+        `## ${role.name}\n${role.mention}`,
+        icon ? thumb(icon) : undefined,
+      )
       .separator()
-      .text(`**${role.members.toLocaleString()}** Members · **${role.permissions}** Permissions · Position **${role.position}**`)
-      .text(`**Color** ${role.color}\n**Mentionable** ${role.mentionable ? "Yes" : "No"}\n**Hoisted** ${role.hoisted ? "Yes" : "No"}\n**Managed** ${role.managed ? "Yes" : "No"}\n**Created** ${time(role.created)}`)
+      .text(
+        `**${role.members.toLocaleString()}** Members · **${role.permissions}** Permissions · Position **${role.position}**`,
+      )
+      .text(
+        `**Color** ${role.color}\n**Mentionable** ${role.mentionable ? "Yes" : "No"}\n**Hoisted** ${role.hoisted ? "Yes" : "No"}\n**Managed** ${role.managed ? "Yes" : "No"}\n**Created** ${time(role.created)}`,
+      )
       .text(`-# ID ${role.id}`);
 
     return ctx.reply(card);

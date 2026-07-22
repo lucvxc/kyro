@@ -11,9 +11,11 @@ export default cmd({
   permissions: [PermissionFlagsBits.ManageGuild],
   syntax: "aliases",
   example: "aliases",
-  run: async ctx => {
+  run: async (ctx) => {
     const { aliases } = await commandSettings(ctx.guild!.id);
-    const list = Object.entries(aliases).map(([alias, command]) => `\`${alias}\` → **${command}**`).join("\n");
+    const list = Object.entries(aliases)
+      .map(([alias, command]) => `\`${alias}\` → **${command}**`)
+      .join("\n");
     return ctx.reply(embeds.info(list || "This server has no custom aliases."));
   },
 });

@@ -1,4 +1,3 @@
-import { MessageFlags } from "discord.js";
 import type { ModalBuilder } from "discord.js";
 import type {
   ChatInputCommandInteraction,
@@ -15,8 +14,6 @@ import type {
 import type { ArgType } from "./Arg.ts";
 import type { Entry } from "./Cmd.ts";
 import { parse } from "./Parser.ts";
-import type { Container } from "../ui/Container.ts";
-import type { Embed } from "../ui/Embed.ts";
 import { Moderation } from "./Moderation.ts";
 import { Server } from "../guild/Server.ts";
 import { Stats } from "../core/Stats.ts";
@@ -29,13 +26,12 @@ import { UserError } from "./Errors.ts";
 import { Catalog } from "./Catalog.ts";
 import { musicFor, type MusicContext } from "../plugins/music/index.ts";
 import { findRole } from "../guild/Lookup.ts";
-
-const mentions = { parse: [] as never[], repliedUser: false };
+import { messageOptions, type MessageContent } from "../ui/Message.ts";
 
 export type Source = "slash" | "message";
 export type Input = ChatInputCommandInteraction | Message;
 
-export type Reply = string | Embed | Container;
+export type Reply = MessageContent;
 
 export class Context {
   public readonly client: Client;
@@ -117,23 +113,26 @@ export class Context {
 
   public string(name: string): string | null {
     this.#check(name, "string");
+    const fallback = (this.#entry.args?.[name]?.default as string | undefined) ?? null;
     return this.source === "slash"
-      ? (this.input as ChatInputCommandInteraction).options.getString(name) ?? (this.#entry.args?.[name]?.default as string | undefined) ?? null
-      : (this.#values.get(name) as string | undefined) ?? null;
+      ? (this.input as ChatInputCommandInteraction).options.getString(name) ?? fallback
+      : (this.#values.get(name) as string | undefined) ?? fallback;
   }
 
   public number(name: string): number | null {
     this.#check(name, "number");
+    const fallback = (this.#entry.args?.[name]?.default as number | undefined) ?? null;
     return this.source === "slash"
-      ? (this.input as ChatInputCommandInteraction).options.getNumber(name) ?? (this.#entry.args?.[name]?.default as number | undefined) ?? null
-      : (this.#values.get(name) as number | undefined) ?? null;
+      ? (this.input as ChatInputCommandInteraction).options.getNumber(name) ?? fallback
+      : (this.#values.get(name) as number | undefined) ?? fallback;
   }
 
   public boolean(name: string): boolean | null {
     this.#check(name, "boolean");
+    const fallback = (this.#entry.args?.[name]?.default as boolean | undefined) ?? null;
     return this.source === "slash"
-      ? (this.input as ChatInputCommandInteraction).options.getBoolean(name) ?? (this.#entry.args?.[name]?.default as boolean | undefined) ?? null
-      : (this.#values.get(name) as boolean | undefined) ?? null;
+      ? (this.input as ChatInputCommandInteraction).options.getBoolean(name) ?? fallback
+      : (this.#values.get(name) as boolean | undefined) ?? fallback;
   }
 
   public user(name: string): User | null {
@@ -201,7 +200,7 @@ export class Context {
   }
 
   public async reply(content: Reply): Promise<void> {
-    const options = replyOptions(content);
+    const options = messageOptions(content);
 
     if (this.source === "message") {
       this.#response = await (this.input as Message).reply(options as never);
@@ -221,7 +220,7 @@ export class Context {
 
   public async send(channel: GuildBasedChannel, content: Reply): Promise<void> {
     if (!channel.isSendable()) throw new UserError("Messages cannot be sent in that channel.");
-    await channel.send(replyOptions(content) as never);
+    await channel.send(messageOptions(content) as never);
   }
 
   public async showModal(modal: ModalBuilder): Promise<void> {
@@ -235,11 +234,11 @@ export class Context {
   }
 
   public async update(interaction: MessageComponentInteraction, content: Reply): Promise<void> {
-    await interaction.update(replyOptions(content) as never);
+    await interaction.update(messageOptions(content) as never);
   }
 
   public async notice(interaction: MessageComponentInteraction, content: string): Promise<void> {
-    await interaction.reply({ content, flags: MessageFlags.Ephemeral, allowedMentions: mentions });
+    await interaction.reply(messageOptions(content, true));
   }
 
   private inputInteraction(): ChatInputCommandInteraction {
@@ -255,18 +254,4 @@ export class Context {
       throw new TypeError(`Argument "${name}" is ${arg.type}, not ${type}.`);
     }
   }
-}
-
-export function replyOptions(value: Reply): object {
-  if (typeof value === "string") return { content: value, allowedMentions: mentions };
-  if (value.kind === "embed") {
-    return { embeds: [value.toJSON()], allowedMentions: mentions };
-  }
-
-  return {
-    components: [value.toJSON()],
-    flags: MessageFlags.IsComponentsV2,
-    files: value.files,
-    allowedMentions: mentions,
-  };
 }

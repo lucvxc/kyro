@@ -41,11 +41,12 @@ export class Loader {
     for (const file of await scan(this.#directory)) {
       const module = (await import(pathToFileURL(file).href)) as { default?: unknown };
 
-      if (!isEvt(module.default)) {
-        throw new TypeError(`Event file "${file}" must have a default event export.`);
+      const loaded = Array.isArray(module.default) ? module.default : [module.default];
+      if (!loaded.length) throw new TypeError(`Event file "${file}" cannot export an empty array.`);
+      for (const event of loaded) {
+        if (!isEvt(event)) throw new TypeError(`Event file "${file}" must export an event or event array.`);
+        events.push(event);
       }
-
-      events.push(module.default);
     }
 
     events.sort((a, b) => (b.priority ?? 0) - (a.priority ?? 0));

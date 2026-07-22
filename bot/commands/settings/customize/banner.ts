@@ -11,12 +11,16 @@ export default cmd({
   syntax: "customize banner (url)",
   example: "customize banner https://example.com/banner.png",
   args: {
-    url: { type: "string", description: "Image URL; omit when attaching an image" },
+    url: {
+      type: "string",
+      description: "Image URL; omit when attaching an image",
+    },
   },
-  run: async ctx => {
+  run: async (ctx) => {
     const file = ctx.message?.attachments.first();
     const url = ctx.string("url");
-    if (!url && !file) throw new UserError("Send an image URL or attach an image.");
+    if (!url && !file)
+      throw new UserError("Send an image URL or attach an image.");
 
     await ctx.server.profile.update({ banner: file ?? url });
     return ctx.reply(embeds.success("Updated my server banner."));

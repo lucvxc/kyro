@@ -4,13 +4,27 @@ import { setLoggerChannel } from "../../../services/settings/logger.ts";
 import embeds from "../../../utils/config/embeds.ts";
 
 export default cmd({
-  name: "logger channel", description: "Change the logging channel.", type: "message", context: "guild",
-  permissions: [PermissionFlagsBits.ManageGuild], syntax: "logger channel <channel>", example: "logger channel #logs",
-  args: { channel: { type: "channel", required: true, description: "New logging channel" } },
-  run: async ctx => {
+  name: "logger channel",
+  description: "Change the logging channel.",
+  type: "message",
+  context: "guild",
+  permissions: [PermissionFlagsBits.ManageGuild],
+  syntax: "logger channel <channel>",
+  example: "logger channel #logs",
+  args: {
+    channel: {
+      type: "channel",
+      required: true,
+      description: "New logging channel",
+    },
+  },
+  run: async (ctx) => {
     const channel = ctx.channel("channel")!;
-    if (!channel.isSendable()) throw new UserError("Choose a channel where I can send messages.");
+    if (!channel.isSendable())
+      throw new UserError("Choose a channel where I can send messages.");
     await setLoggerChannel(ctx.guild!.id, channel.id);
-    return ctx.reply(embeds.success(`Logs will now be sent to <#${channel.id}>.`));
+    return ctx.reply(
+      embeds.success(`Logs will now be sent to <#${channel.id}>.`),
+    );
   },
 });

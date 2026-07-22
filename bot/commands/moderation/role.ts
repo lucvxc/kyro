@@ -15,10 +15,16 @@ export default cmd({
     role: { type: "role", required: true },
     reason: { type: "string" },
   },
-  run: async ctx => {
+  run: async (ctx) => {
     const user = ctx.user("user")!;
     const role = ctx.role("role")!;
-    const add = await ctx.mod.toggleRole(user, role, { reason: ctx.string("reason") ?? undefined });
-    return ctx.reply(embeds.success(`${add ? "Gave" : "Removed"} ${role} ${add ? "to" : "from"} **${user.tag}**.`));
+    const add = await ctx.mod.toggleRole(user, role, {
+      reason: ctx.string("reason") ?? undefined,
+    });
+    return ctx.reply(
+      embeds.success(
+        `${add ? "Gave" : "Removed"} ${role} ${add ? "to" : "from"} **${user.tag}**.`,
+      ),
+    );
   },
 });

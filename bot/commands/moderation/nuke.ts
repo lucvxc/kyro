@@ -11,9 +11,15 @@ export default cmd({
   syntax: "nuke (reason)",
   example: "nuke Cleaning the channel",
   args: { reason: { type: "string" } },
-  run: async ctx => {
+  run: async (ctx) => {
     const channel = ctx.guild!.channels.cache.get(ctx.input.channelId)!;
-    const replacement = await ctx.server.channels.nuke(channel, ctx.string("reason") ?? undefined);
-    return ctx.send(replacement, embeds.success("This channel was nuked successfully."));
+    const replacement = await ctx.server.channels.nuke(
+      channel,
+      ctx.string("reason") ?? undefined,
+    );
+    return ctx.send(
+      replacement,
+      embeds.success("This channel was nuked successfully."),
+    );
   },
 });

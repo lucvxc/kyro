@@ -10,12 +10,18 @@ export default cmd({
   context: "guild",
   run: async (ctx) => {
     const splash = ctx.guild!.stats.splash();
-    if (!splash) throw new UserError("This server does not have an invite splash.");
+    if (!splash)
+      throw new UserError("This server does not have an invite splash.");
 
-    return ctx.reply(container()
-      .accent(await dominant(splash))
-      .text(`## ${ctx.guild!.stats.name}'s Splash`)
-      .gallery({ url: splash, description: `${ctx.guild!.stats.name}'s Invite Splash` })
-      .row(button({ label: "Open Splash", style: "link", url: splash })));
+    return ctx.reply(
+      container()
+        .accent(await dominant(splash))
+        .text(`## ${ctx.guild!.stats.name}'s Splash`)
+        .gallery({
+          url: splash,
+          description: `${ctx.guild!.stats.name}'s Invite Splash`,
+        })
+        .row(button({ label: "Open Splash", style: "link", url: splash })),
+    );
   },
 });

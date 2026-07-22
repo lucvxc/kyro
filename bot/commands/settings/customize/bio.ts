@@ -13,7 +13,7 @@ export default cmd({
   args: {
     bio: { type: "string", required: true, description: "New server bio" },
   },
-  run: async ctx => {
+  run: async (ctx) => {
     await ctx.server.profile.update({ bio: ctx.string("bio") });
     return ctx.reply(embeds.success("Updated my server bio."));
   },

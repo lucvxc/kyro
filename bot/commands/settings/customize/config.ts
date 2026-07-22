@@ -10,12 +10,18 @@ export default cmd({
   permissions: [PermissionFlagsBits.ManageGuild],
   syntax: "customize config",
   example: "customize config",
-  run: ctx => {
-    return ctx.reply(container()
-      .accent(colors.default)
-      .row(
-        button({ id: "customize:name", label: "Name", style: "secondary" }),
-        button({ id: "customize:profile", label: "Profile", style: "secondary" }),
-      ));
+  run: (ctx) => {
+    return ctx.reply(
+      container()
+        .accent(colors.default)
+        .row(
+          button({ id: "customize:name", label: "Name", style: "secondary" }),
+          button({
+            id: "customize:profile",
+            label: "Profile",
+            style: "secondary",
+          }),
+        ),
+    );
   },
 });

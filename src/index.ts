@@ -31,8 +31,10 @@ export { EmojiStats } from "./guild/EmojiStats.ts";
 export { RoleStats } from "./guild/RoleStats.ts";
 export { UserStats } from "./guild/UserStats.ts";
 export { findRole } from "./guild/Lookup.ts";
+export { audit, type AuditQuery } from "./guild/Audit.ts";
 export { DrizzleDB, drizzle, type DrizzleOptions } from "./db/Drizzle.ts";
 export { Cache, type CacheOptions } from "./core/Cache.ts";
+export { Store, store, type StoreOptions } from "./core/Store.ts";
 export { Limit, type LimitOptions } from "./core/Limit.ts";
 export { codes, compact, fill, groups, mention } from "./core/Text.ts";
 export { Shards, type ShardOptions } from "./core/Shards.ts";
@@ -63,6 +65,7 @@ export { dominant, type ImageInput } from "./ui/Image.ts";
 export { duration, time, unix, type TimeStyle } from "./ui/Time.ts";
 export { Stats } from "./core/Stats.ts";
 export { Container, container, type GalleryItem } from "./ui/Container.ts";
+export { messageOptions, send, type MessageContent } from "./ui/Message.ts";
 export {
   button,
   select,

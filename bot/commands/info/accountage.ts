@@ -10,10 +10,14 @@ export default cmd({
   args: { user: { type: "user", description: "The user to look up" } },
   run: async (ctx) => {
     const user = await ctx.userStats("user");
-    return ctx.reply(container()
-      .accent(await user.accent())
-      .section(`## ${user.tag}\n-# Account creation`, thumb(user.avatar()))
-      .separator()
-      .text(`**Created** ${time(user.created)}\n**Age** ${time(user.created, "R")}\n-# ID ${user.id}`));
+    return ctx.reply(
+      container()
+        .accent(await user.accent())
+        .section(`## ${user.tag}\n-# Account creation`, thumb(user.avatar()))
+        .separator()
+        .text(
+          `**Created** ${time(user.created)}\n**Age** ${time(user.created, "R")}\n-# ID ${user.id}`,
+        ),
+    );
   },
 });

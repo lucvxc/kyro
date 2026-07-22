@@ -1,5 +1,5 @@
-import type { Guild } from "discord.js";
-import type { GuildAuditLogsResolvable } from "discord.js";
+import type { Guild, GuildAuditLogsResolvable } from "discord.js";
+import { audit } from "../../index.ts";
 
 export async function auditActor(
   guild: Guild,
@@ -7,8 +7,6 @@ export async function auditActor(
   targetId: string,
   within = 5_000,
 ): Promise<{ id: string } | undefined> {
-  const logs = await guild.fetchAuditLogs({ type: action, limit: 6 }).catch(() => null);
-  const entry = logs?.entries.find(value =>
-    value.targetId === targetId && Date.now() - value.createdTimestamp <= within);
+  const entry = await audit(guild, { action, target: targetId, within });
   return entry?.executor ? { id: entry.executor.id } : undefined;
 }

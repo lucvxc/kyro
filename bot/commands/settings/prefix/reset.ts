@@ -11,8 +11,10 @@ export default cmd({
   permissions: [PermissionFlagsBits.ManageGuild],
   syntax: "prefix reset",
   example: "prefix reset",
-  run: async ctx => {
+  run: async (ctx) => {
     const prefix = await resetPrefix(ctx.guild!.id);
-    return ctx.reply(embeds.success(`Reset this server's prefix to **${prefix}**`));
+    return ctx.reply(
+      embeds.success(`Reset this server's prefix to **${prefix}**`),
+    );
   },
 });

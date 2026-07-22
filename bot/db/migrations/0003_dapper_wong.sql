@@ -1,1 +1,0 @@
-ALTER TABLE "guilds" ADD COLUMN "saved_embeds" jsonb DEFAULT '{}'::jsonb NOT NULL;

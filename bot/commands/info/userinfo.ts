@@ -16,9 +16,14 @@ export default cmd({
 
     const card = container()
       .accent(await user.accent())
-      .section(`## ${user.tag}\n${user.bot ? "Discord Bot" : "Discord User"}`, thumb(avatar))
+      .section(
+        `## ${user.tag}\n${user.bot ? "Discord Bot" : "Discord User"}`,
+        thumb(avatar),
+      )
       .separator()
-      .text(`**Created** ${time(user.created)}${user.inServer ? `\n**Joined** ${time(user.joined!)}\n**Nickname** ${user.nickname ?? "None"}\n**Highest Role** ${user.highestRole}` : ""}`)
+      .text(
+        `**Created** ${time(user.created)}${user.inServer ? `\n**Joined** ${time(user.joined!)}\n**Nickname** ${user.nickname ?? "None"}\n**Highest Role** ${user.highestRole}` : ""}`,
+      )
       .text(`-# ID ${user.id}`);
 
     return ctx.reply(card);

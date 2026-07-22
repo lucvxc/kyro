@@ -11,9 +11,11 @@ export default cmd({
   permissions: [PermissionFlagsBits.ManageGuild],
   syntax: "command disabled",
   example: "command disabled",
-  run: async ctx => {
+  run: async (ctx) => {
     const { disabled } = await commandSettings(ctx.guild!.id);
-    const list = disabled.map(name => `\`${name}\``).join(" · ");
-    return ctx.reply(embeds.info(list || "No commands are disabled in this server."));
+    const list = disabled.map((name) => `\`${name}\``).join(" · ");
+    return ctx.reply(
+      embeds.info(list || "No commands are disabled in this server."),
+    );
   },
 });

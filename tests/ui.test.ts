@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 
-import { button, codes, compact, container, embed, fill, groups, mention, select, thumb, time, unix } from "../index.ts";
+import { MessageFlags } from "discord.js";
+import { button, codes, compact, container, embed, fill, groups, mention, messageOptions, select, thumb, time, unix } from "../index.ts";
 
 describe("Time", () => {
   test("formats dates, milliseconds, and Discord seconds", () => {
@@ -95,5 +96,16 @@ describe("Container", () => {
 
     expect(value.components).toHaveLength(1);
     expect(value.components[0]).toMatchObject({ content: "No accessory" });
+  });
+});
+
+describe("Message", () => {
+  test("serializes framework UI consistently", () => {
+    expect(messageOptions("hello")).toMatchObject({ content: "hello", allowedMentions: { parse: [] } });
+    expect(messageOptions(embed().desc("hello"))).toMatchObject({ embeds: [{ description: "hello" }] });
+    expect(messageOptions(container().text("hello"), true)).toMatchObject({
+      flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral,
+      components: [{ components: [{ content: "hello" }] }],
+    });
   });
 });

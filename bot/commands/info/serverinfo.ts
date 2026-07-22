@@ -15,18 +15,44 @@ export default cmd({
 
     const card = container()
       .accent(await ctx.guild!.stats.accent())
-      .section(`## ${ctx.guild!.stats.name}${ctx.guild!.stats.vanity ? `\n${ctx.guild!.stats.vanity}` : ""}`, thumb(icon ?? "https://cdn.discordapp.com/embed/avatars/0.png"))
+      .section(
+        `## ${ctx.guild!.stats.name}${ctx.guild!.stats.vanity ? `\n${ctx.guild!.stats.vanity}` : ""}`,
+        thumb(icon ?? "https://cdn.discordapp.com/embed/avatars/0.png"),
+      )
       .separator()
-      .text(`**${ctx.guild!.stats.members.toLocaleString()}** Members · **${ctx.guild!.stats.roles.toLocaleString()}** Roles · **${ctx.guild!.stats.channels.toLocaleString()}** Channels`)
-      .text(`**Owner** <@${ctx.guild!.stats.owner}>\n**Boosts** ${ctx.guild!.stats.boosts} (Tier ${ctx.guild!.stats.tier})\n**Emojis** ${ctx.guild!.stats.emojis} (${ctx.guild!.stats.animated} animated)\n**Stickers** ${ctx.guild!.stats.stickers}\n**Created** ${time(ctx.guild!.stats.created)}`)
+      .text(
+        `**${ctx.guild!.stats.members.toLocaleString()}** Members · **${ctx.guild!.stats.roles.toLocaleString()}** Roles · **${ctx.guild!.stats.channels.toLocaleString()}** Channels`,
+      )
+      .text(
+        `**Owner** <@${ctx.guild!.stats.owner}>\n**Boosts** ${ctx.guild!.stats.boosts} (Tier ${ctx.guild!.stats.tier})\n**Emojis** ${ctx.guild!.stats.emojis} (${ctx.guild!.stats.animated} animated)\n**Stickers** ${ctx.guild!.stats.stickers}\n**Created** ${time(ctx.guild!.stats.created)}`,
+      )
       .text(`-# ID ${ctx.guild!.stats.id}`)
       .row(
-        button({ label: "Icon", style: "link", url: icon ?? "https://discord.com", disabled: !icon }),
-        button({ label: "Banner", style: "link", url: banner ?? "https://discord.com", disabled: !banner }),
-        button({ label: "Splash", style: "link", url: splash ?? "https://discord.com", disabled: !splash }),
+        button({
+          label: "Icon",
+          style: "link",
+          url: icon ?? "https://discord.com",
+          disabled: !icon,
+        }),
+        button({
+          label: "Banner",
+          style: "link",
+          url: banner ?? "https://discord.com",
+          disabled: !banner,
+        }),
+        button({
+          label: "Splash",
+          style: "link",
+          url: splash ?? "https://discord.com",
+          disabled: !splash,
+        }),
       );
 
-    if (banner) card.gallery({ url: banner, description: `${ctx.guild!.stats.name}'s Banner` });
+    if (banner)
+      card.gallery({
+        url: banner,
+        description: `${ctx.guild!.stats.name}'s Banner`,
+      });
     return ctx.reply(card);
   },
 });

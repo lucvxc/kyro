@@ -8,7 +8,13 @@ export default cmd({
   syntax: "volume <level>",
   example: "volume 75",
   context: "guild",
-  args: { level: { type: "number", required: true, description: "Volume from 0 to 200" } },
+  args: {
+    level: {
+      type: "number",
+      required: true,
+      description: "Volume from 0 to 200",
+    },
+  },
   run: async (ctx) => {
     const level = ctx.number("level")!;
     await ctx.music.volume(level);

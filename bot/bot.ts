@@ -1,8 +1,11 @@
 import { ActivityType, GatewayIntentBits, Partials } from "discord.js";
 import { Kyro, jsk, nodelink } from "../index.ts";
 import { database } from "./db/database.ts";
+import {
+  blockDisabledCommands,
+  resolveGuildAlias,
+} from "./services/settings/commands.ts";
 import { getprefix } from "./services/settings/prefix.ts";
-import { blockDisabledCommands, resolveGuildAlias } from "./services/settings/commands.ts";
 import embeds from "./utils/config/embeds.ts";
 
 const bot = new Kyro({
@@ -11,6 +14,7 @@ const bot = new Kyro({
   intents: [
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.GuildMessageReactions,
     GatewayIntentBits.GuildModeration,
     GatewayIntentBits.GuildMembers,
     GatewayIntentBits.GuildInvites,
@@ -18,13 +22,20 @@ const bot = new Kyro({
     GatewayIntentBits.DirectMessages,
     GatewayIntentBits.GuildVoiceStates,
   ],
-  partials: [Partials.Channel],
+  partials: [
+    Partials.Channel,
+    Partials.Message,
+    Partials.Reaction,
+    Partials.User,
+  ],
   presence: {
     status: "vr",
-    activities: [{
-      name: "🔗 june.rocks/discord",
-      type: ActivityType.Custom,
-    }],
+    activities: [
+      {
+        name: "🔗 june.rocks/discord",
+        type: ActivityType.Custom,
+      },
+    ],
   },
   ownerIDs: [process.env.OWNERID!],
   commands: "./bot/commands",
@@ -33,11 +44,13 @@ const bot = new Kyro({
   plugins: [
     jsk,
     nodelink({
-      nodes: [{
-        host: process.env.HOST!,
-        password: process.env.PASSWORD!,
-      }],
-    })
+      nodes: [
+        {
+          host: process.env.HOST!,
+          password: process.env.PASSWORD!,
+        },
+      ],
+    }),
   ],
   cooldown: 3,
   prefix: getprefix,

@@ -12,11 +12,13 @@ export default cmd({
     if (!track) return ctx.reply("Nothing is playing right now.");
     const time = `${songLength(ctx.music.position)} / ${track.info.isStream ? "Live" : songLength(track.info.length)}`;
 
-    return ctx.reply(container()
-      .accent(colors.default)
-      .section(
-        `## Now Playing\n${song(track)}\n-# ${time}`,
-        track.info.artworkUrl ? thumb(track.info.artworkUrl) : undefined,
-      ));
+    return ctx.reply(
+      container()
+        .accent(colors.default)
+        .section(
+          `## Now Playing\n${song(track)}\n-# ${time}`,
+          track.info.artworkUrl ? thumb(track.info.artworkUrl) : undefined,
+        ),
+    );
   },
 });
