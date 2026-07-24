@@ -11,6 +11,8 @@ const permissions = [PermissionFlagsBits.ManageRoles];
 export default cmd({
   name: "autorole remove",
   description: "Remove a role from autoroles.",
+  syntax: "autorole remove <role>",
+  example: "autorole remove @role",
   type: "message",
   context: "guild",
   permissions,

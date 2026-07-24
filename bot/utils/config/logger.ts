@@ -8,7 +8,7 @@ import type {
   VoiceState,
 } from "discord.js";
 import { container, thumb, type Container } from "../../../index.ts";
-import { colors } from "./config.ts";
+import { colors } from "./constants.ts";
 
 type Member = GuildMember | PartialGuildMember;
 type AnyMessage = Message | PartialMessage;

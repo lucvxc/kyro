@@ -1,12 +1,14 @@
 import { PermissionFlagsBits } from "discord.js";
 import { cmd, container } from "../../../../index.ts";
 import { communitySettings } from "../../../services/settings/community.ts";
-import { colors } from "../../../utils/config/config.ts";
+import { colors } from "../../../utils/config/constants.ts";
 import embeds from "../../../utils/config/embeds.ts";
 
 export default cmd({
   name: "automessage list",
   description: "List scheduled messages.",
+  syntax: "automessage list",
+  example: "automessage list",
   type: "message",
   context: "guild",
   permissions: [PermissionFlagsBits.ManageGuild],

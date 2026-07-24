@@ -6,6 +6,8 @@ import embeds from "../../../utils/config/embeds.ts";
 export default cmd({
   name: "antilink whitelist",
   description: "Allow links in a channel or from a role.",
+  syntax: "antilink whitelist <target>",
+  example: "antilink whitelist target",
   type: "message",
   context: "guild",
   permissions: [PermissionFlagsBits.ManageGuild],

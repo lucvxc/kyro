@@ -1,10 +1,12 @@
 import { cmd } from "../../../../index.ts";
-import { personalBoosterRole } from "../../../services/boosterroles.ts";
+import { personalBoosterRole } from "../../../services/boosterroles/index.ts";
 import embeds from "../../../utils/config/embeds.ts";
 
 export default cmd({
   name: "boosterrole rename",
   description: "Rename your personal booster role.",
+  syntax: "boosterrole rename <name>",
+  example: "boosterrole rename example",
   type: "message",
   context: "guild",
   args: {

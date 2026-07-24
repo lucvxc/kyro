@@ -8,6 +8,8 @@ const permission = [PermissionFlagsBits.ManageGuild];
 export default cmd({
   name: `boost channel`,
   description: `Set the boost message channel.`,
+  syntax: "boost channel <channel>",
+  example: "boost channel #boosts",
   type: "message",
   context: "guild",
   permissions: permission,

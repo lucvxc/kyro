@@ -5,6 +5,8 @@ import embeds from "../../../utils/config/embeds.ts";
 export default cmd({
   name: "leave variables",
   description: "View variables available in leave messages.",
+  syntax: "leave variables",
+  example: "leave variables",
   type: "message",
   context: "guild",
   permissions: [PermissionFlagsBits.ManageGuild],

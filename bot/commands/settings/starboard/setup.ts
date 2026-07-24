@@ -9,6 +9,8 @@ const fallbackEmoji = "\u2B50";
 export default cmd({
   name: "starboard setup",
   description: "Set up the starboard.",
+  syntax: "starboard setup <channel> (threshold) (emoji)",
+  example: "starboard setup #channel 5 ⭐",
   type: "message",
   context: "guild",
   permissions,

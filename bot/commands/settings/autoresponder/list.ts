@@ -1,7 +1,7 @@
 import { PermissionFlagsBits } from "discord.js";
 import { cmd, container } from "../../../../index.ts";
 import { communitySettings } from "../../../services/settings/community.ts";
-import { colors } from "../../../utils/config/config.ts";
+import { colors } from "../../../utils/config/constants.ts";
 import embeds from "../../../utils/config/embeds.ts";
 
 const permissions = [PermissionFlagsBits.ManageGuild];
@@ -9,6 +9,8 @@ const permissions = [PermissionFlagsBits.ManageGuild];
 export default cmd({
   name: "autoresponder list",
   description: "List automatic responses.",
+  syntax: "autoresponder list",
+  example: "autoresponder list",
   type: "message",
   context: "guild",
   permissions,

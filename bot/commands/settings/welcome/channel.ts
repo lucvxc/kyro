@@ -8,6 +8,8 @@ const permission = [PermissionFlagsBits.ManageGuild];
 export default cmd({
   name: `welcome channel`,
   description: `Set the welcome message channel.`,
+  syntax: "welcome channel <channel>",
+  example: "welcome channel #welcome",
   type: "message",
   context: "guild",
   permissions: permission,

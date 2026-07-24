@@ -11,6 +11,8 @@ const permission = [PermissionFlagsBits.ManageGuild];
 export default cmd({
   name: `leave reset`,
   description: `Reset the entire leave message configuration.`,
+  syntax: "leave reset",
+  example: "leave reset",
   type: "message",
   context: "guild",
   permissions: permission,

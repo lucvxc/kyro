@@ -1,11 +1,13 @@
 import { cmd } from "../../../../index.ts";
-import { ownedVoiceChannel } from "../../../services/voicemaster.ts";
+import { ownedVoiceChannel } from "../../../services/voicemaster/channel.ts";
 import embeds from "../../../utils/config/embeds.ts";
 
 export default cmd({
   name: "voicemaster unlock",
   aliases: ["vm unlock"],
   description: "Allow members to join your channel again.",
+  syntax: "voicemaster unlock",
+  example: "voicemaster unlock",
   type: "message",
   context: "guild",
   run: async (ctx) => {

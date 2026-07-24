@@ -1,7 +1,7 @@
 import { PermissionFlagsBits } from "discord.js";
 import { cmd, container, select } from "../../../../index.ts";
 import { savedEmbeds } from "../../../services/settings/embeds.ts";
-import { colors } from "../../../utils/config/config.ts";
+import { colors } from "../../../utils/config/constants.ts";
 import embeds from "../../../utils/config/embeds.ts";
 
 export default cmd({

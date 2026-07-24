@@ -5,6 +5,8 @@ import embeds from "../../../utils/config/embeds.ts";
 export default cmd({
   name: "welcome variables",
   description: "View variables available in welcome messages.",
+  syntax: "welcome variables",
+  example: "welcome variables",
   type: "message",
   context: "guild",
   permissions: [PermissionFlagsBits.ManageGuild],

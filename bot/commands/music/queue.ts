@@ -1,9 +1,11 @@
 import { cmd, container, songLength } from "../../../index.ts";
-import { colors } from "../../utils/config/config.ts";
+import { colors } from "../../utils/config/constants.ts";
 
 export default cmd({
   name: "queue",
   description: "Show the music queue.",
+  syntax: "queue",
+  example: "queue",
   type: "message",
   aliases: ["q"],
   context: "guild",

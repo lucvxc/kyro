@@ -8,7 +8,7 @@ import {
   updateEmbedCode,
   type SavedEmbed,
 } from "../services/settings/embeds.ts";
-import { colors } from "../utils/config/config.ts";
+import { colors } from "../utils/config/constants.ts";
 
 export default cmp({
   id: /^embed(?:mgr:\d+|share|preview|code|edit|editsave|back|delete|deleteconfirm):?[a-z0-9]*$/,

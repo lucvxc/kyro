@@ -5,12 +5,14 @@ import {
   PermissionFlagsBits,
 } from "discord.js";
 import { cmd } from "../../../../index.ts";
-import { ruleNames } from "../../../services/automod.ts";
+import { ruleNames } from "../../../services/settings/automod.ts";
 import embeds from "../../../utils/config/embeds.ts";
 
 export default cmd({
   name: "automod spam",
   description: "Toggle Discord's built-in spam filter.",
+  syntax: "automod spam",
+  example: "automod spam",
   type: "message",
   context: "guild",
   permissions: [PermissionFlagsBits.ManageGuild],

@@ -6,6 +6,8 @@ import embeds from "../../../utils/config/embeds.ts";
 export default cmd({
   name: "automessage remove",
   description: "Remove an automessage.",
+  syntax: "automessage remove <id>",
+  example: "automessage remove id",
   type: "message",
   context: "guild",
   permissions: [PermissionFlagsBits.ManageGuild],

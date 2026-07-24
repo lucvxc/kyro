@@ -6,6 +6,8 @@ import embeds from "../../../utils/config/embeds.ts";
 export default cmd({
   name: "antilink toggle",
   description: "Toggle link filtering for this server.",
+  syntax: "antilink toggle",
+  example: "antilink toggle",
   type: "message",
   context: "guild",
   permissions: [PermissionFlagsBits.ManageGuild],

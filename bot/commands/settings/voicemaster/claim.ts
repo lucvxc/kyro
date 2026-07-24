@@ -2,13 +2,15 @@ import { eq } from "drizzle-orm";
 import { cmd, UserError } from "../../../../index.ts";
 import { db } from "../../../db/database.ts";
 import { voiceChannels } from "../../../db/schema.ts";
-import { voiceMasterChannel } from "../../../services/voicemaster.ts";
+import { voiceMasterChannel } from "../../../services/voicemaster/channel.ts";
 import embeds from "../../../utils/config/embeds.ts";
 
 export default cmd({
   name: "voicemaster claim",
   aliases: ["vm claim"],
   description: "Claim a VoiceMaster channel after its owner leaves.",
+  syntax: "voicemaster claim",
+  example: "voicemaster claim",
   type: "message",
   context: "guild",
   run: async (ctx) => {

@@ -6,6 +6,8 @@ import embeds from "../../../utils/config/embeds.ts";
 export default cmd({
   name: "antiinvite whitelist",
   description: "Allow invites in a channel or from a role.",
+  syntax: "antiinvite whitelist <target>",
+  example: "antiinvite whitelist target",
   type: "message",
   context: "guild",
   permissions: [PermissionFlagsBits.ManageGuild],

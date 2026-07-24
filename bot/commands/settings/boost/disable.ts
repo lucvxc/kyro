@@ -11,6 +11,8 @@ const permission = [PermissionFlagsBits.ManageGuild];
 export default cmd({
   name: `boost disable`,
   description: `Disable boost messages without deleting the setup.`,
+  syntax: "boost disable",
+  example: "boost disable",
   type: "message",
   context: "guild",
   permissions: permission,

@@ -1,5 +1,5 @@
 import { cmd, embed } from "../../../index.ts";
-import { colors } from "../../utils/config/config.ts";
+import { colors } from "../../utils/config/constants.ts";
 
 export default cmd({
   name: "membercount",

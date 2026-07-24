@@ -11,6 +11,8 @@ const permission = [PermissionFlagsBits.ManageGuild];
 export default cmd({
   name: `boost enable`,
   description: `Enable boost messages.`,
+  syntax: "boost enable",
+  example: "boost enable",
   type: "message",
   context: "guild",
   permissions: permission,

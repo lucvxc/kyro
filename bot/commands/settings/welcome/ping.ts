@@ -11,6 +11,8 @@ const permission = [PermissionFlagsBits.ManageGuild];
 export default cmd({
   name: "welcome ping",
   description: "Toggle a channel for join pings.",
+  syntax: "welcome ping <channel>",
+  example: "welcome ping channel",
   type: "message" as const,
   context: "guild" as const,
   permissions: permission,

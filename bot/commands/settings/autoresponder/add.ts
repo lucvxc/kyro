@@ -8,6 +8,7 @@ const permissions = [PermissionFlagsBits.ManageGuild];
 export default cmd({
   name: "autoresponder add",
   description: "Add an automatic response.",
+  example: "autoresponder add",
   type: "message",
   context: "guild",
   permissions,

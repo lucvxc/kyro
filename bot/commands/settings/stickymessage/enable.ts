@@ -10,6 +10,8 @@ export default cmd({
   name: "stickymessage enable",
   aliases: ["sticky enable"],
   description: "Enable a saved sticky message.",
+  syntax: "stickymessage enable",
+  example: "stickymessage enable",
   type: "message",
   context: "guild",
   permissions: [PermissionFlagsBits.ManageGuild],

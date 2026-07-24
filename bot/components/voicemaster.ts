@@ -3,8 +3,8 @@ import { eq } from "drizzle-orm";
 import { cmp, container, modal, select, UserError } from "../../index.ts";
 import { db } from "../db/database.ts";
 import { voiceChannels } from "../db/schema.ts";
-import { voiceMasterChannel } from "../services/voicemaster.ts";
-import { colors } from "../utils/config/config.ts";
+import { voiceMasterChannel } from "../services/voicemaster/channel.ts";
+import { colors } from "../utils/config/constants.ts";
 import embeds from "../utils/config/embeds.ts";
 
 export default cmp({

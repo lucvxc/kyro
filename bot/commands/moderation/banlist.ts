@@ -1,11 +1,13 @@
 import { PermissionFlagsBits } from "discord.js";
 import { cmd, container } from "../../../index.ts";
-import { colors } from "../../utils/config/config.ts";
+import { colors } from "../../utils/config/constants.ts";
 
 export default cmd({
   name: "banlist",
   aliases: ["bans"],
   description: "Show users banned from this server.",
+  syntax: "banlist",
+  example: "banlist",
   type: "message",
   context: "guild",
   permissions: [PermissionFlagsBits.BanMembers],

@@ -1,8 +1,8 @@
 import type { GuildMember, VoiceChannel } from "discord.js";
 import { eq } from "drizzle-orm";
-import { UserError } from "../../index.ts";
-import { db } from "../db/database.ts";
-import { voiceChannels } from "../db/schema.ts";
+import { UserError } from "../../../index.ts";
+import { db } from "../../db/database.ts";
+import { voiceChannels } from "../../db/schema.ts";
 
 export async function ownedVoiceChannel(
   member: GuildMember,

@@ -2,12 +2,14 @@ import { cmd, container, UserError } from "../../../../index.ts";
 import { db } from "../../../db/database.ts";
 import { confessionEntries } from "../../../db/schema.ts";
 import { confessionSettings } from "../../../services/settings/confessions.ts";
-import { colors } from "../../../utils/config/config.ts";
+import { colors } from "../../../utils/config/constants.ts";
 import embeds from "../../../utils/config/embeds.ts";
 
 export default cmd({
   name: "confess",
   description: "Send an anonymous confession.",
+  syntax: "confess <message>",
+  example: "confess message",
   type: "message",
   context: "guild",
   args: {

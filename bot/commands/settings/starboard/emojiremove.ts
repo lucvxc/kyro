@@ -12,6 +12,8 @@ const fallbackEmoji = "\u2B50";
 export default cmd({
   name: "starboard emoji remove",
   description: "Remove a starboard emoji.",
+  syntax: "starboard emoji remove <emoji>",
+  example: "starboard emoji remove ⭐",
   type: "message",
   context: "guild",
   permissions,

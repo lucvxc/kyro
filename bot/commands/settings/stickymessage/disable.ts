@@ -10,6 +10,8 @@ export default cmd({
   name: "stickymessage disable",
   aliases: ["sticky disable"],
   description: "Disable a sticky message without deleting it.",
+  syntax: "stickymessage disable",
+  example: "stickymessage disable",
   type: "message",
   context: "guild",
   permissions: [PermissionFlagsBits.ManageGuild],

@@ -13,6 +13,8 @@ export default cmd({
   name: "voicemaster disable",
   aliases: ["vm disable", "voicemaster remove", "vm remove"],
   description: "Disable VoiceMaster and remove its channels.",
+  syntax: "voicemaster disable",
+  example: "voicemaster disable",
   type: "message",
   context: "guild",
   permissions: [

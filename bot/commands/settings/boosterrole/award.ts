@@ -1,11 +1,13 @@
 import { PermissionFlagsBits } from "discord.js";
 import { cmd } from "../../../../index.ts";
-import { personalBoosterRole } from "../../../services/boosterroles.ts";
+import { personalBoosterRole } from "../../../services/boosterroles/index.ts";
 import embeds from "../../../utils/config/embeds.ts";
 
 export default cmd({
   name: "boosterrole award",
   description: "Create a personal role for a server booster.",
+  syntax: "boosterrole award <user>",
+  example: "boosterrole award @user",
   type: "message",
   context: "guild",
   permissions: [PermissionFlagsBits.ManageRoles],

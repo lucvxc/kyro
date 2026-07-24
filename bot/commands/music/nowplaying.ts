@@ -1,9 +1,11 @@
 import { cmd, container, song, songLength, thumb } from "../../../index.ts";
-import { colors } from "../../utils/config/config.ts";
+import { colors } from "../../utils/config/constants.ts";
 
 export default cmd({
   name: "nowplaying",
   description: "Show the current song.",
+  syntax: "nowplaying",
+  example: "nowplaying",
   type: "message",
   aliases: ["np"],
   context: "guild",

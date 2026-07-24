@@ -1,13 +1,15 @@
 import { PermissionFlagsBits } from "discord.js";
 import { cmd, container } from "../../../../index.ts";
 import { communitySettings } from "../../../services/settings/community.ts";
-import { colors } from "../../../utils/config/config.ts";
+import { colors } from "../../../utils/config/constants.ts";
 
 const permissions = [PermissionFlagsBits.ManageGuild];
 
 export default cmd({
   name: "counting config",
   description: "View counting progress.",
+  syntax: "counting config",
+  example: "counting config",
   type: "message",
   context: "guild",
   permissions,

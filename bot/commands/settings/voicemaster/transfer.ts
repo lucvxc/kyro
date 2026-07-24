@@ -2,13 +2,15 @@ import { eq } from "drizzle-orm";
 import { cmd, UserError } from "../../../../index.ts";
 import { db } from "../../../db/database.ts";
 import { voiceChannels } from "../../../db/schema.ts";
-import { ownedVoiceChannel } from "../../../services/voicemaster.ts";
+import { ownedVoiceChannel } from "../../../services/voicemaster/channel.ts";
 import embeds from "../../../utils/config/embeds.ts";
 
 export default cmd({
   name: "voicemaster transfer",
   aliases: ["vm transfer"],
   description: "Transfer ownership of your VoiceMaster channel.",
+  syntax: "voicemaster transfer <user>",
+  example: "voicemaster transfer @user",
   type: "message",
   context: "guild",
   args: { user: { type: "user", required: true, description: "New owner" } },

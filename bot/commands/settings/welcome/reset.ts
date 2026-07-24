@@ -11,6 +11,8 @@ const permission = [PermissionFlagsBits.ManageGuild];
 export default cmd({
   name: `welcome reset`,
   description: `Reset the entire welcome message configuration.`,
+  syntax: "welcome reset",
+  example: "welcome reset",
   type: "message",
   context: "guild",
   permissions: permission,

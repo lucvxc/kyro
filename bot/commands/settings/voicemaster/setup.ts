@@ -7,7 +7,7 @@ import {
 import {
   voiceMasterPanel,
   type VoiceMasterPanelType,
-} from "../../../services/voicemasterpanel.ts";
+} from "../../../services/voicemaster/panel.ts";
 import embeds from "../../../utils/config/embeds.ts";
 
 const panelTypes = ["dropdown", "container", "embed"] as const;

@@ -5,12 +5,14 @@ import {
   PermissionFlagsBits,
 } from "discord.js";
 import { cmd, UserError } from "../../../../index.ts";
-import { ruleNames } from "../../../services/automod.ts";
+import { ruleNames } from "../../../services/settings/automod.ts";
 import embeds from "../../../utils/config/embeds.ts";
 
 export default cmd({
   name: "automod mentions",
   description: "Set the maximum mentions allowed in one message.",
+  syntax: "automod mentions <limit>",
+  example: "automod mentions 5",
   type: "message",
   context: "guild",
   permissions: [PermissionFlagsBits.ManageGuild],

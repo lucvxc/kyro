@@ -7,6 +7,8 @@ import embeds from "../../../utils/config/embeds.ts";
 export default cmd({
   name: "automod log",
   description: "Set the channel used by new AutoMod timeout actions.",
+  syntax: "automod log <channel>",
+  example: "automod log #channel",
   type: "message",
   context: "guild",
   permissions: [PermissionFlagsBits.ManageGuild],

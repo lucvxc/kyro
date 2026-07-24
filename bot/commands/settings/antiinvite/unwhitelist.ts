@@ -6,6 +6,8 @@ import embeds from "../../../utils/config/embeds.ts";
 export default cmd({
   name: "antiinvite unwhitelist",
   description: "Remove a channel or role from the anti-invite whitelist.",
+  syntax: "antiinvite unwhitelist <target>",
+  example: "antiinvite unwhitelist target",
   type: "message",
   context: "guild",
   permissions: [PermissionFlagsBits.ManageGuild],

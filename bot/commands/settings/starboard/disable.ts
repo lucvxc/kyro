@@ -8,6 +8,8 @@ const permissions = [PermissionFlagsBits.ManageGuild];
 export default cmd({
   name: "starboard disable",
   description: "Disable the starboard.",
+  syntax: "starboard disable",
+  example: "starboard disable",
   type: "message",
   context: "guild",
   permissions,

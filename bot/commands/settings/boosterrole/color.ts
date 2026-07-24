@@ -1,11 +1,13 @@
 import { resolveColor } from "discord.js";
 import { cmd, UserError } from "../../../../index.ts";
-import { personalBoosterRole } from "../../../services/boosterroles.ts";
+import { personalBoosterRole } from "../../../services/boosterroles/index.ts";
 import embeds from "../../../utils/config/embeds.ts";
 
 export default cmd({
   name: "boosterrole color",
   description: "Change your personal booster role color.",
+  syntax: "boosterrole color <color>",
+  example: "boosterrole color #5865F2",
   type: "message",
   context: "guild",
   args: { color: { type: "string", required: true, description: "Hex color" } },

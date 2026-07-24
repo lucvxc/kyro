@@ -6,6 +6,8 @@ import embeds from "../../../utils/config/embeds.ts";
 export default cmd({
   name: "automessage toggle",
   description: "Toggle an automessage.",
+  syntax: "automessage toggle <id>",
+  example: "automessage toggle id",
   type: "message",
   context: "guild",
   permissions: [PermissionFlagsBits.ManageGuild],

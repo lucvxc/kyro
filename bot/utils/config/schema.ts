@@ -47,6 +47,74 @@ export type SecuritySettings = {
   ignoredChannels?: string[];
 };
 
+export type AntiNukeProtection = {
+  enabled: boolean;
+  threshold: number;
+  window: number;
+};
+
+export type AntiNukeProtectionName =
+  | "channelcreate"
+  | "channeldelete"
+  | "rolecreate"
+  | "roledelete"
+  | "ban"
+  | "kick"
+  | "webhook"
+  | "botadd"
+  | "administrator"
+  | "prune";
+
+export type AntiNukeSettings = {
+  enabled: boolean;
+  punishment: "ban" | "kick" | "timeout" | "strip";
+  admins: string[];
+  whitelist: string[];
+  logChannelId?: string;
+  protections: Record<AntiNukeProtectionName, AntiNukeProtection>;
+};
+
+export type RaidAction =
+  "ban" | "kick" | "timeout" | "softban" | "delete" | "none";
+
+export type AntiRaidThreshold = {
+  enabled: boolean;
+  threshold: number;
+  window: number;
+  action: RaidAction;
+};
+
+export type AntiRaidSettings = {
+  enabled: boolean;
+  admins: string[];
+  whitelist: string[];
+  logChannelId?: string;
+  lockdown: {
+    active: boolean;
+    duration: number;
+    expiresAt?: number;
+    channels: string[];
+  };
+  protections: {
+    joinrate: AntiRaidThreshold & { lockdown: boolean };
+    accountage: { enabled: boolean; minimumDays: number; action: RaidAction };
+    defaultavatar: { enabled: boolean; action: RaidAction };
+    massmention: AntiRaidThreshold;
+    messagespam: AntiRaidThreshold;
+    duplicatemessage: AntiRaidThreshold;
+    linkspam: AntiRaidThreshold;
+    invite: { enabled: boolean; action: RaidAction };
+  };
+};
+
+export type HoneypotSettings = {
+  enabled?: boolean;
+  channelId?: string;
+  panelMessageId?: string;
+  catches?: number;
+  accent?: string;
+};
+
 export type NukeSettings = {
   channelId?: string;
   message?: string;
@@ -55,6 +123,15 @@ export type NukeSettings = {
 export type JailSettings = {
   roleId?: string;
   channelId?: string;
+  jailed?: Record<
+    string,
+    {
+      moderatorId: string;
+      reason: string;
+      jailedAt: number;
+      roleIds: string[];
+    }
+  >;
 };
 
 export type WarnPunishment = {

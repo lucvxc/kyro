@@ -11,6 +11,8 @@ const permission = [PermissionFlagsBits.ManageGuild];
 export default cmd({
   name: `welcome enable`,
   description: `Enable welcome messages.`,
+  syntax: "welcome enable",
+  example: "welcome enable",
   type: "message",
   context: "guild",
   permissions: permission,

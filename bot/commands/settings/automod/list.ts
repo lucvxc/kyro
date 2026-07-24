@@ -1,11 +1,13 @@
 import { PermissionFlagsBits } from "discord.js";
 import { cmd, container } from "../../../../index.ts";
-import { colors } from "../../../utils/config/config.ts";
+import { colors } from "../../../utils/config/constants.ts";
 import embeds from "../../../utils/config/embeds.ts";
 
 export default cmd({
   name: "automod list",
   description: "List this server's Discord AutoMod rules.",
+  syntax: "automod list",
+  example: "automod list",
   type: "message",
   context: "guild",
   permissions: [PermissionFlagsBits.ManageGuild],

@@ -9,6 +9,8 @@ import embeds from "../../../utils/config/embeds.ts";
 export default cmd({
   name: "reactionrole remove",
   description: "Remove an emoji from a reaction-role message.",
+  syntax: "reactionrole remove <message> <emoji>",
+  example: "reactionrole remove message ⭐",
   type: "message",
   context: "guild",
   permissions: [PermissionFlagsBits.ManageRoles],

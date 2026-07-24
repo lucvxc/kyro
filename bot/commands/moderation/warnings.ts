@@ -1,7 +1,7 @@
 import { PermissionFlagsBits } from "discord.js";
 import { cmd, container, time } from "../../../index.ts";
 import { listWarnings } from "../../services/moderation/warnings.ts";
-import { colors } from "../../utils/config/config.ts";
+import { colors } from "../../utils/config/constants.ts";
 
 export default cmd({
   name: "warnings",

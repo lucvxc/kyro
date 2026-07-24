@@ -6,6 +6,8 @@ import embeds from "../../utils/config/embeds.ts";
 export default cmd({
   name: "warn punishments",
   description: "List configured warning threshold punishments.",
+  syntax: "warn punishments",
+  example: "warn punishments",
   type: "message",
   context: "guild",
   permissions: [PermissionFlagsBits.ManageGuild],

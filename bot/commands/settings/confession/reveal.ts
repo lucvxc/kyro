@@ -8,6 +8,8 @@ import embeds from "../../../utils/config/embeds.ts";
 export default cmd({
   name: "confession reveal",
   description: "Reveal who sent a confession to moderators.",
+  syntax: "confession reveal <id>",
+  example: "confession reveal 5",
   type: "message",
   context: "guild",
   permissions: [PermissionFlagsBits.ManageGuild],

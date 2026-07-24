@@ -1,11 +1,13 @@
 import { cmd, UserError } from "../../../../index.ts";
-import { ownedVoiceChannel } from "../../../services/voicemaster.ts";
+import { ownedVoiceChannel } from "../../../services/voicemaster/channel.ts";
 import embeds from "../../../utils/config/embeds.ts";
 
 export default cmd({
   name: "voicemaster limit",
   aliases: ["vm limit"],
   description: "Set your temporary channel's user limit.",
+  syntax: "voicemaster limit <limit>",
+  example: "voicemaster limit 5",
   type: "message",
   context: "guild",
   args: {

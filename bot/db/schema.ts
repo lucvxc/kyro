@@ -14,19 +14,21 @@ import {
 import type {
   AutoMessage,
   AutoResponse,
+  AntiNukeSettings,
+  AntiRaidSettings,
   BoosterRole,
   BoosterRoleSettings,
   ConfessionSettings,
   CountingSettings,
   FakePermissionMap,
   JailSettings,
+  HoneypotSettings,
   LevelSettings,
   LogSettings,
   MessageFilterSettings,
   MessageSettings,
   NukeSettings,
   RoleMenu,
-  SecuritySettings,
   StarboardSettings,
   StickyMessage,
   VoiceMasterSettings,
@@ -37,6 +39,13 @@ export const users = pgTable("users", {
   id: text("id").primaryKey(),
   balance: integer("balance").notNull().default(0),
   lastfm: text("lastfm"),
+  lastfmSession: text("lastfm_session"),
+  lastfmEmbed: text("lastfm_embed"),
+  lastfmReactions: jsonb("lastfm_reactions")
+    .$type<string[]>()
+    .notNull()
+    .default([]),
+  lastfmHidden: boolean("lastfm_hidden").notNull().default(false),
   premium: boolean("premium").notNull().default(false),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
@@ -66,9 +75,15 @@ export const guilds = pgTable("guilds", {
   logging: jsonb("logging").$type<LogSettings>().notNull().default({}),
   automodLog: text("automod_log"),
   nuke: jsonb("nuke").$type<NukeSettings>().notNull().default({}),
-  antinuke: jsonb("antinuke").$type<SecuritySettings>().notNull().default({}),
-  antiraid: jsonb("antiraid").$type<SecuritySettings>().notNull().default({}),
-  honeypot: jsonb("honeypot").$type<SecuritySettings>().notNull().default({}),
+  antinuke: jsonb("antinuke")
+    .$type<AntiNukeSettings>()
+    .notNull()
+    .default({} as AntiNukeSettings),
+  antiraid: jsonb("antiraid")
+    .$type<AntiRaidSettings>()
+    .notNull()
+    .default({} as AntiRaidSettings),
+  honeypot: jsonb("honeypot").$type<HoneypotSettings>().notNull().default({}),
   jail: jsonb("jail").$type<JailSettings>().notNull().default({}),
   warnPunishments: jsonb("warn_punishments")
     .$type<WarnPunishment[]>()

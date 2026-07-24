@@ -1,12 +1,14 @@
 import { PermissionFlagsBits } from "discord.js";
 import { cmd, container } from "../../../../index.ts";
-import { keywordRule } from "../../../services/automod.ts";
-import { colors } from "../../../utils/config/config.ts";
+import { keywordRule } from "../../../services/settings/automod.ts";
+import { colors } from "../../../utils/config/constants.ts";
 import embeds from "../../../utils/config/embeds.ts";
 
 export default cmd({
   name: "automod keyword list",
   description: "List blocked keywords and phrases.",
+  syntax: "automod keyword list",
+  example: "automod keyword list",
   type: "message",
   context: "guild",
   permissions: [PermissionFlagsBits.ManageGuild],

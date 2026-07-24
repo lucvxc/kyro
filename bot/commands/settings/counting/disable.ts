@@ -8,6 +8,8 @@ const permissions = [PermissionFlagsBits.ManageGuild];
 export default cmd({
   name: "counting disable",
   description: "Disable counting without deleting its channel.",
+  syntax: "counting disable",
+  example: "counting disable",
   type: "message",
   context: "guild",
   permissions,

@@ -3,6 +3,8 @@ import { cmd } from "../../../index.ts";
 export default cmd({
   name: "stop",
   description: "Stop playing and clear the queue.",
+  syntax: "stop",
+  example: "stop",
   type: "message",
   aliases: ["disconnect", "leave"],
   context: "guild",

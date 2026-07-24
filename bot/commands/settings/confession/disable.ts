@@ -6,6 +6,8 @@ import embeds from "../../../utils/config/embeds.ts";
 export default cmd({
   name: "confession disable",
   description: "Disable anonymous confessions.",
+  syntax: "confession disable",
+  example: "confession disable",
   type: "message",
   context: "guild",
   permissions: [PermissionFlagsBits.ManageGuild],

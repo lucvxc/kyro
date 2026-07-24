@@ -1,11 +1,13 @@
 import { cmd } from "../../../../index.ts";
-import { ownedVoiceChannel } from "../../../services/voicemaster.ts";
+import { ownedVoiceChannel } from "../../../services/voicemaster/channel.ts";
 import embeds from "../../../utils/config/embeds.ts";
 
 export default cmd({
   name: "voicemaster hide",
   aliases: ["vm hide"],
   description: "Hide your temporary channel from everyone else.",
+  syntax: "voicemaster hide",
+  example: "voicemaster hide",
   type: "message",
   context: "guild",
   run: async (ctx) => {

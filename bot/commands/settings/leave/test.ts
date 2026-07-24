@@ -8,6 +8,8 @@ const permission = [PermissionFlagsBits.ManageGuild];
 export default cmd({
   name: `leave test`,
   description: `Send a test leave message.`,
+  syntax: "leave test",
+  example: "leave test",
   type: "message",
   context: "guild",
   permissions: permission,

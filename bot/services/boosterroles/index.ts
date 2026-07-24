@@ -1,9 +1,9 @@
 import type { GuildMember, Role } from "discord.js";
 import { and, eq } from "drizzle-orm";
-import { UserError } from "../../index.ts";
-import { db } from "../db/database.ts";
-import { boosterRoleMembers } from "../db/schema.ts";
-import { boosterSettings } from "./settings/boosterroles.ts";
+import { UserError } from "../../../index.ts";
+import { db } from "../../db/database.ts";
+import { boosterRoleMembers } from "../../db/schema.ts";
+import { boosterSettings } from "../settings/boosterroles.ts";
 
 export async function personalBoosterRole(
   member: GuildMember,

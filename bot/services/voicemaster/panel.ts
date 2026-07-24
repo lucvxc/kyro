@@ -1,6 +1,6 @@
 import { MessageFlags, type MessageCreateOptions } from "discord.js";
-import { button, container, embed, row, select, thumb } from "../../index.ts";
-import { colors, emojis } from "../utils/config/config.ts";
+import { button, container, embed, row, select, thumb } from "../../../index.ts";
+import { colors, emojis } from "../../utils/config/constants.ts";
 
 export type VoiceMasterPanelType = "dropdown" | "container" | "embed";
 

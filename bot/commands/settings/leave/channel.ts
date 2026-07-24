@@ -8,6 +8,8 @@ const permission = [PermissionFlagsBits.ManageGuild];
 export default cmd({
   name: `leave channel`,
   description: `Set the leave message channel.`,
+  syntax: "leave channel <channel>",
+  example: "leave channel #goodbye",
   type: "message",
   context: "guild",
   permissions: permission,

@@ -1,7 +1,7 @@
 import { PermissionFlagsBits } from "discord.js";
 import { cmd, container } from "../../../../index.ts";
 import { communitySettings } from "../../../services/settings/community.ts";
-import { colors } from "../../../utils/config/config.ts";
+import { colors } from "../../../utils/config/constants.ts";
 import embeds from "../../../utils/config/embeds.ts";
 
 const permissions = [PermissionFlagsBits.ManageRoles];
@@ -9,6 +9,8 @@ const permissions = [PermissionFlagsBits.ManageRoles];
 export default cmd({
   name: "autorole list",
   description: "List roles given to new members.",
+  syntax: "autorole list",
+  example: "autorole list",
   type: "message",
   context: "guild",
   permissions,

@@ -1,11 +1,13 @@
 import { PermissionFlagsBits } from "discord.js";
 import { cmd, UserError } from "../../../../index.ts";
-import { keywordRule, saveKeywords } from "../../../services/automod.ts";
+import { keywordRule, saveKeywords } from "../../../services/settings/automod.ts";
 import embeds from "../../../utils/config/embeds.ts";
 
 export default cmd({
   name: "automod keyword remove",
   description: "Remove a blocked keyword or phrase.",
+  syntax: "automod keyword remove <keyword>",
+  example: "automod keyword remove keyword",
   type: "message",
   context: "guild",
   permissions: [PermissionFlagsBits.ManageGuild],

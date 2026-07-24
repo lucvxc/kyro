@@ -6,6 +6,8 @@ import embeds from "../../../utils/config/embeds.ts";
 export default cmd({
   name: "confession setup",
   description: "Set the anonymous confession channel.",
+  syntax: "confession setup <channel>",
+  example: "confession setup #channel",
   type: "message",
   context: "guild",
   permissions: [PermissionFlagsBits.ManageGuild],

@@ -5,6 +5,8 @@ import embeds from "../../../utils/config/embeds.ts";
 export default cmd({
   name: "boost variables",
   description: "View variables available in boost messages.",
+  syntax: "boost variables",
+  example: "boost variables",
   type: "message",
   context: "guild",
   permissions: [PermissionFlagsBits.ManageGuild],

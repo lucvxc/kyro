@@ -2,12 +2,14 @@ import { and, eq } from "drizzle-orm";
 import { cmd } from "../../../../index.ts";
 import { db } from "../../../db/database.ts";
 import { boosterRoleMembers } from "../../../db/schema.ts";
-import { personalBoosterRole } from "../../../services/boosterroles.ts";
+import { personalBoosterRole } from "../../../services/boosterroles/index.ts";
 import embeds from "../../../utils/config/embeds.ts";
 
 export default cmd({
   name: "boosterrole remove",
   description: "Delete your personal booster role.",
+  syntax: "boosterrole remove",
+  example: "boosterrole remove",
   type: "message",
   context: "guild",
   run: async (ctx) => {

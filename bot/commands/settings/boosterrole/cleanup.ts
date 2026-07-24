@@ -8,6 +8,8 @@ import embeds from "../../../utils/config/embeds.ts";
 export default cmd({
   name: "boosterrole cleanup",
   description: "Remove personal roles whose owners are no longer boosting.",
+  syntax: "boosterrole cleanup",
+  example: "boosterrole cleanup",
   type: "message",
   context: "guild",
   permissions: [PermissionFlagsBits.ManageRoles],

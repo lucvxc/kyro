@@ -1,11 +1,13 @@
 import { cmd, UserError } from "../../../../index.ts";
-import { ownedVoiceChannel } from "../../../services/voicemaster.ts";
+import { ownedVoiceChannel } from "../../../services/voicemaster/channel.ts";
 import embeds from "../../../utils/config/embeds.ts";
 
 export default cmd({
   name: "voicemaster reject",
   aliases: ["vm reject"],
   description: "Block and disconnect a member from your VoiceMaster channel.",
+  syntax: "voicemaster reject <user>",
+  example: "voicemaster reject @user",
   type: "message",
   context: "guild",
   args: {

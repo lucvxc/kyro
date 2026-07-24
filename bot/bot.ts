@@ -7,6 +7,7 @@ import {
 } from "./services/settings/commands.ts";
 import { getprefix } from "./services/settings/prefix.ts";
 import embeds from "./utils/config/embeds.ts";
+import { startApi } from "./api/index.ts";
 
 const bot = new Kyro({
   token: process.env.TOKEN!,
@@ -61,3 +62,4 @@ const bot = new Kyro({
 });
 
 await bot.start();
+startApi(bot.client);

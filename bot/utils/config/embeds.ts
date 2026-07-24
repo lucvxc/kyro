@@ -6,7 +6,7 @@ import {
   type EmbedOptions,
   type Entry,
 } from "../../../index.ts";
-import { colors, emojis } from "./config.ts";
+import { colors, emojis } from "./constants.ts";
 
 const make = (
   color: string,

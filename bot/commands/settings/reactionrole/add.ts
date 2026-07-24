@@ -6,6 +6,8 @@ import embeds from "../../../utils/config/embeds.ts";
 export default cmd({
   name: "reactionrole add",
   description: "Connect a reaction on a message to a role.",
+  syntax: "reactionrole add <message> <emoji> <role>",
+  example: "reactionrole add message ⭐ @role",
   type: "message",
   context: "guild",
   permissions: [PermissionFlagsBits.ManageRoles],

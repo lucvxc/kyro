@@ -1,12 +1,14 @@
 import { MessageFlags } from "discord.js";
 import { cmd } from "../../../../index.ts";
-import { voiceMasterChannel } from "../../../services/voicemaster.ts";
-import { voiceMasterPanel } from "../../../services/voicemasterpanel.ts";
+import { voiceMasterChannel } from "../../../services/voicemaster/channel.ts";
+import { voiceMasterPanel } from "../../../services/voicemaster/panel.ts";
 
 export default cmd({
   name: "voicemaster panel",
   aliases: ["vm panel"],
   description: "Open a control panel for your VoiceMaster channel.",
+  syntax: "voicemaster panel",
+  example: "voicemaster panel",
   type: "message",
   context: "guild",
   run: async (ctx) => {

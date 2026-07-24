@@ -8,6 +8,8 @@ const permission = [PermissionFlagsBits.ManageGuild];
 export default cmd({
   name: `boost test`,
   description: `Send a test boost message.`,
+  syntax: "boost test",
+  example: "boost test",
   type: "message",
   context: "guild",
   permissions: permission,

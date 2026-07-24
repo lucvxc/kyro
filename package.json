@@ -45,6 +45,7 @@
     "chalk": "^5.6.2",
     "dotenv": "^17.4.2",
     "drizzle-orm": "^0.45.2",
+    "hono": "^4.12.32",
     "moonlink.js": "^5.2.0",
     "postgres": "^3.4.9",
     "sharp": "^0.35.3"

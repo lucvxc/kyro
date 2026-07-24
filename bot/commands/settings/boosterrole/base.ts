@@ -6,6 +6,8 @@ import embeds from "../../../utils/config/embeds.ts";
 export default cmd({
   name: "boosterrole base",
   description: "Set the role personal booster roles should sit above.",
+  syntax: "boosterrole base <role>",
+  example: "boosterrole base @role",
   type: "message",
   context: "guild",
   permissions: [PermissionFlagsBits.ManageRoles],

@@ -6,6 +6,8 @@ import embeds from "../../../utils/config/embeds.ts";
 export default cmd({
   name: "antilink unwhitelist",
   description: "Remove a channel or role from the anti-link whitelist.",
+  syntax: "antilink unwhitelist <target>",
+  example: "antilink unwhitelist target",
   type: "message",
   context: "guild",
   permissions: [PermissionFlagsBits.ManageGuild],

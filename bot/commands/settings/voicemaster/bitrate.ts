@@ -1,11 +1,13 @@
 import { cmd, UserError } from "../../../../index.ts";
-import { ownedVoiceChannel } from "../../../services/voicemaster.ts";
+import { ownedVoiceChannel } from "../../../services/voicemaster/channel.ts";
 import embeds from "../../../utils/config/embeds.ts";
 
 export default cmd({
   name: "voicemaster bitrate",
   aliases: ["vm bitrate"],
   description: "Set your VoiceMaster channel bitrate.",
+  syntax: "voicemaster bitrate <bitrate>",
+  example: "voicemaster bitrate 5",
   type: "message",
   context: "guild",
   args: {

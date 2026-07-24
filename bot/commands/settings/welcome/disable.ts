@@ -11,6 +11,8 @@ const permission = [PermissionFlagsBits.ManageGuild];
 export default cmd({
   name: `welcome disable`,
   description: `Disable welcome messages without deleting the setup.`,
+  syntax: "welcome disable",
+  example: "welcome disable",
   type: "message",
   context: "guild",
   permissions: permission,

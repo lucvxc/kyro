@@ -1,12 +1,14 @@
 import { PermissionFlagsBits } from "discord.js";
 import { cmd, container } from "../../../../index.ts";
-import { voiceMasterChannel } from "../../../services/voicemaster.ts";
-import { colors } from "../../../utils/config/config.ts";
+import { voiceMasterChannel } from "../../../services/voicemaster/channel.ts";
+import { colors } from "../../../utils/config/constants.ts";
 
 export default cmd({
   name: "voicemaster info",
   aliases: ["vm info"],
   description: "View information about your VoiceMaster channel.",
+  syntax: "voicemaster info",
+  example: "voicemaster info",
   type: "message",
   context: "guild",
   run: async (ctx) => {

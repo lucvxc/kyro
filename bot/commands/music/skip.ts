@@ -3,6 +3,8 @@ import { cmd, song } from "../../../index.ts";
 export default cmd({
   name: "skip",
   description: "Skip the current song.",
+  syntax: "skip",
+  example: "skip",
   type: "message",
   aliases: ["s"],
   context: "guild",

@@ -8,6 +8,8 @@ const punishments = ["delete", "warn", "timeout", "kick", "ban"] as const;
 export default cmd({
   name: "antilink punishment",
   description: "Set what happens when someone posts a link.",
+  syntax: "antilink punishment <punishment>",
+  example: "antilink punishment punishment",
   type: "message",
   context: "guild",
   permissions: [PermissionFlagsBits.ManageGuild],

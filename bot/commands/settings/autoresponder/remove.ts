@@ -11,6 +11,8 @@ const permissions = [PermissionFlagsBits.ManageGuild];
 export default cmd({
   name: "autoresponder remove",
   description: "Remove an automatic response.",
+  syntax: "autoresponder remove <trigger>",
+  example: "autoresponder remove trigger",
   type: "message",
   context: "guild",
   permissions,

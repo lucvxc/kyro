@@ -6,6 +6,8 @@ import embeds from "../../../utils/config/embeds.ts";
 export default cmd({
   name: "confession block",
   description: "Block a member from sending confessions.",
+  syntax: "confession block <member>",
+  example: "confession block @user",
   type: "message",
   context: "guild",
   permissions: [PermissionFlagsBits.ManageGuild],

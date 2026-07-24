@@ -4,7 +4,7 @@ import { audit } from "../../index.ts";
 export async function auditActor(
   guild: Guild,
   action: GuildAuditLogsResolvable,
-  targetId: string,
+  targetId?: string,
   within = 5_000,
 ): Promise<{ id: string } | undefined> {
   const entry = await audit(guild, { action, target: targetId, within });

@@ -12,6 +12,8 @@ export default cmd({
   name: "stickymessage remove",
   aliases: ["sticky remove"],
   description: "Remove this channel's sticky message.",
+  syntax: "stickymessage remove",
+  example: "stickymessage remove",
   type: "message",
   context: "guild",
   permissions,

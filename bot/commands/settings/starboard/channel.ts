@@ -8,6 +8,8 @@ const permissions = [PermissionFlagsBits.ManageGuild];
 export default cmd({
   name: "starboard channel",
   description: "Change the starboard channel.",
+  syntax: "starboard channel <channel>",
+  example: "starboard channel #channel",
   type: "message",
   context: "guild",
   permissions,

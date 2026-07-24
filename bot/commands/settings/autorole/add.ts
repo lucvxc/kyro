@@ -12,6 +12,8 @@ export default cmd({
   name: "autorole add",
   aliases: ["autorole set"],
   description: "Add a role given to new members.",
+  syntax: "autorole add <role>",
+  example: "autorole add @role",
   type: "message",
   context: "guild",
   permissions,

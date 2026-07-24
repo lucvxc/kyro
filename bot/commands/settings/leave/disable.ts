@@ -11,6 +11,8 @@ const permission = [PermissionFlagsBits.ManageGuild];
 export default cmd({
   name: `leave disable`,
   description: `Disable leave messages without deleting the setup.`,
+  syntax: "leave disable",
+  example: "leave disable",
   type: "message",
   context: "guild",
   permissions: permission,

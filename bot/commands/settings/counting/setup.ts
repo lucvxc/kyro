@@ -8,6 +8,8 @@ const permissions = [PermissionFlagsBits.ManageGuild];
 export default cmd({
   name: "counting setup",
   description: "Set the counting channel.",
+  syntax: "counting setup (channel)",
+  example: "counting setup #channel",
   type: "message",
   context: "guild",
   permissions,

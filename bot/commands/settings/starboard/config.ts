@@ -1,12 +1,14 @@
 import { PermissionFlagsBits } from "discord.js";
 import { cmd, container } from "../../../../index.ts";
 import { communitySettings } from "../../../services/settings/community.ts";
-import { colors } from "../../../utils/config/config.ts";
+import { colors } from "../../../utils/config/constants.ts";
 import embeds from "../../../utils/config/embeds.ts";
 
 export default cmd({
   name: "starboard config",
   description: "View the starboard configuration.",
+  syntax: "starboard config",
+  example: "starboard config",
   type: "message",
   context: "guild",
   permissions: [PermissionFlagsBits.ManageGuild],

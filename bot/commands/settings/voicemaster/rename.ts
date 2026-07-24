@@ -1,11 +1,13 @@
 import { cmd } from "../../../../index.ts";
-import { ownedVoiceChannel } from "../../../services/voicemaster.ts";
+import { ownedVoiceChannel } from "../../../services/voicemaster/channel.ts";
 import embeds from "../../../utils/config/embeds.ts";
 
 export default cmd({
   name: "voicemaster rename",
   aliases: ["vm rename"],
   description: "Rename your temporary voice channel.",
+  syntax: "voicemaster rename <name>",
+  example: "voicemaster rename example",
   type: "message",
   context: "guild",
   args: {

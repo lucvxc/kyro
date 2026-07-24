@@ -11,6 +11,8 @@ const permission = [PermissionFlagsBits.ManageGuild];
 export default cmd({
   name: `leave enable`,
   description: `Enable leave messages.`,
+  syntax: "leave enable",
+  example: "leave enable",
   type: "message",
   context: "guild",
   permissions: permission,

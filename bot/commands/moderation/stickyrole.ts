@@ -6,6 +6,8 @@ import embeds from "../../utils/config/embeds.ts";
 export default cmd({
   name: "stickyrole",
   description: "Toggle restoring member roles when they rejoin.",
+  syntax: "stickyrole",
+  example: "stickyrole",
   type: "message",
   context: "guild",
   permissions: [PermissionFlagsBits.ManageRoles],

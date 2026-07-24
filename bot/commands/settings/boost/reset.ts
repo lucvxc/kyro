@@ -11,6 +11,8 @@ const permission = [PermissionFlagsBits.ManageGuild];
 export default cmd({
   name: `boost reset`,
   description: `Reset the entire boost message configuration.`,
+  syntax: "boost reset",
+  example: "boost reset",
   type: "message",
   context: "guild",
   permissions: permission,

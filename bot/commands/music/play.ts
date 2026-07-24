@@ -1,5 +1,5 @@
 import { cmd, container, song, thumb } from "../../../index.ts";
-import { colors } from "../../utils/config/config.ts";
+import { colors } from "../../utils/config/constants.ts";
 
 export default cmd({
   name: "play",

@@ -8,6 +8,8 @@ const punishments = ["delete", "warn", "timeout", "kick", "ban"] as const;
 export default cmd({
   name: "antiinvite punishment",
   description: "Set what happens when someone posts a Discord invite.",
+  syntax: "antiinvite punishment <punishment>",
+  example: "antiinvite punishment punishment",
   type: "message",
   context: "guild",
   permissions: [PermissionFlagsBits.ManageGuild],
