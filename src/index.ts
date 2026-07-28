@@ -1,6 +1,18 @@
-export { Kyro, type Options, type ClientConfig, type KyroConfig, type PresenceConfig } from "./Kyro.ts";
+export {
+  Kyro,
+  type Options,
+  type ClientConfig,
+  type KyroConfig,
+  type PresenceConfig,
+} from "./Kyro.ts";
 export type { Arg, Args, ArgType } from "./commands/Arg.ts";
-export { cmd, type Cmd, type Entry, type CmdContext, type CmdType } from "./commands/Cmd.ts";
+export {
+  cmd,
+  type Cmd,
+  type Entry,
+  type CmdContext,
+  type CmdType,
+} from "./commands/Cmd.ts";
 export { Context, type Source } from "./commands/Context.ts";
 export { help } from "./commands/Help.ts";
 export { Registry } from "./commands/Registry.ts";
@@ -12,7 +24,7 @@ export type { CommandReplies } from "./commands/Router.ts";
 export type { PermissionResolver } from "./commands/Guard.ts";
 export { Moderation, type ModOptions } from "./commands/Moderation.ts";
 export type { Middleware, Next } from "./commands/Middleware.ts";
-export type { PrefixResolver, AliasResolver } from "./commands/RouterTypes.ts";
+export type { AliasLookup, PrefixResolver } from "./commands/RouterTypes.ts";
 export { Server } from "./guild/Server.ts";
 export {
   BotProfile,
@@ -60,7 +72,14 @@ export {
 export { cmp, type Cmp, type CmpContext } from "./components/Cmp.ts";
 export { ComponentContext } from "./components/Context.ts";
 export { evt, type Evt } from "./events/Evt.ts";
-export { Embed, embed, type Author, type EmbedOptions, type Field, type Footer } from "./ui/Embed.ts";
+export {
+  Embed,
+  embed,
+  type Author,
+  type EmbedOptions,
+  type Field,
+  type Footer,
+} from "./ui/Embed.ts";
 export { dominant, type ImageInput } from "./ui/Image.ts";
 export { duration, time, unix, type TimeStyle } from "./ui/Time.ts";
 export { Stats } from "./core/Stats.ts";

@@ -16,7 +16,7 @@ import { log } from "../core/Log.ts";
 import { AutocompleteContext } from "./Autocomplete.ts";
 import { UserError } from "./Errors.ts";
 import type { Middleware } from "./Middleware.ts";
-import type { PrefixResolver, AliasResolver } from "./RouterTypes.ts";
+import type { AliasLookup, PrefixResolver } from "./RouterTypes.ts";
 
 export type ErrorHandler = (
   error: unknown,
@@ -27,14 +27,19 @@ export type ErrorHandler = (
 export interface CommandReplies {
   usage?(text: string): Reply | Promise<Reply>;
   error?(text: string): Reply | Promise<Reply>;
-  subcommands?(group: string, commands: readonly Entry[], prefix: string, message: Message): Reply | Promise<Reply>;
+  subcommands?(
+    group: string,
+    commands: readonly Entry[],
+    prefix: string,
+    message: Message,
+  ): Reply | Promise<Reply>;
 }
 
 export interface RouterOptions {
   client: Client;
   registry: Registry;
   prefix: string | PrefixResolver;
-  resolveAlias?: AliasResolver;
+  getAlias?: AliasLookup;
   guard: Guard;
   onError?: ErrorHandler;
   middleware?: readonly Middleware[];
@@ -45,7 +50,7 @@ export class Router {
   readonly #client: Client;
   readonly #registry: Registry;
   readonly #prefix: string | PrefixResolver;
-  readonly #resolveAlias: AliasResolver | undefined;
+  readonly #getAlias: AliasLookup | undefined;
   readonly #guard: Guard;
   readonly #onError: ErrorHandler;
   readonly #middleware: readonly Middleware[];
@@ -56,7 +61,7 @@ export class Router {
     this.#client = options.client;
     this.#registry = options.registry;
     this.#prefix = options.prefix;
-    this.#resolveAlias = options.resolveAlias;
+    this.#getAlias = options.getAlias;
     this.#guard = options.guard;
     this.#onError = options.onError ?? logError;
     this.#middleware = options.middleware ?? [];
@@ -90,7 +95,13 @@ export class Router {
     const command = this.#registry.get(path, "slash");
     if (!command) return;
 
-    const ctx = new Context("slash", interaction, command, [], this.#registry.catalog);
+    const ctx = new Context(
+      "slash",
+      interaction,
+      command,
+      [],
+      this.#registry.catalog,
+    );
     void this.#run(command, ctx);
   };
 
@@ -98,30 +109,43 @@ export class Router {
     const command = this.#registry.get(getPath(interaction), "slash");
     if (!command?.autocomplete) return;
     try {
-      const result = await command.autocomplete(new AutocompleteContext(interaction));
-      if (Array.isArray(result)) await interaction.respond(result.slice(0, 25) as never);
+      const result = await command.autocomplete(
+        new AutocompleteContext(interaction),
+      );
+      if (Array.isArray(result))
+        await interaction.respond(result.slice(0, 25) as never);
       else if (!interaction.responded) await interaction.respond([]);
     } catch (error) {
       log.error(`Autocomplete for "${command.name}" failed.`, error);
-      if (!interaction.responded) await interaction.respond([]).catch(() => undefined);
+      if (!interaction.responded)
+        await interaction.respond([]).catch(() => undefined);
     }
   }
 
-  readonly #onMessage = (message: Message): void => { void this.#message(message); };
+  readonly #onMessage = (message: Message): void => {
+    void this.#message(message);
+  };
 
   async #message(message: Message): Promise<void> {
     if (message.author.bot) return;
     const input = message.content;
-    const resolved = typeof this.#prefix === "function" ? await this.#prefix(message) : this.#prefix;
-    const prefixes = typeof resolved === "string" ? [resolved] : resolved;
-    const prefix = prefixes.find(value => input.startsWith(value));
+    const available =
+      typeof this.#prefix === "function"
+        ? await this.#prefix(message)
+        : this.#prefix;
+    const prefixes = typeof available === "string" ? [available] : available;
+    const prefix = prefixes.find((value) => input.startsWith(value));
     if (!prefix) return;
     const body = input.slice(prefix.length).trim();
     let match = this.#registry.match(body);
-    if (!match && this.#resolveAlias) {
-      const name = await this.#resolveAlias(message, body);
+    if (!match && this.#getAlias) {
+      const name = await this.#getAlias(message, body);
       const command = name ? this.#registry.get(name, "message") : undefined;
-      if (command) match = this.#registry.matchAs(command, body.split(/\s+/).slice(1).join(" "));
+      if (command)
+        match = this.#registry.matchAs(
+          command,
+          body.split(/\s+/).slice(1).join(" "),
+        );
     }
     if (!match) {
       const commands = this.#registry.subs(body);
@@ -133,27 +157,48 @@ export class Router {
       return;
     }
 
-    const ctx = new Context("message", message, match.command, match.args, this.#registry.catalog, prefix);
+    const ctx = new Context(
+      "message",
+      message,
+      match.command,
+      match.args,
+      this.#registry.catalog,
+      prefix,
+    );
     void this.#run(match.command, ctx);
   }
 
   async #run(command: Entry, ctx: Context): Promise<void> {
     try {
-      await runMiddleware(this.#middleware, ctx, () => this.#execute(command, ctx));
+      await runMiddleware(this.#middleware, ctx, () =>
+        this.#runCommand(command, ctx),
+      );
     } catch (error) {
       if (error instanceof UserError) {
-        await ctx.reply(await this.#error(error.message)).catch(() => undefined);
+        await ctx
+          .reply(await this.#error(error.message))
+          .catch(() => undefined);
         return;
       }
 
       await this.#onError(error, ctx, command);
-      if (ctx.source === "slash" && !ctx.interaction?.replied && !ctx.interaction?.deferred) {
-        await ctx.reply(await this.#error("Something went wrong while running that command.")).catch(() => undefined);
+      if (
+        ctx.source === "slash" &&
+        !ctx.interaction?.replied &&
+        !ctx.interaction?.deferred
+      ) {
+        await ctx
+          .reply(
+            await this.#error(
+              "Something went wrong while running that command.",
+            ),
+          )
+          .catch(() => undefined);
       }
     }
   }
 
-  async #execute(command: Entry, ctx: Context): Promise<void> {
+  async #runCommand(command: Entry, ctx: Context): Promise<void> {
     const blocked = await this.#guard.check(command, ctx);
     if (blocked === null) return;
     if (blocked) {
@@ -162,9 +207,11 @@ export class Router {
     }
 
     if (ctx.issue) {
-      await ctx.reply(this.#replies.usage
-        ? await this.#replies.usage(`\`${ctx.prefix}${ctx.command.syntax}\``)
-        : `Usage: \`${ctx.prefix}${ctx.command.syntax}\``);
+      await ctx.reply(
+        this.#replies.usage
+          ? await this.#replies.usage(`\`${ctx.prefix}${ctx.command.syntax}\``)
+          : `Usage: \`${ctx.prefix}${ctx.command.syntax}\``,
+      );
       return;
     }
 
@@ -176,13 +223,23 @@ export class Router {
   }
 }
 
-async function runMiddleware(middleware: readonly Middleware[], ctx: Context, run: () => void | Promise<void>, index = 0): Promise<void> {
+async function runMiddleware(
+  middleware: readonly Middleware[],
+  ctx: Context,
+  run: () => void | Promise<void>,
+  index = 0,
+): Promise<void> {
   const current = middleware[index];
-  if (!current) { await run(); return; }
+  if (!current) {
+    await run();
+    return;
+  }
   await current(ctx, () => runMiddleware(middleware, ctx, run, index + 1));
 }
 
-function getPath(interaction: ChatInputCommandInteraction | AutocompleteInteraction): string {
+function getPath(
+  interaction: ChatInputCommandInteraction | AutocompleteInteraction,
+): string {
   const group = interaction.options.getSubcommandGroup(false);
   const subcommand = interaction.options.getSubcommand(false);
 
@@ -194,5 +251,7 @@ function logError(error: unknown, _ctx: Context, command: Entry): void {
 }
 
 function defaultSubs(commands: readonly Entry[], prefix: string): string {
-  return commands.map(command => `**${prefix}${command.syntax}**\n${command.description}`).join("\n\n");
+  return commands
+    .map((command) => `**${prefix}${command.syntax}**\n${command.description}`)
+    .join("\n\n");
 }

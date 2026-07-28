@@ -2,7 +2,7 @@ import type { GuildBasedChannel, Role, User } from "discord.js";
 
 import type { Args } from "./Arg.ts";
 
-export interface Resolvers {
+export interface ArgLookups {
   user(id: string): User | undefined;
   role(id: string): Role | undefined;
   channel(id: string): GuildBasedChannel | undefined;
@@ -16,7 +16,7 @@ export interface Parsed {
 export function parse(
   args: Args | undefined,
   tokens: readonly string[],
-  resolve: Resolvers,
+  lookup: ArgLookups,
 ): Parsed {
   const entries = Object.entries(args ?? {});
   const values = new Map<string, unknown>();
@@ -24,17 +24,23 @@ export function parse(
 
   for (const [position, [name, arg]] of entries.entries()) {
     const lastString = arg.type === "string" && position === entries.length - 1;
-    const remaining = entries.slice(position + 1).filter(([, value]) => value.required).length;
-    const role = arg.type === "role" ? readRole(tokens, index, remaining, resolve) : undefined;
+    const remaining = entries
+      .slice(position + 1)
+      .filter(([, value]) => value.required).length;
+    const role =
+      arg.type === "role"
+        ? readRole(tokens, index, remaining, lookup)
+        : undefined;
     const token = lastString ? tokens.slice(index).join(" ") : tokens[index];
 
     if (!token) {
-      if (arg.required) return { values, issue: `Missing required argument "${name}".` };
+      if (arg.required)
+        return { values, issue: `Missing required argument "${name}".` };
       if (arg.default !== undefined) values.set(name, arg.default);
       continue;
     }
 
-    const value = role?.value ?? read(arg.type, token, resolve);
+    const value = role?.value ?? read(arg.type, token, lookup);
     if (value === undefined) {
       return { values, issue: `Invalid ${arg.type} value for "${name}".` };
     }
@@ -50,17 +56,23 @@ function readRole(
   tokens: readonly string[],
   index: number,
   remaining: number,
-  resolve: Resolvers,
+  lookup: ArgLookups,
 ): { value: Role; used: number } | undefined {
   const available = tokens.length - index - remaining;
   for (let used = available; used > 0; used -= 1) {
-    const value = resolve.role(readID(tokens.slice(index, index + used).join(" ")));
+    const value = lookup.role(
+      readID(tokens.slice(index, index + used).join(" ")),
+    );
     if (value) return { value, used };
   }
   return undefined;
 }
 
-function read(type: Args[string]["type"], token: string, resolve: Resolvers): unknown {
+function read(
+  type: Args[string]["type"],
+  token: string,
+  lookup: ArgLookups,
+): unknown {
   switch (type) {
     case "string":
       return token;
@@ -71,11 +83,11 @@ function read(type: Args[string]["type"], token: string, resolve: Resolvers): un
     case "boolean":
       return readBoolean(token);
     case "user":
-      return resolve.user(readID(token));
+      return lookup.user(readID(token));
     case "role":
-      return resolve.role(readID(token));
+      return lookup.role(readID(token));
     case "channel":
-      return resolve.channel(readID(token));
+      return lookup.channel(readID(token));
   }
 }
 

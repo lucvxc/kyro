@@ -12,20 +12,30 @@ describe("Loader", () => {
 
     await new Loader(registry, directory).load();
 
-    expect(registry.get("ping", "slash")?.description).toBe("Replies with pong");
+    expect(registry.get("ping", "slash")?.description).toBe(
+      "Replies with pong",
+    );
     expect(registry.get("avatar", "slash")).toMatchObject({
       category: "info",
       syntax: "avatar (user)",
       example: "avatar @user",
     });
-    expect(registry.get("alpha", "slash")?.description).toBe("First collected command");
-    expect(registry.get("beta", "slash")?.description).toBe("Second collected command");
+    expect(registry.get("alpha", "slash")?.description).toBe(
+      "First collected command",
+    );
+    expect(registry.get("beta", "slash")?.description).toBe(
+      "Second collected command",
+    );
     expect(registry.catalog.category("admin")?.roots).toEqual(["settings"]);
-    expect(registry.catalog.subs("settings").map(command => command.name)).toEqual(["settings prefix"]);
+    expect(
+      registry.catalog.subs("settings").map((command) => command.name),
+    ).toEqual(["settings prefix"]);
   });
 
   test("loads regex component exports", async () => {
-    const loader = new ComponentLoader(resolve(import.meta.dir, "fixtures", "components"));
+    const loader = new ComponentLoader(
+      resolve(import.meta.dir, "fixtures", "components"),
+    );
 
     await loader.load();
 

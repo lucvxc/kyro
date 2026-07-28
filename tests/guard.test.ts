@@ -31,9 +31,9 @@ describe("Guard", () => {
   test("enforces command contexts", async () => {
     const guard = new Guard();
 
-    expect(await guard.check(command({ context: "guild" }), context(false))).toBe(
-      "This command can only be used in a server.",
-    );
+    expect(
+      await guard.check(command({ context: "guild" }), context(false)),
+    ).toBe("This command can only be used in a server.");
     expect(await guard.check(command({ context: "dms" }), context(true))).toBe(
       "This command can only be used in DMs.",
     );
@@ -41,9 +41,14 @@ describe("Guard", () => {
 
   test("reports missing permissions", async () => {
     const guard = new Guard();
-    const permissions = new PermissionsBitField(PermissionFlagsBits.SendMessages);
+    const permissions = new PermissionsBitField(
+      PermissionFlagsBits.SendMessages,
+    );
     const result = await guard.check(
-      command({ context: "guild", permissions: [PermissionFlagsBits.ManageMessages] }),
+      command({
+        context: "guild",
+        permissions: [PermissionFlagsBits.ManageMessages],
+      }),
       context(true, permissions),
     );
 
@@ -51,10 +56,17 @@ describe("Guard", () => {
   });
 
   test("allows a custom permission resolver", async () => {
-    const guard = new Guard(0, async (_ctx, missing) => missing.includes("ManageMessages"));
-    const permissions = new PermissionsBitField(PermissionFlagsBits.SendMessages);
+    const guard = new Guard(0, async (_ctx, missing) =>
+      missing.includes("ManageMessages"),
+    );
+    const permissions = new PermissionsBitField(
+      PermissionFlagsBits.SendMessages,
+    );
     const result = await guard.check(
-      command({ context: "guild", permissions: [PermissionFlagsBits.ManageMessages] }),
+      command({
+        context: "guild",
+        permissions: [PermissionFlagsBits.ManageMessages],
+      }),
       context(true, permissions),
     );
 

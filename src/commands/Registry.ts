@@ -30,7 +30,7 @@ export class Registry {
   }
 
   public get catalog(): Catalog {
-    return this.#catalog ??= new Catalog(this.values());
+    return (this.#catalog ??= new Catalog(this.values()));
   }
 
   public add(command: Cmd): this {
@@ -44,7 +44,8 @@ export class Registry {
     const aliases = (command.aliases ?? []).map(normalize);
     const permissions = command.permissions ?? [];
     const category = normalizeCategory(command.category ?? "general");
-    const syntax = command.syntax?.trim() || makeSyntax(path.join(" "), command.args);
+    const syntax =
+      command.syntax?.trim() || makeSyntax(path.join(" "), command.args);
 
     validate(command, path, type, aliases, context);
 
@@ -100,16 +101,22 @@ export class Registry {
     return undefined;
   }
 
-  public matchAs(command: Entry, input: string): Match { return { command, args: tokenize(input) }; }
+  public matchAs(command: Entry, input: string): Match {
+    return { command, args: tokenize(input) };
+  }
 
   public subs(input: string): readonly Entry[] {
     const name = normalize(input);
     if (!name) return [];
 
-    return this.values().filter(command =>
-      command.type !== "slash" &&
-      command.meta?.help !== false &&
-      [command.name, ...command.aliases].some(path => path.startsWith(`${name} `)));
+    return this.values().filter(
+      (command) =>
+        command.type !== "slash" &&
+        command.meta?.help !== false &&
+        [command.name, ...command.aliases].some((path) =>
+          path.startsWith(`${name} `),
+        ),
+    );
   }
 
   public values(): Entry[] {
@@ -129,7 +136,9 @@ export class Registry {
 
   #assertAvailable(name: string): void {
     if (this.#commands.has(name) || this.#aliases.has(name)) {
-      throw new Error(`The command name or alias "${name}" is already registered.`);
+      throw new Error(
+        `The command name or alias "${name}" is already registered.`,
+      );
     }
   }
 }
@@ -155,7 +164,9 @@ function normalizeCategory(value: string): string {
 }
 
 function makeSyntax(name: string, args: Cmd["args"]): string {
-  const values = Object.entries(args ?? {}).map(([key, arg]) => arg.required ? `<${key}>` : `(${key})`);
+  const values = Object.entries(args ?? {}).map(([key, arg]) =>
+    arg.required ? `<${key}>` : `(${key})`,
+  );
   return [name, ...values].join(" ");
 }
 
@@ -173,11 +184,15 @@ function validate(
   checkArgs(command.args);
 
   if (!command.description.trim() || command.description.length > 100) {
-    throw new TypeError("Command descriptions must contain between 1 and 100 characters.");
+    throw new TypeError(
+      "Command descriptions must contain between 1 and 100 characters.",
+    );
   }
 
   if (type !== "message" && path.length > 3) {
-    throw new TypeError("Slash and hybrid command paths can contain at most three parts.");
+    throw new TypeError(
+      "Slash and hybrid command paths can contain at most three parts.",
+    );
   }
 
   if (type !== "message") {
@@ -191,7 +206,9 @@ function validate(
   }
 
   if (type === "slash" && aliases.length > 0) {
-    throw new TypeError("Aliases are only supported by message and hybrid commands.");
+    throw new TypeError(
+      "Aliases are only supported by message and hybrid commands.",
+    );
   }
 
   if (new Set(aliases).size !== aliases.length) {

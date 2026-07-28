@@ -22,31 +22,43 @@ export class Catalog {
       grouped.set(command.category, values);
     }
 
-    this.categories = Object.freeze([...grouped].map(([name, values]) => Object.freeze({
-      name,
-      label: label(name),
-      commands: Object.freeze(values),
-      roots: Object.freeze([...new Set(values.map(command => command.path[0]!))]),
-    })).sort((a, b) => a.label.localeCompare(b.label)));
+    this.categories = Object.freeze(
+      [...grouped]
+        .map(([name, values]) =>
+          Object.freeze({
+            name,
+            label: label(name),
+            commands: Object.freeze(values),
+            roots: Object.freeze([
+              ...new Set(values.map((command) => command.path[0]!)),
+            ]),
+          }),
+        )
+        .sort((a, b) => a.label.localeCompare(b.label)),
+    );
   }
 
   public find(query: string): Entry | undefined {
     const name = clean(query);
-    return this.commands.find(command => command.name === name || command.aliases.includes(name));
+    return this.commands.find(
+      (command) => command.name === name || command.aliases.includes(name),
+    );
   }
 
   public get visible(): Catalog {
-    return this.#visible ??= new Catalog(this.commands.filter(command => command.meta?.help !== false));
+    return (this.#visible ??= new Catalog(
+      this.commands.filter((command) => command.meta?.help !== false),
+    ));
   }
 
   public category(name: string): Category | undefined {
     const value = clean(name);
-    return this.categories.find(category => category.name === value);
+    return this.categories.find((category) => category.name === value);
   }
 
   public subs(command: string | Entry): readonly Entry[] {
     const name = typeof command === "string" ? clean(command) : command.name;
-    return this.commands.filter(value => value.name.startsWith(`${name} `));
+    return this.commands.filter((value) => value.name.startsWith(`${name} `));
   }
 
   public hasSubs(command: string | Entry): boolean {
@@ -54,6 +66,15 @@ export class Catalog {
   }
 }
 
-function clean(value: string): string { return value.trim().toLowerCase().replace(/\s+/g, " "); }
-function label(value: string): string { return value.split(/[-_]/).map(part => part[0]?.toUpperCase() + part.slice(1)).join(" "); }
-function byName(a: Entry, b: Entry): number { return a.name.localeCompare(b.name); }
+function clean(value: string): string {
+  return value.trim().toLowerCase().replace(/\s+/g, " ");
+}
+function label(value: string): string {
+  return value
+    .split(/[-_]/)
+    .map((part) => part[0]?.toUpperCase() + part.slice(1))
+    .join(" ");
+}
+function byName(a: Entry, b: Entry): number {
+  return a.name.localeCompare(b.name);
+}

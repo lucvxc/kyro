@@ -10,10 +10,13 @@ export function color(value: Color): number {
   }
 
   const hex = value.trim().replace(/^#|^0x/i, "");
-  const normalized = hex.length === 3 ? hex.replace(/./g, (part) => part + part) : hex;
+  const normalized =
+    hex.length === 3 ? hex.replace(/./g, (part) => part + part) : hex;
 
   if (!/^[\da-f]{6}$/i.test(normalized)) {
-    throw new TypeError(`Invalid color "${value}". Use a 3 or 6 digit hex value.`);
+    throw new TypeError(
+      `Invalid color "${value}". Use a 3 or 6 digit hex value.`,
+    );
   }
 
   return Number.parseInt(normalized, 16);

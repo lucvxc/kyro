@@ -13,7 +13,9 @@ describe("framework boundary", () => {
       expect(source).not.toMatch(/(?:from\s+|import\s*\()["'][^"']*\/bot\//);
     }
 
-    const pkg = JSON.parse(await readFile(resolve("package.json"), "utf8")) as { files?: string[] };
+    const pkg = JSON.parse(await readFile(resolve("package.json"), "utf8")) as {
+      files?: string[];
+    };
     expect(pkg.files).not.toContain("bot");
   });
 });

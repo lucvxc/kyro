@@ -1,6 +1,9 @@
 import { describe, expect, test } from "bun:test";
 
-import { permissionChoices, permissionName } from "../bot/utils/fakepermissions.ts";
+import {
+  permissionChoices,
+  permissionName,
+} from "../bot/shared/fakepermissions.ts";
 
 describe("fake permissions", () => {
   test("normalizes readable Discord permission names", () => {
@@ -9,7 +12,9 @@ describe("fake permissions", () => {
   });
 
   test("rejects unknown permissions and filters autocomplete", () => {
-    expect(() => permissionName("MakeEveryoneCool")).toThrow("not a valid Discord permission");
+    expect(() => permissionName("MakeEveryoneCool")).toThrow(
+      "not a valid Discord permission",
+    );
     expect(permissionChoices("manage message")).toContainEqual({
       name: "Manage Messages",
       value: "ManageMessages",

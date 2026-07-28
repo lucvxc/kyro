@@ -15,7 +15,7 @@ export class Store<K, V> {
 
   public constructor(options: StoreOptions<K, V>) {
     this.#cache = new Cache(options);
-    this.#key = options.key ?? (value => String(value));
+    this.#key = options.key ?? ((value) => String(value));
     this.#load = options.load;
     this.#save = options.save;
   }
@@ -28,10 +28,12 @@ export class Store<K, V> {
     const active = this.#pending.get(id);
     if (active) return active;
 
-    const request = Promise.resolve(this.#load(key)).then(value => {
-      this.#cache.set(id, value);
-      return value;
-    }).finally(() => this.#pending.delete(id));
+    const request = Promise.resolve(this.#load(key))
+      .then((value) => {
+        this.#cache.set(id, value);
+        return value;
+      })
+      .finally(() => this.#pending.delete(id));
     this.#pending.set(id, request);
     return request;
   }
@@ -43,13 +45,23 @@ export class Store<K, V> {
     return value;
   }
 
-  public async update(key: K, change: (value: V) => V | Promise<V>): Promise<V> {
+  public async update(
+    key: K,
+    change: (value: V) => V | Promise<V>,
+  ): Promise<V> {
     return this.set(key, await change(await this.get(key)));
   }
 
-  public prime(key: K, value: V): this { this.#cache.set(this.#key(key), value); return this; }
-  public delete(key: K): boolean { return this.#cache.delete(this.#key(key)); }
-  public clear(): void { this.#cache.clear(); }
+  public prime(key: K, value: V): this {
+    this.#cache.set(this.#key(key), value);
+    return this;
+  }
+  public delete(key: K): boolean {
+    return this.#cache.delete(this.#key(key));
+  }
+  public clear(): void {
+    this.#cache.clear();
+  }
 }
 
 export function store<K, V>(options: StoreOptions<K, V>): Store<K, V> {

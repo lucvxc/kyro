@@ -1,7 +1,21 @@
 import { describe, expect, test } from "bun:test";
 
 import { MessageFlags } from "discord.js";
-import { button, codes, compact, container, embed, fill, groups, mention, messageOptions, select, thumb, time, unix } from "../index.ts";
+import {
+  button,
+  codes,
+  compact,
+  container,
+  embed,
+  fill,
+  groups,
+  mention,
+  messageOptions,
+  select,
+  thumb,
+  time,
+  unix,
+} from "../index.ts";
 
 describe("Time", () => {
   test("formats dates, milliseconds, and Discord seconds", () => {
@@ -16,22 +30,34 @@ describe("Text", () => {
   test("formats counts and fills cached template variables", () => {
     expect(compact(1_200)).toBe("1.2k");
     expect(compact(1_000_000)).toBe("1m");
-    expect(fill("Hello {user}, {USER}!", { "{user}": "Kyro" })).toBe("Hello Kyro, Kyro!");
-    expect(codes(["Ban Members", "Kick Members"])).toBe("`Ban Members` · `Kick Members`");
-    expect(groups(["a:1", "a:2", "b:3"], value => value[0], (key, values) => `${key}:${values.length}`)).toBe("a:2\n\nb:1");
+    expect(fill("Hello {user}, {USER}!", { "{user}": "Kyro" })).toBe(
+      "Hello Kyro, Kyro!",
+    );
+    expect(codes(["Ban Members", "Kick Members"])).toBe(
+      "`Ban Members` · `Kick Members`",
+    );
+    expect(
+      groups(
+        ["a:1", "a:2", "b:3"],
+        (value) => value[0],
+        (key, values) => `${key}:${values.length}`,
+      ),
+    ).toBe("a:2\n\nb:1");
     expect(mention.role("123")).toBe("<@&123>");
   });
 });
 
 describe("Embed", () => {
   test("builds complete embeds from clean options", () => {
-    expect(embed({
-      title: "Saved",
-      description: "Your settings were updated.",
-      color: "#57F287",
-      footer: "Kyro",
-      timestamp: true,
-    }).toJSON()).toMatchObject({
+    expect(
+      embed({
+        title: "Saved",
+        description: "Your settings were updated.",
+        color: "#57F287",
+        footer: "Kyro",
+        timestamp: true,
+      }).toJSON(),
+    ).toMatchObject({
       title: "Saved",
       description: "Your settings were updated.",
       color: 0x57f287,
@@ -84,11 +110,15 @@ describe("Container", () => {
   });
 
   test("keeps link and interactive buttons separate", () => {
-    expect(() => button({ id: "bad", style: "link", url: "https://example.com" })).toThrow(
-      "Link buttons use url instead of id.",
+    expect(() =>
+      button({ id: "bad", style: "link", url: "https://example.com" }),
+    ).toThrow("Link buttons use url instead of id.");
+    expect(() => button({ style: "link" })).toThrow(
+      "Link buttons require a url.",
     );
-    expect(() => button({ style: "link" })).toThrow("Link buttons require a url.");
-    expect(() => button({ label: "Bad" })).toThrow("Interactive buttons require an id.");
+    expect(() => button({ label: "Bad" })).toThrow(
+      "Interactive buttons require an id.",
+    );
   });
 
   test("uses text when a section has no accessory", () => {
@@ -101,8 +131,13 @@ describe("Container", () => {
 
 describe("Message", () => {
   test("serializes framework UI consistently", () => {
-    expect(messageOptions("hello")).toMatchObject({ content: "hello", allowedMentions: { parse: [] } });
-    expect(messageOptions(embed().desc("hello"))).toMatchObject({ embeds: [{ description: "hello" }] });
+    expect(messageOptions("hello")).toMatchObject({
+      content: "hello",
+      allowedMentions: { parse: [] },
+    });
+    expect(messageOptions(embed().desc("hello"))).toMatchObject({
+      embeds: [{ description: "hello" }],
+    });
     expect(messageOptions(container().text("hello"), true)).toMatchObject({
       flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral,
       components: [{ components: [{ content: "hello" }] }],

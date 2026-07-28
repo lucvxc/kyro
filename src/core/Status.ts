@@ -17,7 +17,9 @@ export function isDeviceStatus(value: unknown): value is DeviceStatus {
 
 export function status(device: DeviceStatus = "android"): void {
   const name = deviceNames[device];
-  const { DefaultWebSocketManagerOptions } = load("@discordjs/ws") as typeof DiscordWS;
+  const { DefaultWebSocketManagerOptions } = load(
+    "@discordjs/ws",
+  ) as typeof DiscordWS;
   Object.assign(DefaultWebSocketManagerOptions.identifyProperties, {
     browser: name,
     device: name,

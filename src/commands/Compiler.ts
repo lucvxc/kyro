@@ -1,17 +1,23 @@
 import {
   InteractionContextType,
   SlashCommandBuilder,
+  type APIApplicationCommandOption,
   type SlashCommandSubcommandBuilder,
-  type RESTPostAPIChatInputApplicationCommandsJSONBody,
 } from "discord.js";
 
 import type { Args } from "./Arg.ts";
 import type { Entry } from "./Cmd.ts";
 
-export function compileSlash(
-  commands: readonly Entry[],
-): RESTPostAPIChatInputApplicationCommandsJSONBody[] {
-  const slashCommands = commands.filter((command) => command.type !== "message");
+type SlashCommandJSON = ReturnType<SlashCommandBuilder["toJSON"]> & {
+  name: string;
+  options?: APIApplicationCommandOption[];
+  contexts?: InteractionContextType[];
+};
+
+export function compileSlash(commands: readonly Entry[]): SlashCommandJSON[] {
+  const slashCommands = commands.filter(
+    (command) => command.type !== "message",
+  );
   const roots = Map.groupBy(slashCommands, (command) => command.path[0]!);
 
   return [...roots.entries()].map(([rootName, entries]) => {
@@ -30,16 +36,20 @@ export function compileSlash(
         .setDescription(directCommand.description);
 
       addContexts(command, [directCommand]);
-      return addArgs(command, directCommand.args).toJSON();
+      return addArgs(command, directCommand.args).toJSON() as SlashCommandJSON;
     }
 
     const builder = new SlashCommandBuilder()
       .setName(rootName)
       .setDescription(`Commands for ${rootName}.`);
 
-    for (const command of nestedCommands.filter((entry) => entry.path.length === 2)) {
+    for (const command of nestedCommands.filter(
+      (entry) => entry.path.length === 2,
+    )) {
       builder.addSubcommand((subcommand) => {
-        subcommand.setName(command.path[1]!).setDescription(command.description);
+        subcommand
+          .setName(command.path[1]!)
+          .setDescription(command.description);
         return addArgs(subcommand, command.args);
       });
     }
@@ -51,11 +61,15 @@ export function compileSlash(
 
     for (const [groupName, groupCommands] of groups) {
       builder.addSubcommandGroup((group) => {
-        group.setName(groupName).setDescription(`Commands for ${rootName} ${groupName}.`);
+        group
+          .setName(groupName)
+          .setDescription(`Commands for ${rootName} ${groupName}.`);
 
         for (const command of groupCommands) {
           group.addSubcommand((subcommand) => {
-            subcommand.setName(command.path[2]!).setDescription(command.description);
+            subcommand
+              .setName(command.path[2]!)
+              .setDescription(command.description);
             return addArgs(subcommand, command.args);
           });
         }
@@ -65,7 +79,7 @@ export function compileSlash(
     }
 
     addContexts(builder, entries);
-    return builder.toJSON();
+    return builder.toJSON() as SlashCommandJSON;
   });
 }
 
@@ -74,24 +88,40 @@ type Builder = SlashCommandBuilder | SlashCommandSubcommandBuilder;
 function addArgs<T extends Builder>(builder: T, args: Args | undefined): T {
   for (const [name, arg] of Object.entries(args ?? {})) {
     const description = arg.description ?? `Value for ${name}.`;
-    const setup = <O extends { setName(name: string): O; setDescription(text: string): O; setRequired(value: boolean): O }>(
+    const setup = <
+      O extends {
+        setName(name: string): O;
+        setDescription(text: string): O;
+        setRequired(value: boolean): O;
+      },
+    >(
       option: O,
-    ): O => option.setName(name).setDescription(description).setRequired(Boolean(arg.required));
+    ): O =>
+      option
+        .setName(name)
+        .setDescription(description)
+        .setRequired(Boolean(arg.required));
 
     switch (arg.type) {
       case "string":
-        builder.addStringOption(option => {
+        builder.addStringOption((option) => {
           setup(option);
           if (arg.autocomplete) option.setAutocomplete(true);
-          if (arg.choices) option.addChoices(...arg.choices as { name: string; value: string }[]);
+          if (arg.choices)
+            option.addChoices(
+              ...(arg.choices as { name: string; value: string }[]),
+            );
           return option;
         });
         break;
       case "number":
-        builder.addNumberOption(option => {
+        builder.addNumberOption((option) => {
           setup(option);
           if (arg.autocomplete) option.setAutocomplete(true);
-          if (arg.choices) option.addChoices(...arg.choices as { name: string; value: number }[]);
+          if (arg.choices)
+            option.addChoices(
+              ...(arg.choices as { name: string; value: number }[]),
+            );
           return option;
         });
         break;
@@ -113,7 +143,10 @@ function addArgs<T extends Builder>(builder: T, args: Args | undefined): T {
   return builder;
 }
 
-function addContexts(builder: SlashCommandBuilder, commands: readonly Entry[]): void {
+function addContexts(
+  builder: SlashCommandBuilder,
+  commands: readonly Entry[],
+): void {
   const contexts = new Set<InteractionContextType>();
 
   for (const command of commands) {

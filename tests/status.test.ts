@@ -3,12 +3,15 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { Kyro, status, type DeviceStatus } from "../index.ts";
 
 const load = createRequire(import.meta.url);
-const { DefaultWebSocketManagerOptions } = load("@discordjs/ws") as typeof import("@discordjs/ws");
-const identifyProperties = DefaultWebSocketManagerOptions.identifyProperties as unknown as {
-  browser: string;
-  device: string;
-  os: string;
-};
+const { DefaultWebSocketManagerOptions } = load(
+  "@discordjs/ws",
+) as typeof import("@discordjs/ws");
+const identifyProperties =
+  DefaultWebSocketManagerOptions.identifyProperties as unknown as {
+    browser: string;
+    device: string;
+    os: string;
+  };
 const originalProperties = { ...identifyProperties };
 
 afterEach(() => {

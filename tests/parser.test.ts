@@ -1,9 +1,9 @@
 import { describe, expect, test } from "bun:test";
 
 import type { Args } from "../src/commands/Arg.ts";
-import { parse, type Resolvers } from "../src/commands/Parser.ts";
+import { parse, type ArgLookups } from "../src/commands/Parser.ts";
 
-const resolve: Resolvers = {
+const lookup: ArgLookups = {
   user: () => undefined,
   role: () => undefined,
   channel: () => undefined,
@@ -17,7 +17,7 @@ describe("parse", () => {
       reason: { type: "string" },
     };
 
-    const parsed = parse(args, ["12.5", "yes", "a", "long", "reason"], resolve);
+    const parsed = parse(args, ["12.5", "yes", "a", "long", "reason"], lookup);
 
     expect(parsed.issue).toBeUndefined();
     expect(Object.fromEntries(parsed.values)).toEqual({
@@ -31,7 +31,7 @@ describe("parse", () => {
     const parsed = parse(
       { user: { type: "user", required: true } },
       [],
-      resolve,
+      lookup,
     );
 
     expect(parsed.issue).toBe('Missing required argument "user".');
@@ -41,14 +41,14 @@ describe("parse", () => {
     const parsed = parse(
       { enabled: { type: "boolean", required: true } },
       ["maybe"],
-      resolve,
+      lookup,
     );
 
     expect(parsed.issue).toBe('Invalid boolean value for "enabled".');
   });
 
   test("ignores arguments a message command does not use", () => {
-    const parsed = parse(undefined, ["@user"], resolve);
+    const parsed = parse(undefined, ["@user"], lookup);
 
     expect(parsed.issue).toBeUndefined();
     expect(parsed.values.size).toBe(0);
@@ -62,7 +62,7 @@ describe("parse", () => {
         enabled: { type: "boolean", default: true },
       },
       [],
-      resolve,
+      lookup,
     );
 
     expect(Object.fromEntries(parsed.values)).toEqual({
@@ -80,7 +80,10 @@ describe("parse", () => {
         permission: { type: "string", required: true },
       },
       ["Senior", "Moderators", "Ban", "Members"],
-      { ...resolve, role: value => value === "Senior Moderators" ? role : undefined },
+      {
+        ...lookup,
+        role: (value) => (value === "Senior Moderators" ? role : undefined),
+      },
     );
 
     expect(parsed.issue).toBeUndefined();

@@ -8,6 +8,7 @@ export interface Plugin {
 }
 
 export function plugin(value: Plugin): Plugin {
-  if (!value?.name?.trim() || typeof value.setup !== "function") throw new TypeError("A plugin needs a name and setup function.");
+  if (!value?.name?.trim() || typeof value.setup !== "function")
+    throw new TypeError("A plugin needs a name and setup function.");
   return value;
 }

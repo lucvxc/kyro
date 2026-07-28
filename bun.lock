@@ -6,6 +6,7 @@
       "name": "kyro",
       "dependencies": {
         "@discordjs/ws": "^1.2.3",
+        "axios": "^1.18.1",
         "chalk": "^5.6.2",
         "dotenv": "^17.4.2",
         "drizzle-orm": "^0.45.2",
@@ -16,9 +17,9 @@
       },
       "devDependencies": {
         "@types/bun": "latest",
-        "axios": "^1.18.1",
         "discord.js": "^14.26.5",
         "drizzle-kit": "^0.31.10",
+        "prettier": "^3.9.6",
       },
       "peerDependencies": {
         "discord.js": "^14.26.5",
@@ -256,6 +257,8 @@
     "ms": ["ms@2.1.3", "", {}, "sha512-6FlzubTLZG3J2a/NVCAleEhjzq5oxgHyaCU9yYXvcLsvoVaHJq/s5xXI6/XXP6tz7R9xAOtHnSO/tXtF3WRTlA=="],
 
     "postgres": ["postgres@3.4.9", "", {}, "sha512-GD3qdB0x1z9xgFI6cdRD6xu2Sp2WCOEoe3mtnyB5Ee0XrrL5Pe+e4CCnJrRMnL1zYtRDZmQQVbvOttLnKDLnaw=="],
+
+    "prettier": ["prettier@3.9.6", "", { "bin": { "prettier": "bin/prettier.cjs" } }, "sha512-OpN0zzVdiaiAhxpuuj5efpIS4sY9j7bY6uR5mnj5yPzGkdkjNKSJeUThPb60Jw29QuAZgA4o+/iB49kFiaBX6g=="],
 
     "proxy-from-env": ["proxy-from-env@2.1.0", "", {}, "sha512-cJ+oHTW1VAEa8cJslgmUZrc+sjRKgAKl3Zyse6+PV38hZe/V6Z14TbCuXcan9F9ghlz4QrFr2c92TNF82UkYHA=="],
 

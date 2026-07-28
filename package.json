@@ -22,19 +22,26 @@
     "bot": "bun run bot/bot.ts",
     "test": "bun test",
     "check": "bunx tsc --noEmit",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "build": "bun build index.ts --outdir dist --target bun --packages external",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
-    "db:nuke": "bun run scripts/nuke.ts --confirm",
     "db:push": "drizzle-kit push",
-    "prepublishOnly": "bun run check && bun test"
+    "prepublishOnly": "bun run format:check && bun run check && bun test && bun run build"
   },
-  "files": ["dist", "src", "index.ts", "README.md", "LICENSE"],
+  "files": [
+    "dist",
+    "src",
+    "index.ts",
+    "README.md",
+    "LICENSE"
+  ],
   "devDependencies": {
     "@types/bun": "latest",
-    "axios": "^1.18.1",
     "discord.js": "^14.26.5",
-    "drizzle-kit": "^0.31.10"
+    "drizzle-kit": "^0.31.10",
+    "prettier": "^3.9.6"
   },
   "peerDependencies": {
     "discord.js": "^14.26.5",
@@ -42,6 +49,7 @@
   },
   "dependencies": {
     "@discordjs/ws": "^1.2.3",
+    "axios": "^1.18.1",
     "chalk": "^5.6.2",
     "dotenv": "^17.4.2",
     "drizzle-orm": "^0.45.2",

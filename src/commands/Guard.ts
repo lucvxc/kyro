@@ -16,7 +16,10 @@ export class Guard {
     this.#permissions = permissions;
   }
 
-  public async check(command: Entry, ctx: Context): Promise<string | null | undefined> {
+  public async check(
+    command: Entry,
+    ctx: Context,
+  ): Promise<string | null | undefined> {
     if (command.context === "guild" && !ctx.guild) {
       return "This command can only be used in a server.";
     }
@@ -30,8 +33,10 @@ export class Guard {
         ctx.interaction?.memberPermissions ?? ctx.message?.member?.permissions;
       const missing = permissions?.missing(command.permissions) ?? [];
 
-      if (missing.length > 0 && !await this.#permissions?.(ctx, missing)) {
-        const names = missing.map((name) => name.replace(/([a-z])([A-Z])/g, "$1 $2"));
+      if (missing.length > 0 && !(await this.#permissions?.(ctx, missing))) {
+        const names = missing.map((name) =>
+          name.replace(/([a-z])([A-Z])/g, "$1 $2"),
+        );
         return `Missing permissions: ${names.join(", ")}.`;
       }
     }

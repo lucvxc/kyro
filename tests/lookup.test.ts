@@ -30,6 +30,7 @@ function mockGuild(values: [string, string][]): Guild {
   const id = "100000000000000000";
   const cache = new Collection<string, Role>();
   cache.set(id, { id, name: "@everyone" } as Role);
-  for (const [roleID, name] of values) cache.set(roleID, { id: roleID, name } as Role);
+  for (const [roleID, name] of values)
+    cache.set(roleID, { id: roleID, name } as Role);
   return { id, roles: { cache } } as Guild;
 }

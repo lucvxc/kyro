@@ -34,25 +34,34 @@ export class Container {
   }
 
   public text(content: string): this {
-    this.#builder.addTextDisplayComponents(new TextDisplayBuilder().setContent(content));
+    this.#builder.addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(content),
+    );
     return this;
   }
 
   public separator(divider = true, spacing: Spacing = "small"): this {
-    const value = spacing === "large" ? SeparatorSpacingSize.Large : SeparatorSpacingSize.Small;
+    const value =
+      spacing === "large"
+        ? SeparatorSpacingSize.Large
+        : SeparatorSpacingSize.Small;
     this.#builder.addSeparatorComponents(
       new SeparatorBuilder().setDivider(divider).setSpacing(value),
     );
     return this;
   }
 
-  public section(content: string, accessory?: ButtonBuilder | ThumbnailBuilder): this {
+  public section(
+    content: string,
+    accessory?: ButtonBuilder | ThumbnailBuilder,
+  ): this {
     if (!accessory) return this.text(content);
 
     const section = new SectionBuilder().addTextDisplayComponents(
       new TextDisplayBuilder().setContent(content),
     );
-    if (accessory instanceof ButtonBuilder) section.setButtonAccessory(accessory);
+    if (accessory instanceof ButtonBuilder)
+      section.setButtonAccessory(accessory);
     else section.setThumbnailAccessory(accessory);
     this.#builder.addSectionComponents(section);
     return this;
@@ -75,13 +84,16 @@ export class Container {
 
   public file(path: string, name = basename(path), spoiler = false): this {
     this.files.push({ attachment: path, name });
-    this.#builder
-      .addFileComponents(new FileBuilder().setURL(`attachment://${name}`).setSpoiler(spoiler));
+    this.#builder.addFileComponents(
+      new FileBuilder().setURL(`attachment://${name}`).setSpoiler(spoiler),
+    );
     return this;
   }
 
   public row(...components: (ButtonBuilder | StringSelectMenuBuilder)[]): this {
-    const row = new ActionRowBuilder<ButtonBuilder | StringSelectMenuBuilder>().addComponents(components);
+    const row = new ActionRowBuilder<
+      ButtonBuilder | StringSelectMenuBuilder
+    >().addComponents(components);
     this.#builder.addActionRowComponents(row);
     return this;
   }

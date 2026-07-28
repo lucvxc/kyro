@@ -1,27 +1,32 @@
 import { randomUUID } from "node:crypto";
 import type { Client } from "discord.js";
 import { Hono } from "hono";
-import { session } from "../../services/lastfm/client.ts";
-import { link } from "../../services/lastfm/users.ts";
+import { session } from "../../features/lastfm/client.ts";
+import { link } from "../../features/lastfm/users.ts";
 
 const pending = new Map<string, { user: string; expires: number }>();
 
 export function loginUrl(user: string): string {
   const key = process.env.LASTFM;
-  const base = process.env.API_URL;
-  if (!key || !base)
+  const callback = callbackUrl();
+  if (!key || !callback)
     throw new Error("Last.fm authentication is not configured.");
 
   const state = randomUUID().replaceAll("-", "");
   pending.set(state, { user, expires: Date.now() + 10 * 60_000 });
 
-  const callback = new URL("/lastfm/callback", base);
-  callback.searchParams.set("state", state);
+  const target = new URL(callback);
+  target.searchParams.set("state", state);
 
   const url = new URL("https://www.last.fm/api/auth/");
   url.searchParams.set("api_key", key);
-  url.searchParams.set("cb", callback.toString());
+  url.searchParams.set("cb", target.toString());
   return url.toString();
+}
+
+function callbackUrl(): string | undefined {
+  const base = process.env.BASEURL;
+  return base ? new URL("/lastfm/callback", base).toString() : undefined;
 }
 
 export function lastfmApi(client: Client) {
@@ -49,12 +54,16 @@ export function lastfmApi(client: Client) {
           user.send(`Your Last.fm account **${auth.name}** is now linked.`),
         )
         .catch(() => undefined);
+      const redirect = resultUrl("success", auth.name);
+      if (redirect) return ctx.redirect(redirect);
       return ctx.html(
         page(
           `Last.fm account ${escape(auth.name)} linked. You can close this page.`,
         ),
       );
     } catch {
+      const redirect = resultUrl("failed");
+      if (redirect) return ctx.redirect(redirect);
       return ctx.html(
         page("Last.fm could not link this account. Try again."),
         500,
@@ -63,6 +72,14 @@ export function lastfmApi(client: Client) {
   });
 
   return app;
+}
+
+function resultUrl(result: "success" | "failed", username?: string) {
+  const base = process.env.CALLBACK;
+  if (!base) return undefined;
+  const url = new URL(`/fm/link/${result}`, base);
+  if (username) url.searchParams.set("username", username);
+  return url.toString();
 }
 
 function page(msg: string): string {

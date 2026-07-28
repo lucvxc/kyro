@@ -40,7 +40,9 @@ export class Embed {
     this.#builder = new EmbedBuilder(data);
   }
 
-  public get empty(): boolean { return Object.keys(this.#builder.toJSON()).length === 0; }
+  public get empty(): boolean {
+    return Object.keys(this.#builder.toJSON()).length === 0;
+  }
 
   public set(options: EmbedOptions): this {
     if (options.title) this.title(options.title);
@@ -52,7 +54,8 @@ export class Embed {
     if (options.thumbnail) this.thumb(options.thumbnail);
     if (options.image) this.image(options.image);
     if (options.fields?.length) this.fields(...options.fields);
-    if (options.timestamp) this.time(options.timestamp === true ? Date.now() : options.timestamp);
+    if (options.timestamp)
+      this.time(options.timestamp === true ? Date.now() : options.timestamp);
     return this;
   }
 

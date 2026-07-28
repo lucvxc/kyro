@@ -1,12 +1,19 @@
 import pg from "postgres";
-import { drizzle as makeDB, type PostgresJsDatabase } from "drizzle-orm/postgres-js";
+import {
+  drizzle as makeDB,
+  type PostgresJsDatabase,
+} from "drizzle-orm/postgres-js";
 
-export interface DrizzleOptions<TSchema extends Record<string, unknown> = Record<string, never>> {
+export interface DrizzleOptions<
+  TSchema extends Record<string, unknown> = Record<string, never>,
+> {
   schema?: TSchema;
   postgres?: Parameters<typeof pg>[1];
 }
 
-export class DrizzleDB<TSchema extends Record<string, unknown> = Record<string, never>> {
+export class DrizzleDB<
+  TSchema extends Record<string, unknown> = Record<string, never>,
+> {
   public readonly db: PostgresJsDatabase<TSchema>;
   readonly #sql: ReturnType<typeof pg>;
 
@@ -16,12 +23,13 @@ export class DrizzleDB<TSchema extends Record<string, unknown> = Record<string, 
     this.db = makeDB({ client: this.#sql, schema: options?.schema });
   }
 
-  public async close(): Promise<void> { await this.#sql.end(); }
+  public async close(): Promise<void> {
+    await this.#sql.end();
+  }
 }
 
-export function drizzle<TSchema extends Record<string, unknown> = Record<string, never>>(
-  url: string,
-  options?: DrizzleOptions<TSchema>,
-): DrizzleDB<TSchema> {
+export function drizzle<
+  TSchema extends Record<string, unknown> = Record<string, never>,
+>(url: string, options?: DrizzleOptions<TSchema>): DrizzleDB<TSchema> {
   return new DrizzleDB(url, options);
 }

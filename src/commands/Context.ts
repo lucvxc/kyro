@@ -2,7 +2,6 @@ import type { ModalBuilder } from "discord.js";
 import type {
   ChatInputCommandInteraction,
   Client,
-  Guild,
   GuildBasedChannel,
   Message,
   MessageComponentInteraction,
@@ -59,8 +58,10 @@ export class Context {
     if (source === "message") {
       const message = input as Message;
       const parsed = parse(entry.args, raw, {
-        user: (id) => message.mentions.users.get(id) ?? message.client.users.cache.get(id),
-        role: value => message.guild ? findRole(message.guild, value) : undefined,
+        user: (id) =>
+          message.mentions.users.get(id) ?? message.client.users.cache.get(id),
+        role: (value) =>
+          message.guild ? findRole(message.guild, value) : undefined,
         channel: (id) => message.guild?.channels.cache.get(id),
       });
 
@@ -77,7 +78,9 @@ export class Context {
       ? (this.input as ChatInputCommandInteraction).user
       : (this.input as Message).author;
   }
-  public get command(): Entry { return this.#entry; }
+  public get command(): Entry {
+    return this.#entry;
+  }
 
   public get guild(): GuildWithStats | null {
     return this.#guild;
@@ -93,72 +96,93 @@ export class Context {
     return this.source === "message" ? (this.input as Message) : null;
   }
   public get mod(): Moderation {
-    return this.#mod ??= new Moderation(this.client, this.guild, this.author);
+    return (this.#mod ??= new Moderation(this.guild, this.author));
   }
   public get server(): Server {
-    if (!this.guild) throw new Error("This action can only be used in a server.");
-    return this.#server ??= new Server(this.guild);
+    if (!this.guild)
+      throw new Error("This action can only be used in a server.");
+    return (this.#server ??= new Server(this.guild));
   }
-  public get stats(): Stats { return this.#stats ??= new Stats(this.client); }
+  public get stats(): Stats {
+    return (this.#stats ??= new Stats(this.client));
+  }
   public get music(): MusicContext {
     const music = musicFor(this.client);
-    if (!music) throw new UserError("The NodeLink music plugin is not enabled.");
+    if (!music)
+      throw new UserError("The NodeLink music plugin is not enabled.");
     return music.context(this);
   }
   public get thread(): ThreadChannel {
     const channel = this.guild?.channels.cache.get(this.input.channelId);
-    if (!channel?.isThread()) throw new UserError("This command can only be used inside a thread.");
+    if (!channel?.isThread())
+      throw new UserError("This command can only be used inside a thread.");
     return channel;
   }
 
   public string(name: string): string | null {
     this.#check(name, "string");
-    const fallback = (this.#entry.args?.[name]?.default as string | undefined) ?? null;
+    const fallback =
+      (this.#entry.args?.[name]?.default as string | undefined) ?? null;
     return this.source === "slash"
-      ? (this.input as ChatInputCommandInteraction).options.getString(name) ?? fallback
-      : (this.#values.get(name) as string | undefined) ?? fallback;
+      ? ((this.input as ChatInputCommandInteraction).options.getString(name) ??
+          fallback)
+      : ((this.#values.get(name) as string | undefined) ?? fallback);
   }
 
   public number(name: string): number | null {
     this.#check(name, "number");
-    const fallback = (this.#entry.args?.[name]?.default as number | undefined) ?? null;
+    const fallback =
+      (this.#entry.args?.[name]?.default as number | undefined) ?? null;
     return this.source === "slash"
-      ? (this.input as ChatInputCommandInteraction).options.getNumber(name) ?? fallback
-      : (this.#values.get(name) as number | undefined) ?? fallback;
+      ? ((this.input as ChatInputCommandInteraction).options.getNumber(name) ??
+          fallback)
+      : ((this.#values.get(name) as number | undefined) ?? fallback);
   }
 
   public boolean(name: string): boolean | null {
     this.#check(name, "boolean");
-    const fallback = (this.#entry.args?.[name]?.default as boolean | undefined) ?? null;
+    const fallback =
+      (this.#entry.args?.[name]?.default as boolean | undefined) ?? null;
     return this.source === "slash"
-      ? (this.input as ChatInputCommandInteraction).options.getBoolean(name) ?? fallback
-      : (this.#values.get(name) as boolean | undefined) ?? fallback;
+      ? ((this.input as ChatInputCommandInteraction).options.getBoolean(name) ??
+          fallback)
+      : ((this.#values.get(name) as boolean | undefined) ?? fallback);
   }
 
   public user(name: string): User | null {
     this.#check(name, "user");
     return this.source === "slash"
       ? (this.input as ChatInputCommandInteraction).options.getUser(name)
-      : (this.#values.get(name) as User | undefined) ?? null;
+      : ((this.#values.get(name) as User | undefined) ?? null);
   }
 
   public role(name: string): Role | null {
     this.#check(name, "role");
-    if (this.source === "message") return (this.#values.get(name) as Role | undefined) ?? null;
-    const selected = (this.input as ChatInputCommandInteraction).options.getRole(name);
-    return selected ? this.guild?.roles.cache.get(selected.id) ?? null : null;
+    if (this.source === "message")
+      return (this.#values.get(name) as Role | undefined) ?? null;
+    const selected = (
+      this.input as ChatInputCommandInteraction
+    ).options.getRole(name);
+    return selected ? (this.guild?.roles.cache.get(selected.id) ?? null) : null;
   }
 
   public channel(name: string): GuildBasedChannel | null {
     this.#check(name, "channel");
-    if (this.source === "message") return (this.#values.get(name) as GuildBasedChannel | undefined) ?? null;
-    const selected = (this.input as ChatInputCommandInteraction).options.getChannel(name);
-    return selected ? this.guild?.channels.cache.get(selected.id) ?? null : null;
+    if (this.source === "message")
+      return (this.#values.get(name) as GuildBasedChannel | undefined) ?? null;
+    const selected = (
+      this.input as ChatInputCommandInteraction
+    ).options.getChannel(name);
+    return selected
+      ? (this.guild?.channels.cache.get(selected.id) ?? null)
+      : null;
   }
 
   public channelStats(name: string): ChannelStats {
     const selected = this.channel(name);
-    const channel = this.guild?.channels.cache.get(selected?.id ?? this.input.channelId);
+    const channel = this.guild?.channels.cache.get(
+      selected?.id ?? this.input.channelId,
+    );
     if (!channel) throw new UserError("I could not find that channel.");
     return new ChannelStats(channel);
   }
@@ -167,35 +191,54 @@ export class Context {
     const input = this.string(name)!;
     const id = input.match(/\d{17,20}/)?.[0];
     const key = input.replace(/^:|:$/g, "").toLowerCase();
-    let emoji = this.guild?.emojis.cache.get(id ?? "") ?? this.guild?.emojis.cache.find(value => value.name?.toLowerCase() === key);
+    let emoji =
+      this.guild?.emojis.cache.get(id ?? "") ??
+      this.guild?.emojis.cache.find(
+        (value) => value.name?.toLowerCase() === key,
+      );
     if (!emoji && this.guild) {
       await this.guild.emojis.fetch();
-      emoji = this.guild.emojis.cache.get(id ?? "") ?? this.guild.emojis.cache.find(value => value.name?.toLowerCase() === key);
+      emoji =
+        this.guild.emojis.cache.get(id ?? "") ??
+        this.guild.emojis.cache.find(
+          (value) => value.name?.toLowerCase() === key,
+        );
     }
-    if (!emoji) throw new UserError("I could not find that emoji in this server.");
+    if (!emoji)
+      throw new UserError("I could not find that emoji in this server.");
     return new EmojiStats(emoji);
   }
 
   public roleStats(name: string): RoleStats {
     const selected = this.role(name);
-    const role = this.guild?.roles.cache.get(selected?.id ?? "") ?? this.guild?.roles.everyone;
+    const role =
+      this.guild?.roles.cache.get(selected?.id ?? "") ??
+      this.guild?.roles.everyone;
     if (!role) throw new UserError("I could not find that role.");
     return new RoleStats(role);
   }
 
   public async userStats(name: string, fresh = false): Promise<UserStats> {
     const selected = this.user(name) ?? this.author;
-    const user = fresh ? await this.client.users.fetch(selected.id, { force: true }) : selected;
+    const user = fresh
+      ? await this.client.users.fetch(selected.id, { force: true })
+      : selected;
     const member = this.guild
-      ? this.guild.members.cache.get(user.id) ?? await this.guild.members.fetch(user.id).catch(() => null)
+      ? (this.guild.members.cache.get(user.id) ??
+        (await this.guild.members.fetch(user.id).catch(() => null)))
       : null;
     return new UserStats(user, member);
   }
 
   public async ownerStats(): Promise<UserStats> {
-    if (!this.guild) throw new UserError("This command can only be used in a server.");
-    const user = await this.client.users.fetch(this.guild.ownerId, { force: true });
-    const member = this.guild.members.cache.get(user.id) ?? await this.guild.members.fetch(user.id).catch(() => null);
+    if (!this.guild)
+      throw new UserError("This command can only be used in a server.");
+    const user = await this.client.users.fetch(this.guild.ownerId, {
+      force: true,
+    });
+    const member =
+      this.guild.members.cache.get(user.id) ??
+      (await this.guild.members.fetch(user.id).catch(() => null));
     return new UserStats(user, member);
   }
 
@@ -219,30 +262,40 @@ export class Context {
   }
 
   public async send(channel: GuildBasedChannel, content: Reply): Promise<void> {
-    if (!channel.isSendable()) throw new UserError("Messages cannot be sent in that channel.");
+    if (!channel.isSendable())
+      throw new UserError("Messages cannot be sent in that channel.");
     await channel.send(messageOptions(content) as never);
   }
 
   public async showModal(modal: ModalBuilder): Promise<void> {
-    if (!this.interaction) throw new Error("Modals can only be opened from slash commands.");
+    if (!this.interaction)
+      throw new Error("Modals can only be opened from slash commands.");
     await this.interaction.showModal(modal);
   }
 
   public async collect(options: object = {}) {
-    const message = this.#response ?? await this.inputInteraction().fetchReply();
+    const message =
+      this.#response ?? (await this.inputInteraction().fetchReply());
     return message.createMessageComponentCollector(options as never);
   }
 
-  public async update(interaction: MessageComponentInteraction, content: Reply): Promise<void> {
+  public async update(
+    interaction: MessageComponentInteraction,
+    content: Reply,
+  ): Promise<void> {
     await interaction.update(messageOptions(content) as never);
   }
 
-  public async notice(interaction: MessageComponentInteraction, content: string): Promise<void> {
+  public async notice(
+    interaction: MessageComponentInteraction,
+    content: string,
+  ): Promise<void> {
     await interaction.reply(messageOptions(content, true));
   }
 
   private inputInteraction(): ChatInputCommandInteraction {
-    if (!this.interaction) throw new Error("Collectors require an interaction or message context.");
+    if (!this.interaction)
+      throw new Error("Collectors require an interaction or message context.");
     return this.interaction;
   }
 

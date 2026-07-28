@@ -13,16 +13,23 @@ export class ComponentContext {
     this.client = interaction.client;
   }
 
-  public get user() { return this.interaction.user; }
-  public get guild() { return this.interaction.guild; }
+  public get user() {
+    return this.interaction.user;
+  }
+  public get guild() {
+    return this.interaction.guild;
+  }
   public get server(): Server {
-    if (!this.guild) throw new Error("This action can only be used in a server.");
-    return this.#server ??= new Server(this.guild);
+    if (!this.guild)
+      throw new Error("This action can only be used in a server.");
+    return (this.#server ??= new Server(this.guild));
   }
   public get values(): readonly string[] {
     return "values" in this.interaction ? this.interaction.values : [];
   }
-  public get params(): readonly string[] { return this.id.split(":").slice(1); }
+  public get params(): readonly string[] {
+    return this.id.split(":").slice(1);
+  }
   public field(name: string): string | null {
     if (!this.interaction.isModalSubmit()) return null;
     const interaction = this.interaction;
@@ -55,23 +62,39 @@ export class ComponentContext {
     return safe(() => interaction.fields.getCheckboxGroup(name), []);
   }
   public showModal(modal: import("discord.js").ModalBuilder): Promise<void> {
-    if (!this.interaction.isMessageComponent()) throw new Error("Only buttons and selects can show modals.");
+    if (!this.interaction.isMessageComponent())
+      throw new Error("Only buttons and selects can show modals.");
     return this.interaction.showModal(modal).then(() => undefined);
+  }
+  public channelIds(name: string): readonly string[] {
+    if (!this.interaction.isModalSubmit()) return [];
+    const interaction = this.interaction;
+    const channels = safe(
+      () => interaction.fields.getSelectedChannels(name, false),
+      null,
+    );
+    return channels ? [...channels.keys()] : [];
   }
 
   public reply(content: ComponentReply): Promise<void> {
-    return this.interaction.reply(messageOptions(content) as never).then(() => undefined);
+    return this.interaction
+      .reply(messageOptions(content) as never)
+      .then(() => undefined);
   }
 
   public private(content: ComponentReply): Promise<void> {
-    return this.interaction.reply(messageOptions(content, true) as never).then(() => undefined);
+    return this.interaction
+      .reply(messageOptions(content, true) as never)
+      .then(() => undefined);
   }
 
   public update(content: ComponentReply): Promise<void> {
     if (!this.interaction.isMessageComponent()) {
       throw new Error("Only buttons and selects can update their message.");
     }
-    return this.interaction.update(messageOptions(content) as never).then(() => undefined);
+    return this.interaction
+      .update(messageOptions(content) as never)
+      .then(() => undefined);
   }
 
   public defer(): Promise<void> {
@@ -80,6 +103,9 @@ export class ComponentContext {
 }
 
 function safe<T>(run: () => T, fallback: T): T {
-  try { return run(); } catch { return fallback; }
+  try {
+    return run();
+  } catch {
+    return fallback;
+  }
 }
-

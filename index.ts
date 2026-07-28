@@ -116,7 +116,7 @@ export type {
   Middleware,
   Next,
   PrefixResolver,
-  AliasResolver,
+  AliasLookup,
   Category,
   CacheOptions,
   LimitOptions,

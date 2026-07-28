@@ -68,17 +68,27 @@ export class BotProfile {
     for (const key of Object.keys(body) as (keyof DiscordProfileUpdate)[]) {
       if (body[key] === undefined) delete body[key];
     }
-    if (!Object.keys(body).length) throw new UserError("Change at least one bot profile option.");
+    if (!Object.keys(body).length)
+      throw new UserError("Change at least one bot profile option.");
 
     try {
-      await this.#guild.client.rest.patch(`/guilds/${this.#guild.id}/members/@me`, { body });
+      await this.#guild.client.rest.patch(
+        `/guilds/${this.#guild.id}/members/@me`,
+        { body },
+      );
     } catch (error) {
       throw new UserError(discordMessage(error));
     }
   }
 
   public reset(): Promise<void> {
-    return this.update({ name: null, avatar: null, banner: null, bio: null, style: null });
+    return this.update({
+      name: null,
+      avatar: null,
+      banner: null,
+      bio: null,
+      style: null,
+    });
   }
 }
 
@@ -86,16 +96,25 @@ function present(value?: string | null): string | null | undefined {
   return value === null ? null : value?.trim() || undefined;
 }
 
-async function image(value?: BotProfileImage): Promise<string | null | undefined> {
+async function image(
+  value?: BotProfileImage,
+): Promise<string | null | undefined> {
   if (value === null) return null;
   const url = typeof value === "string" ? value.trim() : value?.url;
   if (!url) return undefined;
   if (url.startsWith("data:image/")) return url;
 
   const response = await fetch(url);
-  if (!response.ok) throw new UserError(`I could not download that image (${response.status}).`);
-  const type = response.headers.get("content-type") ?? (typeof value === "string" ? null : value?.contentType) ?? "image/png";
-  if (!type.startsWith("image/")) throw new UserError("That file is not an image.");
+  if (!response.ok)
+    throw new UserError(
+      `I could not download that image (${response.status}).`,
+    );
+  const type =
+    response.headers.get("content-type") ??
+    (typeof value === "string" ? null : value?.contentType) ??
+    "image/png";
+  if (!type.startsWith("image/"))
+    throw new UserError("That file is not an image.");
 
   return `data:${type};base64,${Buffer.from(await response.arrayBuffer()).toString("base64")}`;
 }
@@ -112,7 +131,8 @@ function style(value?: BotProfileStyle | null): Partial<DiscordProfileUpdate> {
 
   const effect = id(value.effect, botProfileEffects, "effect");
   let colors = profileColors(value.colors);
-  if (effect === botProfileEffects.gradient && colors?.length === 1) colors = [colors[0]!, colors[0]!];
+  if (effect === botProfileEffects.gradient && colors?.length === 1)
+    colors = [colors[0]!, colors[0]!];
 
   return {
     display_name_font_id: id(value.font, botProfileFonts, "font"),
@@ -121,37 +141,55 @@ function style(value?: BotProfileStyle | null): Partial<DiscordProfileUpdate> {
   };
 }
 
-function id<T extends Record<string, number>>(value: string | number | null | undefined, values: T, kind: string): number | null | undefined {
+function id<T extends Record<string, number>>(
+  value: string | number | null | undefined,
+  values: T,
+  kind: string,
+): number | null | undefined {
   if (value === null) return null;
-  if (value === undefined || (typeof value === "string" && !value.trim())) return undefined;
+  if (value === undefined || (typeof value === "string" && !value.trim()))
+    return undefined;
   const key = String(value).trim().toLowerCase();
   const result = values[key] ?? Number(key);
-  if (!Number.isInteger(result)) throw new UserError(`Unknown profile ${kind} "${value}".`);
+  if (!Number.isInteger(result))
+    throw new UserError(`Unknown profile ${kind} "${value}".`);
   return result;
 }
 
-function profileColors(value?: BotProfileColor | readonly BotProfileColor[] | null): number[] | null | undefined {
+function profileColors(
+  value?: BotProfileColor | readonly BotProfileColor[] | null,
+): number[] | null | undefined {
   if (value === null) return null;
   if (value === undefined) return undefined;
-  const input: readonly BotProfileColor[] = typeof value === "string" || typeof value === "number" ? [value] : value;
+  const input: readonly BotProfileColor[] =
+    typeof value === "string" || typeof value === "number" ? [value] : value;
   const values: BotProfileColor[] = [];
   for (const item of input) {
-    if (typeof item === "string") values.push(...item.split(/[,\s]+/).filter(Boolean));
+    if (typeof item === "string")
+      values.push(...item.split(/[,\s]+/).filter(Boolean));
     else values.push(item);
   }
-  return values.map(color => {
-    if (typeof color === "number" && Number.isInteger(color) && color >= 0 && color <= 0xFFFFFF) return color;
+  return values.map((color) => {
+    if (
+      typeof color === "number" &&
+      Number.isInteger(color) &&
+      color >= 0 &&
+      color <= 0xffffff
+    )
+      return color;
     const hex = String(color).trim().replace(/^#/, "");
-    if (!/^[\da-f]{6}$/i.test(hex)) throw new UserError(`Invalid profile color "${color}".`);
+    if (!/^[\da-f]{6}$/i.test(hex))
+      throw new UserError(`Invalid profile color "${color}".`);
     return parseInt(hex, 16);
   });
 }
 
 function discordMessage(error: unknown): string {
-  const raw = typeof error === "object" && error && "rawError" in error
-    ? JSON.stringify(error.rawError)
-    : typeof error === "object" && error && "message" in error
-      ? String(error.message)
-      : "Discord rejected that bot profile update.";
+  const raw =
+    typeof error === "object" && error && "rawError" in error
+      ? JSON.stringify(error.rawError)
+      : typeof error === "object" && error && "message" in error
+        ? String(error.message)
+        : "Discord rejected that bot profile update.";
   return raw.length > 180 ? `${raw.slice(0, 177)}...` : raw;
 }

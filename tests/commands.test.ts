@@ -1,5 +1,8 @@
 import { describe, expect, test } from "bun:test";
-import { ApplicationCommandOptionType, InteractionContextType } from "discord.js";
+import {
+  ApplicationCommandOptionType,
+  InteractionContextType,
+} from "discord.js";
 
 import { compileSlash } from "../src/commands/Compiler.ts";
 import { Registry } from "../src/commands/Registry.ts";
@@ -10,9 +13,16 @@ describe("Registry", () => {
   test("builds a visible catalog without hidden framework commands", () => {
     const registry = new Registry()
       .add({ name: "ping", description: "Ping", category: "utility", run })
-      .add({ name: "kyro reload", description: "Reload", meta: { help: false }, run });
+      .add({
+        name: "kyro reload",
+        description: "Reload",
+        meta: { help: false },
+        run,
+      });
 
-    expect(registry.catalog.visible.commands.map(command => command.name)).toEqual(["ping"]);
+    expect(
+      registry.catalog.visible.commands.map((command) => command.name),
+    ).toEqual(["ping"]);
     expect(registry.catalog.visible.categories[0]?.roots).toEqual(["ping"]);
   });
 
@@ -24,8 +34,12 @@ describe("Registry", () => {
       run,
     });
 
-    expect(registry.get("lastfm account", "slash")?.name).toBe("lastfm account");
-    expect(registry.get("LASTFM ACCOUNT", "message")?.name).toBe("lastfm account");
+    expect(registry.get("lastfm account", "slash")?.name).toBe(
+      "lastfm account",
+    );
+    expect(registry.get("LASTFM ACCOUNT", "message")?.name).toBe(
+      "lastfm account",
+    );
   });
 
   test("returns remaining message arguments and preserves quoted values", () => {
@@ -52,7 +66,9 @@ describe("Registry", () => {
 
     expect(registry.get("lfm account", "message")?.name).toBe("lastfm account");
     expect(registry.get("lfm account", "slash")).toBeUndefined();
-    expect(registry.subs("lfm").map(command => command.name)).toEqual(["lastfm account"]);
+    expect(registry.subs("lfm").map((command) => command.name)).toEqual([
+      "lastfm account",
+    ]);
   });
 
   test("rejects duplicate command paths", () => {

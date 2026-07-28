@@ -3,10 +3,12 @@ import { Kyro, jsk, nodelink } from "../index.ts";
 import { database } from "./db/database.ts";
 import {
   blockDisabledCommands,
-  resolveGuildAlias,
-} from "./services/settings/commands.ts";
-import { getprefix } from "./services/settings/prefix.ts";
-import embeds from "./utils/config/embeds.ts";
+  getGuildAlias,
+} from "./features/settings/commands.ts";
+import { getPrefix } from "./features/settings/prefix.ts";
+import { trackCommand } from "./features/stats/tracker.ts";
+import { trackCases } from "./features/moderation/cases.ts";
+import embeds from "./shared/config/embeds.ts";
 import { startApi } from "./api/index.ts";
 
 const bot = new Kyro({
@@ -39,9 +41,9 @@ const bot = new Kyro({
     ],
   },
   ownerIDs: [process.env.OWNERID!],
-  commands: "./bot/commands",
-  events: "./bot/events",
-  components: "./bot/components",
+  commands: "./bot/app/commands",
+  events: "./bot/app/events",
+  components: "./bot/app/components",
   plugins: [
     jsk,
     nodelink({
@@ -54,9 +56,9 @@ const bot = new Kyro({
     }),
   ],
   cooldown: 3,
-  prefix: getprefix,
-  resolveAlias: resolveGuildAlias,
-  middleware: [blockDisabledCommands],
+  prefix: getPrefix,
+  getAlias: getGuildAlias,
+  middleware: [blockDisabledCommands, trackCommand, trackCases],
   replies: embeds,
   database,
 });

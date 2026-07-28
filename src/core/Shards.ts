@@ -8,9 +8,21 @@ export interface ShardOptions extends Omit<ShardingManagerOptions, "token"> {
 export class Shards {
   public readonly manager: ShardingManager;
   public constructor(options: ShardOptions) {
-    this.manager = new ShardingManager(options.file, { ...options, token: options.token });
+    this.manager = new ShardingManager(options.file, {
+      ...options,
+      token: options.token,
+    });
   }
-  public start(): Promise<unknown> { return this.manager.spawn(); }
-  public async stop(): Promise<void> { for (const shard of this.manager.shards.values()) await shard.kill(); }
-  public send(message: unknown): Promise<unknown[]> { return this.manager.broadcastEval((client, context) => client.emit("kyroMessage", context), { context: message }); }
+  public start(): Promise<unknown> {
+    return this.manager.spawn();
+  }
+  public async stop(): Promise<void> {
+    for (const shard of this.manager.shards.values()) await shard.kill();
+  }
+  public send(message: unknown): Promise<unknown[]> {
+    return this.manager.broadcastEval(
+      (client, context) => client.emit("kyroMessage", context),
+      { context: message },
+    );
+  }
 }

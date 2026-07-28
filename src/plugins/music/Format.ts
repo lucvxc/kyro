@@ -1,7 +1,9 @@
 import type { Track } from "./Types.ts";
 
 export function song(track: Track): string {
-  const title = track.info.uri ? `[${track.info.title}](${track.info.uri})` : track.info.title;
+  const title = track.info.uri
+    ? `[${track.info.title}](${track.info.uri})`
+    : track.info.title;
   return `**${title}** by **${track.info.author}**`;
 }
 

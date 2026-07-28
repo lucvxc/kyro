@@ -10,7 +10,8 @@ import type { Container } from "../ui/Container.ts";
 import type { Embed } from "../ui/Embed.ts";
 import type { Server } from "../guild/Server.ts";
 
-export type ComponentInput = ButtonInteraction | StringSelectMenuInteraction | ModalSubmitInteraction;
+export type ComponentInput =
+  ButtonInteraction | StringSelectMenuInteraction | ModalSubmitInteraction;
 export type ComponentReply = string | Embed | Container;
 export type ComponentId = string | RegExp;
 
@@ -25,6 +26,7 @@ export interface CmpContext {
   readonly params: readonly string[];
   field(name: string): string | null;
   strings(name: string): readonly string[];
+  channelIds(name: string): readonly string[];
   files(name: string): readonly import("discord.js").Attachment[];
   radio(name: string): string | null;
   checkbox(name: string): boolean | null;
@@ -46,12 +48,18 @@ export interface Cmp {
 }
 
 export function cmp(value: Cmp): Cmp {
-  if (!value?.id || (typeof value.id === "string" && !value.id.trim()) || typeof value.run !== "function") {
+  if (
+    !value?.id ||
+    (typeof value.id === "string" && !value.id.trim()) ||
+    typeof value.run !== "function"
+  ) {
     throw new TypeError("A component needs an id and run function.");
   }
   return value;
 }
 
-export function isComponentInteraction(value: Interaction): value is ComponentInput {
+export function isComponentInteraction(
+  value: Interaction,
+): value is ComponentInput {
   return value.isButton() || value.isAnySelectMenu() || value.isModalSubmit();
 }

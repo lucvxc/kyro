@@ -1,6 +1,9 @@
 import type { AutocompleteInteraction, Client, User, Guild } from "discord.js";
 
-export interface Choice { name: string; value: string | number; }
+export interface Choice {
+  name: string;
+  value: string | number;
+}
 export class AutocompleteContext {
   public readonly client: Client;
   public readonly user: User;

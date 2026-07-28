@@ -1,0 +1,33 @@
+import { PermissionFlagsBits } from "discord.js";
+import { cmd, UserError } from "../../../../../index.ts";
+import { configuredMessage } from "../../../../features/settings/communitymessages.ts";
+import embeds from "../../../../shared/config/embeds.ts";
+
+const permission = [PermissionFlagsBits.ManageGuild];
+
+export default cmd({
+  name: `boost test`,
+  description: `Send a test boost message.`,
+  syntax: "boost test",
+  example: "boost test",
+  type: "message",
+  context: "guild",
+  permissions: permission,
+  run: async (ctx) => {
+    const member = await ctx.guild!.members.fetch(ctx.author.id);
+    const result = await configuredMessage(
+      ctx.guild!,
+      "boost",
+      ctx.author,
+      member,
+    );
+    if (!result)
+      throw new UserError(`Boost needs an enabled channel and message first.`);
+    const channel =
+      ctx.guild!.channels.cache.get(result.config.channelId!) ?? null;
+    if (!channel?.isSendable())
+      throw new UserError("The configured channel is unavailable.");
+    await channel.send({ ...result.payload, allowedMentions: { parse: [] } });
+    return ctx.reply(embeds.success(`Sent a test to ${channel}.`));
+  },
+});

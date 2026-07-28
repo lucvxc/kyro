@@ -39,12 +39,22 @@ export class Loader {
     const events: LoadedEvt[] = [];
 
     for (const file of await scan(this.#directory)) {
-      const module = (await import(pathToFileURL(file).href)) as { default?: unknown };
+      const module = (await import(pathToFileURL(file).href)) as {
+        default?: unknown;
+      };
 
-      const loaded = Array.isArray(module.default) ? module.default : [module.default];
-      if (!loaded.length) throw new TypeError(`Event file "${file}" cannot export an empty array.`);
+      const loaded = Array.isArray(module.default)
+        ? module.default
+        : [module.default];
+      if (!loaded.length)
+        throw new TypeError(
+          `Event file "${file}" cannot export an empty array.`,
+        );
       for (const event of loaded) {
-        if (!isEvt(event)) throw new TypeError(`Event file "${file}" must export an event or event array.`);
+        if (!isEvt(event))
+          throw new TypeError(
+            `Event file "${file}" must export an event or event array.`,
+          );
         events.push(event);
       }
     }
@@ -94,7 +104,11 @@ export class Loader {
     this.#listeners.push({ name: event.name, run });
   }
 
-  async #error(event: LoadedEvt, error: unknown, args: unknown[]): Promise<void> {
+  async #error(
+    event: LoadedEvt,
+    error: unknown,
+    args: unknown[],
+  ): Promise<void> {
     if (!event.error) {
       log.error(`Event "${String(event.name)}" failed.`, error);
       return;
@@ -103,7 +117,10 @@ export class Loader {
     try {
       await event.error(error, ...args);
     } catch (handlerError) {
-      log.error(`Error handler for "${String(event.name)}" failed.`, handlerError);
+      log.error(
+        `Error handler for "${String(event.name)}" failed.`,
+        handlerError,
+      );
     }
   }
 }

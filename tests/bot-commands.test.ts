@@ -10,7 +10,7 @@ describe("example bot commands", () => {
     const registry = new Registry();
     await new Loader(
       registry,
-      resolve(import.meta.dir, "..", "bot", "commands"),
+      resolve(import.meta.dir, "..", "bot", "app", "commands"),
     ).load();
 
     expect(registry.catalog.category("info")?.commands.length).toBe(23);
@@ -23,6 +23,15 @@ describe("example bot commands", () => {
       "fakepermissions list",
       "fakepermissions revoke",
     ]);
+    expect(registry.get("sb setup", "message")?.name).toBe("starboard setup");
+    expect(registry.get("rr add", "message")?.name).toBe("reactionrole add");
+    expect(registry.get("amod spam", "message")?.name).toBe("automod spam");
+    expect(registry.get("an enable", "message")?.name).toBe("antinuke enable");
+    expect(registry.get("br add", "message")?.name).toBe("buttonrole add");
+    expect(registry.get("gw start", "message")?.name).toBe("giveaway start");
+    expect(registry.get("cs", "message")?.name).toBe("snipe clear");
+    expect(registry.get("inv lb", "message")?.name).toBe("invites leaderboard");
+    expect(registry.get("tz set", "message")?.name).toBe("timezone set");
     expect(compileSlash(registry.values()).length).toBeLessThanOrEqual(100);
     for (const command of registry.values()) {
       expect(

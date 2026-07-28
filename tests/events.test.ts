@@ -5,7 +5,8 @@ import { Client, Events } from "discord.js";
 import { Loader } from "../src/events/Loader.ts";
 
 const state = globalThis as typeof globalThis & { __kyroEvents?: string[] };
-const flush = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
+const flush = (): Promise<void> =>
+  new Promise((resolve) => setTimeout(resolve, 0));
 
 describe("event Loader", () => {
   test("loads and unloads event files", async () => {

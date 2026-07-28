@@ -6,11 +6,20 @@ describe("Store", () => {
     let loads = 0;
     let saved = "";
     const values = store<string, string>({
-      load: async key => { loads += 1; await Promise.resolve(); return `loaded:${key}`; },
-      save: (_key, value) => { saved = value; },
+      load: async (key) => {
+        loads += 1;
+        await Promise.resolve();
+        return `loaded:${key}`;
+      },
+      save: (_key, value) => {
+        saved = value;
+      },
     });
 
-    const [one, two] = await Promise.all([values.get("guild"), values.get("guild")]);
+    const [one, two] = await Promise.all([
+      values.get("guild"),
+      values.get("guild"),
+    ]);
     expect([one, two]).toEqual(["loaded:guild", "loaded:guild"]);
     expect(loads).toBe(1);
     expect(await values.set("guild", "new")).toBe("new");

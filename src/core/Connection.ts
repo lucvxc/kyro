@@ -63,7 +63,8 @@ export class Connection {
       try {
         await this.#beforeStop?.();
       } finally {
-        if (this.#client.token) await this.#client.destroy().catch(() => undefined);
+        if (this.#client.token)
+          await this.#client.destroy().catch(() => undefined);
         await this.#afterStop?.();
       }
       throw error;

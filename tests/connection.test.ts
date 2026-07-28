@@ -9,21 +9,40 @@ describe("Connection", () => {
     const client = {
       token: "token",
       isReady: () => false,
-      login: async () => { order.push("login"); },
-      destroy: async () => { order.push("destroy"); },
+      login: async () => {
+        order.push("login");
+      },
+      destroy: async () => {
+        order.push("destroy");
+      },
     } as unknown as Client;
     const connection = new Connection({
       client,
       token: "token",
-      beforeStart: () => { order.push("beforeStart"); },
-      afterStart: () => { order.push("afterStart"); },
-      beforeStop: () => { order.push("beforeStop"); },
-      afterStop: () => { order.push("afterStop"); },
+      beforeStart: () => {
+        order.push("beforeStart");
+      },
+      afterStart: () => {
+        order.push("afterStart");
+      },
+      beforeStop: () => {
+        order.push("beforeStop");
+      },
+      afterStop: () => {
+        order.push("afterStop");
+      },
     });
 
     await connection.start();
     await connection.stop();
 
-    expect(order).toEqual(["beforeStart", "login", "afterStart", "beforeStop", "destroy", "afterStop"]);
+    expect(order).toEqual([
+      "beforeStart",
+      "login",
+      "afterStart",
+      "beforeStop",
+      "destroy",
+      "afterStop",
+    ]);
   });
 });
