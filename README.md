@@ -18,13 +18,13 @@ Message commands require the `MessageContent` privileged intent to be enabled in
 From GitHub:
 
 ```bash
-bun add github:june-bot-org/kyro
+bun add github:lucvxc/kyro
 ```
 
 For a private repository, use an authenticated Git remote:
 
 ```bash
-bun add git+ssh://git@github.com/june-bot-org/kyro.git
+bun add git+ssh://git@github.com/lucvxc/kyro.git
 ```
 
 Install Discord.js in the bot project as well:
