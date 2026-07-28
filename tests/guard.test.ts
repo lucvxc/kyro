@@ -12,6 +12,8 @@ const command = (values: Partial<Entry> = {}): Entry => ({
   context: "both",
   aliases: [],
   permissions: [],
+  botPermissions: [],
+  guilds: [],
   category: "general",
   syntax: "test",
   path: ["test"],
@@ -19,9 +21,22 @@ const command = (values: Partial<Entry> = {}): Entry => ({
   ...values,
 });
 
-const context = (guild: boolean, permissions?: PermissionsBitField): Context =>
+const context = (
+  guild: boolean,
+  permissions?: PermissionsBitField,
+  botPermissions?: PermissionsBitField,
+): Context =>
   ({
-    guild: guild ? {} : null,
+    guild: guild
+      ? {
+          members: {
+            me: {
+              permissionsIn: () => botPermissions,
+            },
+          },
+        }
+      : null,
+    input: { channelId: "1" },
     author: { id: "1" },
     interaction: null,
     message: guild ? { member: { permissions } } : null,
@@ -71,6 +86,23 @@ describe("Guard", () => {
     );
 
     expect(result).toBeUndefined();
+  });
+
+  test("reports permissions missing from the bot", async () => {
+    const guard = new Guard();
+    const result = await guard.check(
+      command({
+        context: "guild",
+        botPermissions: [PermissionFlagsBits.EmbedLinks],
+      }),
+      context(
+        true,
+        new PermissionsBitField(PermissionFlagsBits.ManageMessages),
+        new PermissionsBitField(PermissionFlagsBits.SendMessages),
+      ),
+    );
+
+    expect(result).toBe("I need permissions: Embed Links.");
   });
 
   test("applies cooldowns and only warns once", async () => {

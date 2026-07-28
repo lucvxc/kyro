@@ -4,9 +4,15 @@ export type ArgType =
 export interface Arg {
   type: ArgType;
   description?: string;
+  nameLocalizations?: LocalizationMap;
+  descriptionLocalizations?: LocalizationMap;
   required?: boolean;
   default?: string | number | boolean;
-  choices?: readonly { name: string; value: string | number }[];
+  choices?: readonly {
+    name: string;
+    value: string | number;
+    nameLocalizations?: LocalizationMap;
+  }[];
   autocomplete?: boolean;
 }
 
@@ -30,6 +36,8 @@ export function checkArgs(args: Args | undefined): void {
     }
 
     const description = arg.description?.trim();
+    checkNames(arg.nameLocalizations, `Argument "${name}"`);
+    checkDescriptions(arg.descriptionLocalizations, `Argument "${name}"`);
     if (
       arg.description !== undefined &&
       (!description || description.length > 100)
@@ -59,6 +67,10 @@ export function checkArgs(args: Args | undefined): void {
       );
     }
     for (const choice of arg.choices ?? []) {
+      checkChoiceNames(
+        choice.nameLocalizations,
+        `Argument "${name}" choice "${choice.name}"`,
+      );
       if (!choice.name.trim() || choice.name.length > 100)
         throw new TypeError(
           `Argument "${name}" choice names must contain 1-100 characters.`,
@@ -95,3 +107,32 @@ export function checkArgs(args: Args | undefined): void {
     }
   }
 }
+
+function checkNames(values: LocalizationMap | undefined, label: string): void {
+  for (const value of Object.values(values ?? {}))
+    if (value !== null && !/^[\p{Ll}\p{Lm}\p{Lo}\p{N}_-]{1,32}$/u.test(value))
+      throw new TypeError(`${label} localized names are invalid.`);
+}
+
+function checkChoiceNames(
+  values: LocalizationMap | undefined,
+  label: string,
+): void {
+  for (const value of Object.values(values ?? {}))
+    if (value !== null && (!value.trim() || value.length > 100))
+      throw new TypeError(
+        `${label} localized names must contain 1-100 characters.`,
+      );
+}
+
+function checkDescriptions(
+  values: LocalizationMap | undefined,
+  label: string,
+): void {
+  for (const value of Object.values(values ?? {}))
+    if (value !== null && (!value.trim() || value.length > 100))
+      throw new TypeError(
+        `${label} localized descriptions must contain 1-100 characters.`,
+      );
+}
+import type { LocalizationMap } from "discord.js";

@@ -62,7 +62,7 @@ export class Catalog {
   }
 
   public hasSubs(command: string | Entry): boolean {
-    return this.subs(command).length > 0;
+    return this.subs(command).length > 1;
   }
 }
 

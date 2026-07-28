@@ -1,7 +1,7 @@
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { scan } from "../core/Files.ts";
-import type { Cmp } from "./Cmp.ts";
+import { assertCmp, type Cmp } from "./Cmp.ts";
 
 export class Loader {
   readonly #directory: string;
@@ -19,19 +19,14 @@ export class Loader {
         default?: unknown;
       };
       const value = module.default;
-      const id = (value as Cmp | undefined)?.id;
-      const validID = typeof id === "string" || id instanceof RegExp;
-      if (
-        !value ||
-        typeof value !== "object" ||
-        !validID ||
-        typeof (value as Cmp).run !== "function"
-      ) {
+      try {
+        assertCmp(value);
+      } catch {
         throw new TypeError(
           `Component file "${file}" must have a default component export.`,
         );
       }
-      const item = value as Cmp;
+      const item = value;
       if (
         this.#items.some((existing) => String(existing.id) === String(item.id))
       )

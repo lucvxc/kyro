@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import {
   ApplicationCommandOptionType,
   InteractionContextType,
+  Locale,
 } from "discord.js";
 
 import { compileSlash } from "../src/commands/Compiler.ts";
@@ -82,6 +83,27 @@ describe("Registry", () => {
       registry.add({ name: "PING", description: "Another ping", run }),
     ).toThrow('The command name or alias "ping" is already registered.');
   });
+
+  test("keeps every slash root in one deployment scope", () => {
+    const registry = new Registry().add({
+      name: "admin ban",
+      description: "Ban a member",
+      context: "guild",
+      guilds: ["123456789012345"],
+      run,
+    });
+
+    expect(() =>
+      registry.add({
+        name: "admin kick",
+        description: "Kick a member",
+        context: "guild",
+        run,
+      }),
+    ).toThrow(
+      'Slash command root "admin" must use the same guild scope for every subcommand.',
+    );
+  });
 });
 
 describe("compileSlash", () => {
@@ -148,6 +170,50 @@ describe("compileSlash", () => {
       InteractionContextType.BotDM,
       InteractionContextType.PrivateChannel,
     ]);
+  });
+
+  test("compiles localized commands, arguments, and choices", () => {
+    const registry = new Registry().add({
+      name: "search",
+      description: "Search for music",
+      nameLocalizations: { [Locale.SpanishES]: "buscar" },
+      descriptionLocalizations: {
+        [Locale.SpanishES]: "Busca música",
+      },
+      args: {
+        kind: {
+          type: "string",
+          description: "Result type",
+          nameLocalizations: { [Locale.SpanishES]: "tipo" },
+          descriptionLocalizations: {
+            [Locale.SpanishES]: "Tipo de resultado",
+          },
+          choices: [
+            {
+              name: "Track",
+              value: "track",
+              nameLocalizations: { [Locale.SpanishES]: "Canción" },
+            },
+          ],
+        },
+      },
+      run,
+    });
+
+    const [command] = compileSlash(registry.values());
+    expect(command).toMatchObject({
+      name_localizations: { "es-ES": "buscar" },
+      description_localizations: { "es-ES": "Busca música" },
+      options: [
+        {
+          name_localizations: { "es-ES": "tipo" },
+          description_localizations: { "es-ES": "Tipo de resultado" },
+          choices: [
+            { name_localizations: { "es-ES": "Canción" }, value: "track" },
+          ],
+        },
+      ],
+    });
   });
 
   test("rejects a slash command that is also a subcommand parent", () => {

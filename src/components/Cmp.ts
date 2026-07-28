@@ -41,6 +41,7 @@ export interface CmpContext {
 export interface Cmp {
   id: ComponentId;
   permissions?: readonly PermissionResolvable[];
+  botPermissions?: readonly PermissionResolvable[];
   context?: "both" | "guild" | "dms";
   cooldown?: number;
   run(ctx: CmpContext): void | Promise<void>;
@@ -48,14 +49,34 @@ export interface Cmp {
 }
 
 export function cmp(value: Cmp): Cmp {
+  assertCmp(value);
+  return value;
+}
+
+export function assertCmp(value: unknown): asserts value is Cmp {
+  const item = value as Partial<Cmp> | null | undefined;
   if (
-    !value?.id ||
-    (typeof value.id === "string" && !value.id.trim()) ||
-    typeof value.run !== "function"
+    !item?.id ||
+    (typeof item.id === "string" && !item.id.trim()) ||
+    (!(typeof item.id === "string") && !(item.id instanceof RegExp)) ||
+    typeof item.run !== "function"
   ) {
     throw new TypeError("A component needs an id and run function.");
   }
-  return value;
+  if (item.context && !["both", "guild", "dms"].includes(item.context))
+    throw new TypeError("A component has an invalid context.");
+  if (
+    (item.permissions?.length || item.botPermissions?.length) &&
+    item.context !== "guild"
+  )
+    throw new TypeError(
+      'Components with permissions must use context: "guild".',
+    );
+  if (
+    item.cooldown !== undefined &&
+    (!Number.isFinite(item.cooldown) || item.cooldown < 0)
+  )
+    throw new TypeError("Component cooldowns must be zero or positive.");
 }
 
 export function isComponentInteraction(

@@ -43,16 +43,19 @@ export class Registry {
     const context = command.context ?? "both";
     const aliases = (command.aliases ?? []).map(normalize);
     const permissions = command.permissions ?? [];
+    const botPermissions = command.botPermissions ?? [];
+    const guilds = [...new Set(command.guilds ?? [])].sort();
     const category = normalizeCategory(command.category ?? "general");
     const syntax =
       command.syntax?.trim() || makeSyntax(path.join(" "), command.args);
 
-    validate(command, path, type, aliases, context);
+    validate(command, path, type, aliases, context, guilds);
 
     const name = path.join(" ");
     this.#assertAvailable(name);
 
     for (const alias of aliases) this.#assertAvailable(alias);
+    this.#assertScope(path[0]!, type, guilds);
 
     const registered = Object.freeze({
       ...command,
@@ -62,6 +65,8 @@ export class Registry {
       context,
       aliases,
       permissions,
+      botPermissions,
+      guilds,
       category,
       syntax,
     });
@@ -141,6 +146,21 @@ export class Registry {
       );
     }
   }
+
+  #assertScope(root: string, type: CmdType, guilds: readonly string[]): void {
+    if (type === "message") return;
+    const scope = guilds.join(",");
+    const conflict = this.values().find(
+      (command) =>
+        command.type !== "message" &&
+        command.path[0] === root &&
+        command.guilds.join(",") !== scope,
+    );
+    if (conflict)
+      throw new TypeError(
+        `Slash command root "${root}" must use the same guild scope for every subcommand.`,
+      );
+  }
 }
 
 function parsePath(name: string): readonly string[] {
@@ -176,6 +196,7 @@ function validate(
   type: CmdType,
   aliases: readonly string[],
   context: Cmd["context"],
+  guilds: readonly string[],
 ): void {
   if (typeof command.run !== "function") {
     throw new TypeError(`Command "${path.join(" ")}" requires a run function.`);
@@ -227,8 +248,32 @@ function validate(
     throw new TypeError('Command context must be "both", "guild", or "dms".');
   }
 
-  if (command.permissions?.length && context !== "guild") {
+  if (
+    (command.permissions?.length || command.botPermissions?.length) &&
+    context !== "guild"
+  ) {
     throw new TypeError('Commands with permissions must use context: "guild".');
+  }
+
+  for (const guild of guilds) {
+    if (!/^\d{15,22}$/.test(guild))
+      throw new TypeError(`Command guild ID "${guild}" is invalid.`);
+  }
+  if (guilds.length && context !== "guild")
+    throw new TypeError('Guild-scoped commands must use context: "guild".');
+
+  for (const value of Object.values(command.nameLocalizations ?? {})) {
+    if (value !== null && !/^[\p{Ll}\p{Lm}\p{Lo}\p{N}_-]{1,32}$/u.test(value))
+      throw new TypeError(
+        "Localized command names must be valid slash command names.",
+      );
+  }
+
+  for (const value of Object.values(command.descriptionLocalizations ?? {})) {
+    if (value !== null && (!value.trim() || value.length > 100))
+      throw new TypeError(
+        "Localized command descriptions must contain 1-100 characters.",
+      );
   }
 }
 

@@ -19,15 +19,11 @@
   },
   "type": "module",
   "scripts": {
-    "bot": "bun run bot/bot.ts",
     "test": "bun test",
     "check": "bunx tsc --noEmit",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "build": "bun build index.ts --outdir dist --target bun --packages external",
-    "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate",
-    "db:push": "drizzle-kit push",
+    "build": "bun build index.ts --outdir dist --target node --packages external",
     "prepublishOnly": "bun run format:check && bun run check && bun test && bun run build"
   },
   "files": [
@@ -40,7 +36,6 @@
   "devDependencies": {
     "@types/bun": "latest",
     "discord.js": "^14.26.5",
-    "drizzle-kit": "^0.31.10",
     "prettier": "^3.9.6"
   },
   "peerDependencies": {
@@ -49,11 +44,8 @@
   },
   "dependencies": {
     "@discordjs/ws": "^1.2.3",
-    "axios": "^1.18.1",
     "chalk": "^5.6.2",
-    "dotenv": "^17.4.2",
     "drizzle-orm": "^0.45.2",
-    "hono": "^4.12.32",
     "moonlink.js": "^5.2.0",
     "postgres": "^3.4.9",
     "sharp": "^0.35.3"

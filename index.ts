@@ -14,6 +14,8 @@ export {
   Stats,
   Kyro,
   Registry,
+  CommandLoader,
+  compileSlash,
   Catalog,
   button,
   cmd,

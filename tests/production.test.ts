@@ -3,6 +3,7 @@ import { compileSlash } from "../src/commands/Compiler.ts";
 import { Registry } from "../src/commands/Registry.ts";
 import { cmd } from "../src/commands/Cmd.ts";
 import { modal } from "../src/ui/Control.ts";
+import { cmp } from "../src/components/Cmp.ts";
 
 describe("production APIs", () => {
   test("compiles autocomplete options and choices", () => {
@@ -62,5 +63,18 @@ describe("production APIs", () => {
       type: 18,
       component: { type: 3, custom_id: "style" },
     });
+  });
+
+  test("validates component permission and cooldown metadata", () => {
+    expect(() =>
+      cmp({
+        id: "admin",
+        permissions: ["ManageMessages"],
+        run: () => undefined,
+      }),
+    ).toThrow('Components with permissions must use context: "guild".');
+    expect(() =>
+      cmp({ id: "slow", cooldown: -1, run: () => undefined }),
+    ).toThrow("Component cooldowns must be zero or positive.");
   });
 });

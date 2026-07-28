@@ -1,1 +1,0 @@
-ALTER TABLE "guilds" DROP COLUMN "button_roles";

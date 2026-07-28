@@ -41,6 +41,19 @@ export class Guard {
       }
     }
 
+    if (command.botPermissions.length > 0) {
+      const permissions = ctx.guild?.members.me?.permissionsIn(
+        ctx.input.channelId,
+      );
+      const missing = permissions?.missing(command.botPermissions) ?? [];
+      if (missing.length > 0) {
+        const names = missing.map((name) =>
+          name.replace(/([a-z])([A-Z])/g, "$1 $2"),
+        );
+        return `I need permissions: ${names.join(", ")}.`;
+      }
+    }
+
     if (this.#cooldown <= 0) return undefined;
 
     const now = Date.now();

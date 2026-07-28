@@ -33,9 +33,14 @@ export function groups<T, K>(
   by: (value: T) => K,
   format: (key: K, values: T[]) => string,
 ): string {
-  return [...Map.groupBy(values, by)]
-    .map(([key, items]) => format(key, items))
-    .join("\n\n");
+  const grouped = new Map<K, T[]>();
+  for (const value of values) {
+    const key = by(value);
+    const items = grouped.get(key);
+    if (items) items.push(value);
+    else grouped.set(key, [value]);
+  }
+  return [...grouped].map(([key, items]) => format(key, items)).join("\n\n");
 }
 
 export const mention = Object.freeze({

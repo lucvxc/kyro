@@ -5,7 +5,7 @@ import {
   type SlashCommandSubcommandBuilder,
 } from "discord.js";
 
-import type { Args } from "./Arg.ts";
+import type { Arg, Args } from "./Arg.ts";
 import type { Entry } from "./Cmd.ts";
 
 type SlashCommandJSON = ReturnType<SlashCommandBuilder["toJSON"]> & {
@@ -18,7 +18,7 @@ export function compileSlash(commands: readonly Entry[]): SlashCommandJSON[] {
   const slashCommands = commands.filter(
     (command) => command.type !== "message",
   );
-  const roots = Map.groupBy(slashCommands, (command) => command.path[0]!);
+  const roots = groupBy(slashCommands, (command) => command.path[0]!);
 
   return [...roots.entries()].map(([rootName, entries]) => {
     const directCommand = entries.find((command) => command.path.length === 1);
@@ -35,6 +35,13 @@ export function compileSlash(commands: readonly Entry[]): SlashCommandJSON[] {
         .setName(rootName)
         .setDescription(directCommand.description);
 
+      if (directCommand.nameLocalizations)
+        command.setNameLocalizations(directCommand.nameLocalizations);
+      if (directCommand.descriptionLocalizations)
+        command.setDescriptionLocalizations(
+          directCommand.descriptionLocalizations,
+        );
+
       addContexts(command, [directCommand]);
       return addArgs(command, directCommand.args).toJSON() as SlashCommandJSON;
     }
@@ -50,11 +57,17 @@ export function compileSlash(commands: readonly Entry[]): SlashCommandJSON[] {
         subcommand
           .setName(command.path[1]!)
           .setDescription(command.description);
+        if (command.nameLocalizations)
+          subcommand.setNameLocalizations(command.nameLocalizations);
+        if (command.descriptionLocalizations)
+          subcommand.setDescriptionLocalizations(
+            command.descriptionLocalizations,
+          );
         return addArgs(subcommand, command.args);
       });
     }
 
-    const groups = Map.groupBy(
+    const groups = groupBy(
       nestedCommands.filter((entry) => entry.path.length === 3),
       (command) => command.path[1]!,
     );
@@ -70,6 +83,12 @@ export function compileSlash(commands: readonly Entry[]): SlashCommandJSON[] {
             subcommand
               .setName(command.path[2]!)
               .setDescription(command.description);
+            if (command.nameLocalizations)
+              subcommand.setNameLocalizations(command.nameLocalizations);
+            if (command.descriptionLocalizations)
+              subcommand.setDescriptionLocalizations(
+                command.descriptionLocalizations,
+              );
             return addArgs(subcommand, command.args);
           });
         }
@@ -83,6 +102,17 @@ export function compileSlash(commands: readonly Entry[]): SlashCommandJSON[] {
   });
 }
 
+function groupBy<T, K>(values: Iterable<T>, key: (value: T) => K): Map<K, T[]> {
+  const groups = new Map<K, T[]>();
+  for (const value of values) {
+    const name = key(value);
+    const items = groups.get(name);
+    if (items) items.push(value);
+    else groups.set(name, [value]);
+  }
+  return groups;
+}
+
 type Builder = SlashCommandBuilder | SlashCommandSubcommandBuilder;
 
 function addArgs<T extends Builder>(builder: T, args: Args | undefined): T {
@@ -93,14 +123,24 @@ function addArgs<T extends Builder>(builder: T, args: Args | undefined): T {
         setName(name: string): O;
         setDescription(text: string): O;
         setRequired(value: boolean): O;
+        setNameLocalizations(values: NonNullable<Arg["nameLocalizations"]>): O;
+        setDescriptionLocalizations(
+          values: NonNullable<Arg["descriptionLocalizations"]>,
+        ): O;
       },
     >(
       option: O,
-    ): O =>
-      option
+    ): O => {
+      const value = option
         .setName(name)
         .setDescription(description)
         .setRequired(Boolean(arg.required));
+      if (arg.nameLocalizations)
+        value.setNameLocalizations(arg.nameLocalizations);
+      if (arg.descriptionLocalizations)
+        value.setDescriptionLocalizations(arg.descriptionLocalizations);
+      return value;
+    };
 
     switch (arg.type) {
       case "string":
@@ -109,7 +149,11 @@ function addArgs<T extends Builder>(builder: T, args: Args | undefined): T {
           if (arg.autocomplete) option.setAutocomplete(true);
           if (arg.choices)
             option.addChoices(
-              ...(arg.choices as { name: string; value: string }[]),
+              ...arg.choices.map((choice) => ({
+                name: choice.name,
+                value: String(choice.value),
+                name_localizations: choice.nameLocalizations,
+              })),
             );
           return option;
         });
@@ -120,7 +164,11 @@ function addArgs<T extends Builder>(builder: T, args: Args | undefined): T {
           if (arg.autocomplete) option.setAutocomplete(true);
           if (arg.choices)
             option.addChoices(
-              ...(arg.choices as { name: string; value: number }[]),
+              ...arg.choices.map((choice) => ({
+                name: choice.name,
+                value: Number(choice.value),
+                name_localizations: choice.nameLocalizations,
+              })),
             );
           return option;
         });

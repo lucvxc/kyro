@@ -149,7 +149,7 @@ export class Router {
     }
     if (!match) {
       const commands = this.#registry.subs(body);
-      if (!commands.length) return;
+      if (commands.length < 2) return;
       const reply = this.#replies.subcommands
         ? await this.#replies.subcommands(body, commands, prefix, message)
         : defaultSubs(commands, prefix);

@@ -7,26 +7,53 @@ export interface RegistrarOptions {
   token: string;
   appID: string;
   guildID?: string;
+  guilds?: readonly string[];
+  rest?: Pick<REST, "put">;
 }
 
 export class Registrar {
-  readonly #rest: REST;
+  readonly #rest: Pick<REST, "put">;
   readonly #appID: string;
   readonly #guildID: string | undefined;
+  readonly #guilds: readonly string[];
 
   public constructor(options: RegistrarOptions) {
-    this.#rest = new REST().setToken(options.token);
+    this.#rest = options.rest ?? new REST().setToken(options.token);
     this.#appID = options.appID;
     this.#guildID = options.guildID;
+    this.#guilds = options.guilds ?? [];
   }
 
   public async sync(registry: Registry): Promise<void> {
-    const body = compileSlash(registry.values());
-    if (body.length === 0) return;
+    const commands = registry
+      .values()
+      .filter((command) => command.type !== "message");
 
-    const route = this.#guildID
-      ? Routes.applicationGuildCommands(this.#appID, this.#guildID)
-      : Routes.applicationCommands(this.#appID);
-    await this.#rest.put(route, { body });
+    if (this.#guildID) {
+      await this.#rest.put(
+        Routes.applicationGuildCommands(this.#appID, this.#guildID),
+        { body: compileSlash(commands) },
+      );
+      return;
+    }
+
+    const guilds = new Set([
+      ...this.#guilds,
+      ...commands.flatMap((command) => command.guilds),
+    ]);
+    await Promise.all([
+      this.#rest.put(Routes.applicationCommands(this.#appID), {
+        body: compileSlash(
+          commands.filter((command) => !command.guilds.length),
+        ),
+      }),
+      ...[...guilds].map((guild) =>
+        this.#rest.put(Routes.applicationGuildCommands(this.#appID, guild), {
+          body: compileSlash(
+            commands.filter((command) => command.guilds.includes(guild)),
+          ),
+        }),
+      ),
+    ]);
   }
 }

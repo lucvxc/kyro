@@ -57,6 +57,7 @@ export interface KyroConfig {
   prefix?: string | PrefixResolver;
   getAlias?: AliasLookup;
   guildID?: string;
+  guilds?: readonly string[];
   sync?: "global" | "guild" | "none";
   help?: boolean;
   plugins?: (string | Plugin)[];
@@ -77,6 +78,7 @@ export interface Options extends Partial<ClientConfig>, KyroConfig {
   replies?: CommandReplies;
   permissions?: PermissionResolver;
   database?: DrizzleDB<any>;
+  onStop?: () => void | Promise<void>;
 }
 
 export class Kyro {
@@ -111,6 +113,9 @@ export class Kyro {
       throw new TypeError("Kyro requires a valid Discord application ID.");
     if (config.guildID !== undefined && !/^\d{15,22}$/.test(config.guildID))
       throw new TypeError("Kyro requires a valid Discord guild ID.");
+    for (const guild of config.guilds ?? [])
+      if (!/^\d{15,22}$/.test(guild))
+        throw new TypeError(`Kyro guild ID "${guild}" is invalid.`);
     if (config.sync === "guild" && !config.guildID)
       throw new TypeError('Kyro sync: "guild" requires guildID.');
 
@@ -176,6 +181,7 @@ export class Kyro {
       token,
       appID,
       guildID: config.sync === "guild" ? config.guildID : undefined,
+      guilds: config.guilds,
     });
     const cmdLoader = config.commands
       ? new CmdLoader(this.commands, config.commands)
@@ -217,11 +223,13 @@ export class Kyro {
       },
       afterStart: async () => {
         if (config.sync !== "none") await registrar.sync(this.commands);
+        const name = this.client.user?.username ?? "Bot";
         log.info(
-          `Kyro is online (${config.sync === "guild" ? "guild" : config.sync === "none" ? "sync disabled" : "global"} commands).`,
+          `${name} is online (${config.sync === "guild" ? "guild" : config.sync === "none" ? "sync disabled" : "global"} commands).`,
         );
       },
       beforeStop: async () => {
+        await options.onStop?.();
         router.detach();
         cmpRouter?.detach();
         evtLoader?.unload();

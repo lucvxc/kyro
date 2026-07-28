@@ -74,6 +74,18 @@ export class Router {
           flags: MessageFlags.Ephemeral,
         });
     }
+    if (item.botPermissions?.length) {
+      const bot = interaction.guild?.members.me;
+      const permissions = interaction.channelId
+        ? bot?.permissionsIn(interaction.channelId)
+        : bot?.permissions;
+      const missing = permissions?.missing(item.botPermissions) ?? [];
+      if (missing.length)
+        return void interaction.reply({
+          content: `I need permissions: ${missing.join(", ")}.`,
+          flags: MessageFlags.Ephemeral,
+        });
+    }
     const ctx = new ComponentContext(interaction, interaction.customId);
     void Promise.resolve(item.run(ctx)).catch(async (error) => {
       if (item.error) await item.error(error, ctx);

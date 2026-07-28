@@ -16,6 +16,8 @@ export {
 export { Context, type Source } from "./commands/Context.ts";
 export { help } from "./commands/Help.ts";
 export { Registry } from "./commands/Registry.ts";
+export { Loader as CommandLoader } from "./commands/Loader.ts";
+export { compileSlash } from "./commands/Compiler.ts";
 export { Catalog, type Category } from "./commands/Catalog.ts";
 export type { ErrorHandler } from "./commands/Router.ts";
 export { AutocompleteContext, type Choice } from "./commands/Autocomplete.ts";
