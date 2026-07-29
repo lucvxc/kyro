@@ -1,7 +1,6 @@
 import { dirname, relative, resolve, sep } from "node:path";
-import { pathToFileURL } from "node:url";
 
-import { scan } from "../core/Files.ts";
+import { moduleUrl, scan } from "../core/Files.ts";
 import type { Cmd } from "./Cmd.ts";
 import type { Registry } from "./Registry.ts";
 
@@ -9,6 +8,7 @@ export class Loader {
   readonly #registry: Registry;
   readonly #directory: string;
   #loaded = false;
+  #fresh = false;
 
   public constructor(registry: Registry, directory: string) {
     this.#registry = registry;
@@ -20,7 +20,7 @@ export class Loader {
 
     const files = await scan(this.#directory);
     for (const file of files) {
-      const module = (await import(pathToFileURL(file).href)) as {
+      const module = (await import(moduleUrl(file, this.#fresh))) as {
         default?: unknown;
       };
       const commands = Array.isArray(module.default)
@@ -47,6 +47,7 @@ export class Loader {
   public async reload(): Promise<void> {
     this.#registry.reset();
     this.#loaded = false;
+    this.#fresh = true;
     await this.load();
   }
 }

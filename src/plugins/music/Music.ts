@@ -1,21 +1,11 @@
 import { EventEmitter } from "node:events";
-import {
-  Events,
-  PermissionFlagsBits,
-  type Client,
-  type Guild,
-  type GuildMember,
-  type VoiceState,
-} from "discord.js";
-import {
-  Manager,
-  type Player as MoonPlayer,
-  type Track as MoonTrack,
-} from "moonlink.js";
+import type { VoiceState } from "discordeno";
+import { Manager, type Track as MoonTrack } from "moonlink.js";
 
 import type { Context } from "../../commands/Context.ts";
 import { UserError } from "../../commands/Errors.ts";
 import { log } from "../../core/Log.ts";
+import type { DiscordRuntime } from "../../core/Discord.ts";
 import { DiscordConnector } from "./Connector.ts";
 import { Player, track } from "./Player.ts";
 import { Search } from "./Search.ts";
@@ -29,21 +19,23 @@ import type {
 
 export class Music extends EventEmitter<MusicEvents> {
   public readonly manager: Manager;
-  readonly #client: Client;
+  readonly #runtime: DiscordRuntime;
   readonly #search: Search;
   readonly #connector = new DiscordConnector();
   readonly #leaveOnEmpty: boolean;
   readonly #emptyTimeout: number;
   readonly #players = new Map<string, Player>();
   readonly #empty = new Map<string, ReturnType<typeof setTimeout>>();
+  readonly #voiceStates = new Map<string, VoiceState>();
+  #offVoice?: () => void;
   #started = false;
 
-  public constructor(client: Client, options: MusicOptions) {
+  public constructor(runtime: DiscordRuntime, options: MusicOptions) {
     super();
     if (!options.nodes?.length)
       throw new TypeError("NodeLink requires at least one node.");
 
-    this.#client = client;
+    this.#runtime = runtime;
     this.#leaveOnEmpty = options.leaveOnEmpty ?? true;
     this.#emptyTimeout = options.emptyTimeout ?? 60_000;
     if (
@@ -97,20 +89,25 @@ export class Music extends EventEmitter<MusicEvents> {
   public get nodes(): readonly unknown[] {
     return this.manager.readyNodes;
   }
+  public voiceChannel(guildId: bigint, userId: bigint): string | undefined {
+    return this.#voiceStates.get(`${guildId}:${userId}`)?.channelId?.toString();
+  }
 
   public start(): void {
     if (this.#started) return;
     this.#started = true;
-    this.manager.use(this.#connector, this.#client);
-    this.#client.on(Events.VoiceStateUpdate, this.#voiceState);
-    if (this.#client.isReady()) void this.manager.init(this.#client.user.id);
+    this.manager.use(this.#connector, this.#runtime);
+    this.#offVoice = this.#runtime.on("voiceStateUpdate", this.#voiceState);
+    if (this.#runtime.isReady)
+      void this.manager.init(String(this.#runtime.bot.id));
   }
 
   public async stop(): Promise<void> {
     if (!this.#started) return;
     this.#started = false;
     this.#connector.stop();
-    this.#client.off(Events.VoiceStateUpdate, this.#voiceState);
+    this.#offVoice?.();
+    this.#offVoice = undefined;
     for (const timeout of this.#empty.values()) clearTimeout(timeout);
     this.#empty.clear();
     await this.manager.players.destroyAll();
@@ -137,7 +134,7 @@ export class Music extends EventEmitter<MusicEvents> {
   }
 
   public async play(
-    guild: Guild,
+    guild: bigint,
     channelID: string,
     textChannelID: string,
     query: string,
@@ -162,11 +159,12 @@ export class Music extends EventEmitter<MusicEvents> {
     if (!tracks.length)
       throw new UserError("I could not find a playable version of that track.");
 
-    let raw = this.manager.players.get(guild.id);
+    const guildID = String(guild);
+    let raw = this.manager.players.get(guildID);
     if (!raw) {
       try {
         raw = this.manager.players.create({
-          guildId: guild.id,
+          guildId: guildID,
           voiceChannelId: channelID,
           textChannelId: textChannelID,
         });
@@ -183,11 +181,10 @@ export class Music extends EventEmitter<MusicEvents> {
         "I could not connect NodeLink to that voice channel.",
       );
     });
-    await audible(guild, raw);
     const wasPlaying = raw.playing || Boolean(raw.current);
     raw.queue.add(tracks);
     if (!wasPlaying) {
-      const started = this.#trackStart(guild.id);
+      const started = this.#trackStart(guildID);
       const playing = await raw.play();
       if (!playing) {
         void started.catch(() => undefined);
@@ -198,13 +195,13 @@ export class Music extends EventEmitter<MusicEvents> {
       try {
         await started;
       } catch {
-        await this.destroy(guild.id);
+        await this.destroy(guildID);
         throw new UserError(
           "NodeLink accepted the song but never started its audio stream. Check its UDP access, cipher service, and logs.",
         );
       }
     }
-    this.get(guild.id);
+    this.get(guildID);
 
     return {
       tracks: tracks.map(track),
@@ -228,19 +225,27 @@ export class Music extends EventEmitter<MusicEvents> {
     await this.manager.players.destroy(guildID, "Kyro stopped the player.");
   }
 
-  readonly #voiceState = (_old: VoiceState, state: VoiceState): void => {
+  readonly #voiceState = (state: VoiceState): void => {
+    const key = `${state.guildId}:${state.userId}`;
+    if (state.channelId) this.#voiceStates.set(key, state);
+    else this.#voiceStates.delete(key);
     if (!this.#leaveOnEmpty) return;
-    const player = this.manager.players.get(state.guild.id);
+    const guildID = String(state.guildId);
+    const player = this.manager.players.get(guildID);
     if (!player) return;
-    const channel = state.guild.channels.cache.get(player.voiceChannelId);
-    if (!channel?.isVoiceBased()) return;
-    if (channel.members.some((member) => !member.user.bot)) {
-      const timeout = this.#empty.get(state.guild.id);
+    const occupied = [...this.#voiceStates.values()].some(
+      (voice) =>
+        voice.guildId === state.guildId &&
+        String(voice.channelId) === player.voiceChannelId &&
+        voice.userId !== this.#runtime.bot.id,
+    );
+    if (occupied) {
+      const timeout = this.#empty.get(guildID);
       if (timeout) clearTimeout(timeout);
-      this.#empty.delete(state.guild.id);
+      this.#empty.delete(guildID);
       return;
     }
-    this.#schedule(state.guild.id);
+    this.#schedule(guildID);
   };
 
   #schedule(guildID: string): void {
@@ -313,7 +318,9 @@ export class MusicContext {
   ) {}
 
   public get player(): Player | undefined {
-    return this.ctx.guild ? this.manager.get(this.ctx.guild.id) : undefined;
+    return this.ctx.guildId
+      ? this.manager.get(String(this.ctx.guildId))
+      : undefined;
   }
   public get current(): Track | null {
     return this.player?.current ?? null;
@@ -332,13 +339,13 @@ export class MusicContext {
   }
 
   public async play(query: string): Promise<AddedTracks> {
-    const { guild, member } = await this.#voice();
+    const { guild, channelId } = await this.#voice();
     return this.manager.play(
       guild,
-      member.voice.channelId!,
-      this.ctx.input.channelId,
+      channelId,
+      String(this.ctx.channelId),
       query,
-      this.ctx.author.id,
+      String(this.ctx.author.id),
     );
   }
 
@@ -381,34 +388,22 @@ export class MusicContext {
     return mode;
   }
 
-  async #voice(): Promise<{ guild: Guild; member: GuildMember }> {
-    const guild = this.ctx.guild;
+  async #voice(): Promise<{ guild: bigint; channelId: string }> {
+    const guild = this.ctx.guildId;
     if (!guild)
       throw new UserError("Music commands can only be used in a server.");
-    const member =
-      guild.members.cache.get(this.ctx.author.id) ??
-      (await guild.members.fetch(this.ctx.author.id));
-    if (!member.voice.channelId)
-      throw new UserError("Join a voice channel first.");
-    const channel = member.voice.channel!;
-    const permissions =
-      guild.members.me && channel.permissionsFor(guild.members.me);
-    if (!permissions?.has(PermissionFlagsBits.Connect))
-      throw new UserError("I cannot connect to that voice channel.");
-    if (!permissions.has(PermissionFlagsBits.Speak))
-      throw new UserError("I cannot speak in that voice channel.");
-    return { guild, member };
+    const channelId = this.manager.voiceChannel(guild, this.ctx.author.id);
+    if (!channelId) throw new UserError("Join a voice channel first.");
+    return { guild, channelId };
   }
 
   #control(): Player {
-    const guild = this.ctx.guild;
+    const guild = this.ctx.guildId;
     if (!guild)
       throw new UserError("Music commands can only be used in a server.");
-    const player = this.manager.get(guild.id);
+    const player = this.manager.get(String(guild));
     if (!player) throw new UserError("Nothing is playing right now.");
-    const channelID = guild.voiceStates.cache.get(
-      this.ctx.author.id,
-    )?.channelId;
+    const channelID = this.manager.voiceChannel(guild, this.ctx.author.id);
     if (!channelID) throw new UserError("Join a voice channel first.");
     if (channelID !== player.channelID)
       throw new UserError("Join my voice channel first.");
@@ -426,28 +421,4 @@ function duration(value: string): number {
   )
     throw new UserError("Use a time like `90`, `1:30`, or `1:02:30`.");
   return parts.reduce((total, part) => total * 60 + part, 0) * 1_000;
-}
-
-async function audible(guild: Guild, player: MoonPlayer): Promise<void> {
-  const voice = guild.members.me?.voice;
-  if (!voice) throw new UserError("Discord did not create my voice state.");
-  if (voice.selfMute) await player.setVoiceState({ selfMute: false });
-  if (voice.serverMute)
-    throw new UserError("I am server-muted in this voice channel.");
-  if (!voice.suppress) return;
-
-  const channel = voice.channel;
-  const canSpeak =
-    channel &&
-    guild.members.me &&
-    channel
-      .permissionsFor(guild.members.me)
-      .has(PermissionFlagsBits.MuteMembers);
-  if (canSpeak) await voice.setSuppressed(false).catch(() => undefined);
-  if (voice.suppress) {
-    await voice.setRequestToSpeak(true).catch(() => undefined);
-    throw new UserError(
-      "I am suppressed on this Stage channel and need permission to speak.",
-    );
-  }
 }

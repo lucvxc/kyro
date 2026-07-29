@@ -1,28 +1,23 @@
-import { ShardingManager, type ShardingManagerOptions } from "discord.js";
+import {
+  createGatewayManager,
+  type CreateGatewayManagerOptions,
+  type GatewayManager,
+  type ShardSocketRequest,
+} from "discordeno";
 
-export interface ShardOptions extends Omit<ShardingManagerOptions, "token"> {
-  token: string;
-  file: string;
-}
-
+export type ShardOptions = CreateGatewayManagerOptions;
 export class Shards {
-  public readonly manager: ShardingManager;
+  public readonly manager: GatewayManager;
   public constructor(options: ShardOptions) {
-    this.manager = new ShardingManager(options.file, {
-      ...options,
-      token: options.token,
-    });
+    this.manager = createGatewayManager(options);
   }
-  public start(): Promise<unknown> {
-    return this.manager.spawn();
+  public start(): Promise<void> {
+    return this.manager.spawnShards();
   }
-  public async stop(): Promise<void> {
-    for (const shard of this.manager.shards.values()) await shard.kill();
+  public stop(): Promise<void> {
+    return this.manager.shutdown(1_000, "Kyro shutting down");
   }
-  public send(message: unknown): Promise<unknown[]> {
-    return this.manager.broadcastEval(
-      (client, context) => client.emit("kyroMessage", context),
-      { context: message },
-    );
+  public send(shardId: number, payload: ShardSocketRequest): Promise<void> {
+    return this.manager.sendPayload(shardId, payload);
   }
 }

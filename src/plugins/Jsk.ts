@@ -14,9 +14,10 @@ export const jsk = plugin({
   name: "jishaku",
   version: "0.1.0",
   setup(kyro) {
-    const owner = (ctx: { author: { id: string } }): boolean =>
-      kyro.ownerIDs.includes(ctx.author.id);
-    const guard = (ctx: { author: { id: string } }): boolean => owner(ctx);
+    const owner = (ctx: { author: { id: string | bigint } }): boolean =>
+      kyro.ownerIDs.includes(String(ctx.author.id));
+    const guard = (ctx: { author: { id: string | bigint } }): boolean =>
+      owner(ctx);
     const add = (command: Parameters<typeof cmd>[0]) =>
       kyro.command(
         cmd({
@@ -54,7 +55,7 @@ export const jsk = plugin({
       type: "message",
       run: (ctx) => {
         if (!guard(ctx)) return;
-        return ctx.reply(`WebSocket: **${ctx.client.ws.ping}ms**`);
+        return ctx.reply(`WebSocket: **${ctx.stats.ping}ms**`);
       },
     });
     add({
@@ -63,7 +64,7 @@ export const jsk = plugin({
       type: "message",
       run: (ctx) => {
         if (!guard(ctx)) return;
-        return ctx.reply(`Uptime: **${format(kyro.client.uptime)}**`);
+        return ctx.reply(`Uptime: **${format(ctx.stats.uptime)}**`);
       },
     });
     add({
@@ -76,11 +77,11 @@ export const jsk = plugin({
           embed()
             .title("Kyro Stats")
             .color("#5865F2")
-            .field("Guilds", String(ctx.client.guilds.cache.size), true)
-            .field("Users", String(ctx.client.users.cache.size), true)
+            .field("Guilds", String(ctx.stats.servers), true)
+            .field("Users", String(ctx.stats.users), true)
             .field("Commands", String(kyro.commands.size), true)
-            .field("WebSocket", `${ctx.client.ws.ping}ms`, true)
-            .field("Uptime", format(kyro.client.uptime), true),
+            .field("WebSocket", `${ctx.stats.ping}ms`, true)
+            .field("Uptime", format(ctx.stats.uptime), true),
         );
       },
     });

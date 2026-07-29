@@ -1,4 +1,5 @@
-import type { Attachment, Guild } from "discord.js";
+import type { Attachment } from "discordeno";
+import type { DiscordBot } from "../core/Discord.ts";
 import { UserError } from "../commands/Errors.ts";
 
 export const botProfileFonts = {
@@ -50,10 +51,12 @@ interface DiscordProfileUpdate {
 }
 
 export class BotProfile {
-  readonly #guild: Guild;
+  readonly #bot: DiscordBot;
+  readonly #guildId: bigint;
 
-  public constructor(guild: Guild) {
-    this.#guild = guild;
+  public constructor(bot: DiscordBot, guildId: bigint) {
+    this.#bot = bot;
+    this.#guildId = guildId;
   }
 
   public async update(options: BotProfileUpdate): Promise<void> {
@@ -72,10 +75,9 @@ export class BotProfile {
       throw new UserError("Change at least one bot profile option.");
 
     try {
-      await this.#guild.client.rest.patch(
-        `/guilds/${this.#guild.id}/members/@me`,
-        { body },
-      );
+      await this.#bot.rest.patch(`/guilds/${this.#guildId}/members/@me`, {
+        body,
+      });
     } catch (error) {
       throw new UserError(discordMessage(error));
     }

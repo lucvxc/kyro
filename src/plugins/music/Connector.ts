@@ -1,37 +1,34 @@
-import { Events, type Client, type Guild } from "discord.js";
 import type { Manager } from "moonlink.js";
-
+import type { ShardSocketRequest } from "discordeno";
+import type { DiscordRuntime } from "../../core/Discord.ts";
 type Packet = Parameters<Manager["packetUpdate"]>[0];
-type Payload = Parameters<Guild["shard"]["send"]>[0];
-
 export class DiscordConnector {
   public manager!: Manager;
-  #client?: Client;
-
+  #runtime?: DiscordRuntime;
+  #offRaw?: () => void;
   public setManager(manager: Manager): void {
     this.manager = manager;
   }
-
-  public listen(client: Client): void {
-    this.#client = client;
-    client.once(Events.ClientReady, this.#ready);
-    client.on(Events.Raw, this.#packet);
+  public listen(runtime: DiscordRuntime): void {
+    this.#runtime = runtime;
+    this.#offRaw = runtime.on("raw", this.#packet as never);
+    if (runtime.isReady) void this.manager.init(String(runtime.bot.id));
+    else
+      runtime.once(
+        "ready",
+        () => void this.manager.init(String(runtime.bot.id)),
+      );
   }
-
-  public send(guildID: string, payload: Payload): void {
-    this.#client?.guilds.cache.get(guildID)?.shard.send(payload);
+  public send(guildID: string, payload: ShardSocketRequest): void {
+    if (!this.#runtime) return;
+    const shard = this.#runtime.bot.gateway.calculateShardId(guildID);
+    void this.#runtime.bot.gateway.sendPayload(shard, payload);
   }
-
   public stop(): void {
-    this.#client?.off(Events.ClientReady, this.#ready);
-    this.#client?.off(Events.Raw, this.#packet);
-    this.#client = undefined;
+    this.#offRaw?.();
+    this.#offRaw = undefined;
+    this.#runtime = undefined;
   }
-
-  readonly #ready = (client: Client<true>): void => {
-    void this.manager.init(client.user.id);
-  };
-
   readonly #packet = (packet: Packet): void => {
     void this.manager.packetUpdate(packet);
   };

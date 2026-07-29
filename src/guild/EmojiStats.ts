@@ -1,11 +1,14 @@
-import type { GuildEmoji, ImageExtension } from "discord.js";
+import {
+  emojiUrl,
+  snowflakeToTimestamp,
+  type Emoji,
+  type ImageFormat,
+} from "discordeno";
 import { dominant } from "../ui/Image.ts";
-
 export class EmojiStats {
-  public constructor(private readonly emoji: GuildEmoji) {}
-
+  public constructor(private readonly emoji: Emoji) {}
   public get id(): string {
-    return this.emoji.id;
+    return String(this.emoji.id);
   }
   public get name(): string {
     return this.emoji.name ?? "emoji";
@@ -14,10 +17,14 @@ export class EmojiStats {
     return this.emoji.animated ?? false;
   }
   public get created(): number {
-    return Math.floor(this.emoji.createdTimestamp / 1_000);
+    return this.emoji.id
+      ? Math.floor(snowflakeToTimestamp(this.emoji.id) / 1_000)
+      : 0;
   }
-  public image(extension: ImageExtension = "png"): string {
-    return this.emoji.imageURL({ size: 4096, extension });
+  public image(_extension: ImageFormat = "png"): string {
+    if (!this.emoji.id)
+      throw new Error("Unicode emoji do not have CDN images.");
+    return emojiUrl(this.emoji.id, this.emoji.animated);
   }
   public accent(): Promise<string> {
     return dominant(this.image());

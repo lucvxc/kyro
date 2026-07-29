@@ -1,48 +1,30 @@
 import {
-  ActionRowBuilder,
-  ButtonBuilder,
-  ButtonStyle,
-  ChannelSelectMenuBuilder,
-  CheckboxBuilder,
-  CheckboxGroupBuilder,
-  CheckboxGroupOptionBuilder,
-  FileUploadBuilder,
-  LabelBuilder,
-  MentionableSelectMenuBuilder,
-  RadioGroupBuilder,
-  RadioGroupOptionBuilder,
-  RoleSelectMenuBuilder,
-  StringSelectMenuBuilder,
-  StringSelectMenuOptionBuilder,
-  TextDisplayBuilder,
-  ThumbnailBuilder,
-  ModalBuilder,
-  TextInputBuilder,
-  TextInputStyle,
-  UserSelectMenuBuilder,
-  type APIMessageComponentEmoji,
-} from "discord.js";
+  ButtonStyles,
+  MessageComponentTypes,
+  TextStyles,
+  type DiscordEmoji,
+  type InteractionCallbackData,
+  type MessageComponent,
+} from "discordeno";
 
+export type Control = Record<string, unknown> & { type: number };
 export type ButtonKind =
   "primary" | "secondary" | "success" | "danger" | "link";
-
 export interface ButtonOptions {
   id?: string;
   label?: string;
   style?: ButtonKind;
   url?: string;
-  emoji?: APIMessageComponentEmoji;
+  emoji?: Partial<DiscordEmoji>;
   disabled?: boolean;
 }
-
 export interface SelectOption {
   label: string;
   value: string;
   description?: string;
-  emoji?: APIMessageComponentEmoji;
+  emoji?: Partial<DiscordEmoji>;
   default?: boolean;
 }
-
 export interface SelectOptions {
   id: string;
   placeholder?: string;
@@ -51,7 +33,6 @@ export interface SelectOptions {
   disabled?: boolean;
   options: readonly SelectOption[];
 }
-
 export interface InputOptions {
   type?: "text";
   id: string;
@@ -64,16 +45,11 @@ export interface InputOptions {
   max?: number;
   required?: boolean;
 }
-export interface ModalSelectOptions {
+export interface ModalSelectOptions extends Omit<SelectOptions, "disabled"> {
   type: "string";
-  id: string;
   label: string;
   description?: string;
-  placeholder?: string;
-  min?: number;
-  max?: number;
   required?: boolean;
-  options: readonly SelectOption[];
 }
 export interface ModalAutoSelectOptions {
   type: "user" | "role" | "mentionable" | "channel";
@@ -137,209 +113,190 @@ export interface ModalOptions {
   title: string;
   inputs?: readonly ModalInput[];
 }
-export function input(options: InputOptions): TextInputBuilder {
-  const value = new TextInputBuilder()
-    .setCustomId(options.id)
-    .setLabel(options.label)
-    .setStyle(
-      options.style === "paragraph"
-        ? TextInputStyle.Paragraph
-        : TextInputStyle.Short,
-    )
-    .setRequired(options.required ?? true);
-  if (options.placeholder) value.setPlaceholder(options.placeholder);
-  if (options.value) value.setValue(options.value);
-  if (options.min !== undefined) value.setMinLength(options.min);
-  if (options.max !== undefined) value.setMaxLength(options.max);
-  return value;
+
+export function input(options: InputOptions): Control {
+  text(options.id, "Text input id", 100);
+  text(options.label, "Text input label", 45);
+  optionalText(options.description, "Text input description", 100);
+  return compact({
+    type: MessageComponentTypes.InputText,
+    customId: options.id,
+    label: options.label,
+    style:
+      options.style === "paragraph" ? TextStyles.Paragraph : TextStyles.Short,
+    placeholder: options.placeholder,
+    value: options.value,
+    minLength: options.min,
+    maxLength: options.max,
+    required: options.required ?? true,
+  });
 }
-export function modal(options: ModalOptions): ModalBuilder {
-  const value = new ModalBuilder()
-    .setCustomId(options.id)
-    .setTitle(options.title);
+export function modal(options: ModalOptions): InteractionCallbackData {
+  text(options.id, "Modal id", 100);
+  text(options.title, "Modal title", 45);
+  if ((options.inputs?.length ?? 0) > 5)
+    throw new TypeError("Modals can have at most 5 inputs.");
+
+  const ids = new Set<string>();
   for (const field of options.inputs ?? []) {
-    if (field.type === "display")
-      value.addComponents(new TextDisplayBuilder().setContent(field.content));
-    else value.addComponents(modalLabel(field));
+    if (field.type === "display") {
+      text(field.content, "Modal display text", 4_000);
+      continue;
+    }
+
+    text(field.id, "Modal field id", 100);
+    text(field.label, "Modal field label", 45);
+    optionalText(field.description, "Modal field description", 100);
+    if (ids.has(field.id))
+      throw new TypeError(`Modal field id "${field.id}" is duplicated.`);
+    ids.add(field.id);
   }
-  return value;
+
+  return {
+    customId: options.id,
+    title: options.title,
+    components: (options.inputs ?? []).map((field) =>
+      field.type === "display"
+        ? { type: 10, content: field.content }
+        : {
+            type: 18,
+            label: field.label,
+            description: field.description,
+            component: modalComponent(field),
+          },
+    ) as unknown as MessageComponent[],
+  } as InteractionCallbackData;
 }
-
-function modalLabel(
-  options: Exclude<ModalInput, ModalTextOptions>,
-): LabelBuilder {
-  const value = new LabelBuilder().setLabel(options.label);
-  if (options.description) value.setDescription(options.description);
-
-  switch (options.type) {
-    case "string":
-      return value.setStringSelectMenuComponent(stringSelect(options, true));
-    case "user":
-      return value.setUserSelectMenuComponent(
-        autoSelect(new UserSelectMenuBuilder(), options),
-      );
-    case "role":
-      return value.setRoleSelectMenuComponent(
-        autoSelect(new RoleSelectMenuBuilder(), options),
-      );
-    case "mentionable":
-      return value.setMentionableSelectMenuComponent(
-        autoSelect(new MentionableSelectMenuBuilder(), options),
-      );
-    case "channel":
-      return value.setChannelSelectMenuComponent(
-        autoSelect(new ChannelSelectMenuBuilder(), options),
-      );
-    case "file":
-      return value.setFileUploadComponent(fileUpload(options));
-    case "radio":
-      return value.setRadioGroupComponent(radio(options));
-    case "checkbox":
-      return value.setCheckboxComponent(
-        new CheckboxBuilder()
-          .setCustomId(options.id)
-          .setDefault(options.default ?? false),
-      );
-    case "checkboxes":
-      return value.setCheckboxGroupComponent(checkboxes(options));
-    default:
-      return value.setTextInputComponent(modalInput(options));
+function modalComponent(field: Exclude<ModalInput, ModalTextOptions>): Control {
+  if (!field.type || field.type === "text") return input(field);
+  if (field.type === "string") return select(field);
+  if (
+    field.type === "user" ||
+    field.type === "role" ||
+    field.type === "mentionable" ||
+    field.type === "channel"
+  ) {
+    const types = { user: 5, role: 6, mentionable: 7, channel: 8 } as const;
+    return compact({
+      type: types[field.type as keyof typeof types],
+      customId: field.id,
+      placeholder: field.placeholder,
+      minValues: field.min,
+      maxValues: field.max,
+      required: field.required,
+    });
   }
+  const types = { file: 19, radio: 21, checkbox: 22, checkboxes: 23 } as const;
+  return compact({
+    type: types[field.type],
+    customId: field.id,
+    minValues: "min" in field ? field.min : undefined,
+    maxValues: "max" in field ? field.max : undefined,
+    required: "required" in field ? field.required : undefined,
+    default: "default" in field ? field.default : undefined,
+    options: "options" in field ? field.options : undefined,
+  });
 }
-
-function modalInput(options: InputOptions): TextInputBuilder {
-  const value = new TextInputBuilder()
-    .setCustomId(options.id)
-    .setStyle(
-      options.style === "paragraph"
-        ? TextInputStyle.Paragraph
-        : TextInputStyle.Short,
-    )
-    .setRequired(options.required ?? true);
-  if (options.placeholder) value.setPlaceholder(options.placeholder);
-  if (options.value) value.setValue(options.value);
-  if (options.min !== undefined) value.setMinLength(options.min);
-  if (options.max !== undefined) value.setMaxLength(options.max);
-  return value;
-}
-
-export function button(options: ButtonOptions): ButtonBuilder {
-  const builder = new ButtonBuilder();
+export function button(options: ButtonOptions): Control {
   const style = options.style ?? (options.url ? "link" : "primary");
-
-  builder.setStyle(
-    ButtonStyle[
-      (style[0]!.toUpperCase() + style.slice(1)) as keyof typeof ButtonStyle
-    ],
-  );
-
-  if (style === "link") {
-    if (!options.url) throw new TypeError("Link buttons require a url.");
-    if (options.id) throw new TypeError("Link buttons use url instead of id.");
-    builder.setURL(options.url);
-  } else {
-    if (!options.id) throw new TypeError("Interactive buttons require an id.");
-    builder.setCustomId(options.id);
+  const hasEmoji = Boolean(options.emoji?.id || options.emoji?.name?.trim());
+  const hasLabel = Boolean(options.label?.trim());
+  if (!hasLabel && !hasEmoji)
+    throw new TypeError("Buttons require a non-empty label or emoji.");
+  optionalText(options.label, "Button label", 80);
+  if (style === "link" && !options.url)
+    throw new TypeError("Link buttons require a url.");
+  if (style !== "link" && !options.id)
+    throw new TypeError("Interactive buttons require an id.");
+  if (options.id) text(options.id, "Button id", 100);
+  if (options.url && options.url.length > 512)
+    throw new TypeError("Button url cannot exceed 512 characters.");
+  return compact({
+    type: MessageComponentTypes.Button,
+    style: {
+      primary: ButtonStyles.Primary,
+      secondary: ButtonStyles.Secondary,
+      success: ButtonStyles.Success,
+      danger: ButtonStyles.Danger,
+      link: ButtonStyles.Link,
+    }[style],
+    customId: style === "link" ? undefined : options.id,
+    url: options.url,
+    label: options.label,
+    emoji: options.emoji,
+    disabled: options.disabled,
+  });
+}
+export function select(options: SelectOptions | ModalSelectOptions): Control {
+  text(options.id, "Select id", 100);
+  optionalText(options.placeholder, "Select placeholder", 150);
+  if (!options.options.length || options.options.length > 25)
+    throw new TypeError("Select menus require 1 to 25 options.");
+  const values = new Set<string>();
+  for (const option of options.options) {
+    text(option.label, "Select option label", 100);
+    text(option.value, "Select option value", 100);
+    optionalText(option.description, "Select option description", 100);
+    if (values.has(option.value))
+      throw new TypeError(
+        `Select option value "${option.value}" is duplicated.`,
+      );
+    values.add(option.value);
   }
-
-  if (options.label) builder.setLabel(options.label);
-  if (options.emoji) builder.setEmoji(options.emoji);
-  if (options.disabled) builder.setDisabled(true);
-
-  return builder;
-}
-
-export function select(options: SelectOptions): StringSelectMenuBuilder {
-  return stringSelect(options);
-}
-
-function stringSelect(
-  options: ModalSelectOptions | SelectOptions,
-  insideModal = false,
-): StringSelectMenuBuilder {
-  const builder = new StringSelectMenuBuilder().setCustomId(options.id);
-  builder.addOptions(options.options.map(selectOption));
-
-  if (options.placeholder) builder.setPlaceholder(options.placeholder);
-  if (options.min !== undefined) builder.setMinValues(options.min);
-  if (options.max !== undefined) builder.setMaxValues(options.max);
-  if ("required" in options && options.required !== undefined)
-    builder.setRequired(options.required);
-  if ("disabled" in options && options.disabled && !insideModal)
-    builder.setDisabled(true);
-  return builder;
-}
-
-function autoSelect<
-  T extends
-    | UserSelectMenuBuilder
-    | RoleSelectMenuBuilder
-    | MentionableSelectMenuBuilder
-    | ChannelSelectMenuBuilder,
->(builder: T, options: ModalAutoSelectOptions): T {
-  builder.setCustomId(options.id);
-  if (options.placeholder) builder.setPlaceholder(options.placeholder);
-  if (options.min !== undefined) builder.setMinValues(options.min);
-  if (options.max !== undefined) builder.setMaxValues(options.max);
-  if (options.required !== undefined) builder.setRequired(options.required);
-  return builder;
-}
-
-function fileUpload(options: FileUploadOptions): FileUploadBuilder {
-  const builder = new FileUploadBuilder().setCustomId(options.id);
-  if (options.min !== undefined) builder.setMinValues(options.min);
-  if (options.max !== undefined) builder.setMaxValues(options.max);
-  if (options.required !== undefined) builder.setRequired(options.required);
-  return builder;
-}
-
-function radio(options: RadioOptions): RadioGroupBuilder {
-  const builder = new RadioGroupBuilder().setCustomId(options.id).addOptions(
-    options.options.map((option) =>
-      new RadioGroupOptionBuilder()
-        .setLabel(option.label)
-        .setValue(option.value)
-        .setDefault(option.default ?? false),
+  const min = options.min ?? 1;
+  const max = options.max ?? 1;
+  if (min < 0 || max < 1 || min > max || max > options.options.length)
+    throw new TypeError("Select menu min/max values are invalid.");
+  return compact({
+    type: MessageComponentTypes.SelectMenu,
+    customId: options.id,
+    placeholder: options.placeholder,
+    minValues: options.min,
+    maxValues: options.max,
+    disabled: "disabled" in options ? options.disabled : undefined,
+    required: "required" in options ? options.required : undefined,
+    options: options.options.map((option) =>
+      compact({
+        label: option.label,
+        value: option.value,
+        description: option.description,
+        emoji: option.emoji,
+        default: option.default,
+      }),
     ),
+  });
+}
+export function thumb(url: string, spoiler = false): Control {
+  return { type: 11, media: { url }, spoiler };
+}
+export function row(...components: Control[]): Control {
+  if (!components.length || components.length > 5)
+    throw new TypeError("Action rows require 1 to 5 components.");
+  const buttons = components.every(
+    (component) => component.type === MessageComponentTypes.Button,
   );
-  if (options.required !== undefined) builder.setRequired(options.required);
-  return builder;
+  if (!buttons && components.length !== 1)
+    throw new TypeError(
+      "Action rows can contain up to 5 buttons or one select menu.",
+    );
+  return { type: MessageComponentTypes.ActionRow, components };
 }
 
-function checkboxes(options: CheckboxGroupOptions): CheckboxGroupBuilder {
-  const builder = new CheckboxGroupBuilder().setCustomId(options.id).addOptions(
-    options.options.map((option) =>
-      new CheckboxGroupOptionBuilder()
-        .setLabel(option.label)
-        .setValue(option.value)
-        .setDefault(option.default ?? false),
-    ),
-  );
-  if (options.min !== undefined) builder.setMinValues(options.min);
-  if (options.max !== undefined) builder.setMaxValues(options.max);
-  if (options.required !== undefined) builder.setRequired(options.required);
-  return builder;
+function text(value: string, name: string, max: number): void {
+  if (!value.trim()) throw new TypeError(`${name} cannot be empty.`);
+  if (value.length > max)
+    throw new TypeError(`${name} cannot exceed ${max} characters.`);
 }
 
-function selectOption(option: SelectOption): StringSelectMenuOptionBuilder {
-  const value = new StringSelectMenuOptionBuilder()
-    .setLabel(option.label)
-    .setValue(option.value);
-
-  if (option.description) value.setDescription(option.description);
-  if (option.emoji) value.setEmoji(option.emoji);
-  if (option.default) value.setDefault(true);
-  return value;
+function optionalText(
+  value: string | undefined,
+  name: string,
+  max: number,
+): void {
+  if (value !== undefined) text(value, name, max);
 }
-
-export function thumb(url: string, spoiler = false): ThumbnailBuilder {
-  return new ThumbnailBuilder({ media: { url }, spoiler });
-}
-
-export function row(
-  ...components: (ButtonBuilder | StringSelectMenuBuilder)[]
-): ActionRowBuilder<ButtonBuilder | StringSelectMenuBuilder> {
-  return new ActionRowBuilder<
-    ButtonBuilder | StringSelectMenuBuilder
-  >().addComponents(components);
+function compact<T extends Record<string, unknown>>(value: T): T {
+  return Object.fromEntries(
+    Object.entries(value).filter(([, item]) => item !== undefined),
+  ) as T;
 }

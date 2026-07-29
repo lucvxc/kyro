@@ -1,16 +1,12 @@
-import type { Guild, Role } from "discord.js";
-
+import type { Guild, Role } from "discordeno";
 export function findRole(guild: Guild, value: string): Role | undefined {
   const input = value.trim();
   const id =
-    input.match(/^<@&(\d{17,20})>$/)?.[1] ??
-    (/^\d{17,20}$/.test(input) ? input : undefined);
-  if (id) return guild.roles.cache.get(id);
-
+    input.match(/^<@&(\d{17,22})>$/)?.[1] ??
+    (/^\d{17,22}$/.test(input) ? input : undefined);
+  if (id) return guild.roles.get(BigInt(id));
   const name = input.replace(/^@/, "").toLowerCase();
-  if (!name) return undefined;
-
-  const roles = [...guild.roles.cache.values()].filter(
+  const roles = [...guild.roles.values()].filter(
     (role) => role.id !== guild.id,
   );
   return (
@@ -19,7 +15,6 @@ export function findRole(guild: Guild, value: string): Role | undefined {
     one(roles.filter((role) => role.name.toLowerCase().includes(name)))
   );
 }
-
 function one(roles: Role[]): Role | undefined {
   return roles.length === 1 ? roles[0] : undefined;
 }

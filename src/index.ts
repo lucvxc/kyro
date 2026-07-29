@@ -4,7 +4,35 @@ export {
   type ClientConfig,
   type KyroConfig,
   type PresenceConfig,
+  type LifecycleHooks,
 } from "./Kyro.ts";
+export { DiscordRuntime, snowflake, snowflakeString } from "./core/Discord.ts";
+export type {
+  DiscordBot,
+  DiscordEvent,
+  DiscordEvents,
+  DiscordInteraction,
+  DiscordMessage,
+} from "./core/Discord.ts";
+export { Services } from "./core/Services.ts";
+export type { ServiceToken, Disposable } from "./core/Services.ts";
+export type { Logger, LogContext } from "./core/Logger.ts";
+export { FrameworkError } from "./core/Errors.ts";
+export type { FrameworkErrorHandler, ErrorPhase } from "./core/Errors.ts";
+export { ConfigurationError, validateConfig } from "./core/Config.ts";
+export type { ConfigIssue } from "./core/Config.ts";
+export type { HealthSnapshot } from "./core/Health.ts";
+export type {
+  Instrumentation,
+  InstrumentSpan,
+  InstrumentAttributes,
+} from "./core/Instrumentation.ts";
+export { MemoryRateLimitAdapter } from "./core/RateLimit.ts";
+export type {
+  RateLimitAdapter,
+  RateLimitPolicy,
+  RateLimitScope,
+} from "./core/RateLimit.ts";
 export type { Arg, Args, ArgType } from "./commands/Arg.ts";
 export {
   cmd,
@@ -26,6 +54,7 @@ export type { CommandReplies } from "./commands/Router.ts";
 export type { PermissionResolver } from "./commands/Guard.ts";
 export { Moderation, type ModOptions } from "./commands/Moderation.ts";
 export type { Middleware, Next } from "./commands/Middleware.ts";
+export type { SyncDiff, SyncLock } from "./commands/Registrar.ts";
 export type { AliasLookup, PrefixResolver } from "./commands/RouterTypes.ts";
 export { Server } from "./guild/Server.ts";
 export {
@@ -54,6 +83,7 @@ export { codes, compact, fill, groups, mention } from "./core/Text.ts";
 export { Shards, type ShardOptions } from "./core/Shards.ts";
 export { status, type DeviceStatus } from "./core/Status.ts";
 export { plugin, type Plugin } from "./plugins/Plugin.ts";
+export { scheduler, type ScheduledTask } from "./plugins/Scheduler.ts";
 export { jsk } from "./plugins/Jsk.ts";
 export {
   Music,
@@ -72,7 +102,15 @@ export {
   type TrackInfo,
 } from "./plugins/music/index.ts";
 export { cmp, type Cmp, type CmpContext } from "./components/Cmp.ts";
+export type { ComponentMiddleware, ComponentNext } from "./components/Cmp.ts";
+export { ComponentSigner } from "./components/SignedId.ts";
 export { ComponentContext } from "./components/Context.ts";
+export { TestHarness, createTestKyro } from "./testing/Harness.ts";
+export type { TestCommandInput, TestCommandResult } from "./testing/Harness.ts";
+export type {
+  TestComponentInput,
+  TestComponentResult,
+} from "./testing/Harness.ts";
 export { evt, type Evt } from "./events/Evt.ts";
 export {
   Embed,
@@ -86,7 +124,12 @@ export { dominant, type ImageInput } from "./ui/Image.ts";
 export { duration, time, unix, type TimeStyle } from "./ui/Time.ts";
 export { Stats } from "./core/Stats.ts";
 export { Container, container, type GalleryItem } from "./ui/Container.ts";
-export { messageOptions, send, type MessageContent } from "./ui/Message.ts";
+export {
+  messageOptions,
+  send,
+  type MessageContent,
+  type MessagePolicy,
+} from "./ui/Message.ts";
 export {
   button,
   select,

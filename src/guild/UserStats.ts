@@ -1,14 +1,21 @@
-import type { GuildMember, ImageExtension, User } from "discord.js";
+import {
+  avatarUrl,
+  bannerUrl,
+  calculatePermissions,
+  memberAvatarUrl,
+  snowflakeToTimestamp,
+  type ImageFormat,
+  type Member,
+  type User,
+} from "discordeno";
 import { dominant } from "../ui/Image.ts";
-
 export class UserStats {
   public constructor(
     private readonly user: User,
-    private readonly member: GuildMember | null,
+    private readonly member: Member | null,
   ) {}
-
   public get id(): string {
-    return this.user.id;
+    return String(this.user.id);
   }
   public get name(): string {
     return this.user.username;
@@ -17,50 +24,68 @@ export class UserStats {
     return this.user.tag;
   }
   public get mention(): string {
-    return this.user.toString();
+    return `<@${this.user.id}>`;
   }
   public get bot(): boolean {
     return this.user.bot;
   }
   public get created(): number {
-    return Math.floor(this.user.createdTimestamp / 1_000);
+    return Math.floor(snowflakeToTimestamp(this.user.id) / 1_000);
   }
   public get joined(): number | null {
-    return this.member?.joinedTimestamp
-      ? Math.floor(this.member.joinedTimestamp / 1_000)
+    return this.member?.joinedAt
+      ? Math.floor(this.member.joinedAt / 1_000)
       : null;
   }
   public get nickname(): string | null {
-    return this.member?.nickname ?? null;
+    return this.member?.nick ?? null;
   }
   public get highestRole(): string | null {
-    return this.member?.roles.highest.toString() ?? null;
+    const id = this.member?.roles.at(-1);
+    return id ? `<@&${id}>` : null;
   }
   public get inServer(): boolean {
     return this.member !== null;
   }
   public get permissions(): string[] {
-    return this.member?.permissions.toArray().map(pretty) ?? [];
+    return this.member?.permissions
+      ? calculatePermissions(this.member.permissions.bitfield).map(pretty)
+      : [];
   }
   public get badges(): string[] {
-    return this.user.flags?.toArray().map(pretty) ?? [];
+    return this.user.publicFlags ? [String(this.user.publicFlags)] : [];
   }
   public roles(limit = 50): string[] {
-    if (!this.member) return [];
-    return [...this.member.roles.cache.values()]
-      .filter((role) => role.id !== this.member!.guild.id)
-      .sort((a, b) => b.position - a.position)
-      .slice(0, limit)
-      .map(String);
+    return (
+      this.member?.roles
+        .slice(-limit)
+        .reverse()
+        .map((id) => `<@&${id}>`) ?? []
+    );
   }
-  public avatar(extension: ImageExtension = "png"): string {
-    return (this.member ?? this.user).displayAvatarURL({
-      size: 4096,
-      extension,
-    });
+  public avatar(format: ImageFormat = "png"): string {
+    return (
+      (this.member?.avatar
+        ? memberAvatarUrl(this.member.guildId, this.user.id, {
+            avatar: this.member.avatar,
+            format,
+            size: 4096,
+          })
+        : avatarUrl(this.user.id, this.user.discriminator, {
+            avatar: this.user.avatar,
+            format,
+            size: 4096,
+          })) ?? ""
+    );
   }
-  public banner(extension: ImageExtension = "png"): string | null {
-    return this.user.bannerURL({ size: 4096, extension }) ?? null;
+  public banner(format: ImageFormat = "png"): string | null {
+    return this.user.banner
+      ? (bannerUrl(this.user.id, {
+          banner: this.user.banner,
+          format,
+          size: 4096,
+        }) ?? null)
+      : null;
   }
   public accent(source: "avatar" | "banner" = "avatar"): Promise<string> {
     return dominant(
@@ -68,7 +93,6 @@ export class UserStats {
     );
   }
 }
-
 function pretty(value: string): string {
-  return value.replace(/([a-z])([A-Z])/g, "$1 $2");
+  return value.toLowerCase().replaceAll("_", " ");
 }

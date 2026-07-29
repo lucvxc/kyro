@@ -9,7 +9,7 @@ export function reload(kyro: Kyro): ReturnType<typeof cmd> {
     type: "message",
     meta: { help: false },
     run: async (ctx) => {
-      if (!kyro.ownerIDs.includes(ctx.author.id)) return;
+      if (!kyro.ownerIDs.includes(String(ctx.author.id))) return;
       await kyro.reload();
       await ctx.reply("Kyro reloaded successfully.");
     },

@@ -1,5 +1,12 @@
 export type ArgType =
-  "string" | "number" | "boolean" | "user" | "role" | "channel";
+  | "string"
+  | "number"
+  | "integer"
+  | "boolean"
+  | "user"
+  | "role"
+  | "channel"
+  | "attachment";
 
 export interface Arg {
   type: ArgType;
@@ -14,6 +21,11 @@ export interface Arg {
     nameLocalizations?: LocalizationMap;
   }[];
   autocomplete?: boolean;
+  min?: number;
+  max?: number;
+  minLength?: number;
+  maxLength?: number;
+  channelTypes?: readonly number[];
 }
 
 export type Args = Record<string, Arg>;
@@ -51,12 +63,15 @@ export function checkArgs(args: Args | undefined): void {
         `Argument "${name}" cannot use both autocomplete and choices.`,
       );
     }
-    if (arg.autocomplete && arg.type !== "string" && arg.type !== "number") {
+    if (
+      arg.autocomplete &&
+      !["string", "number", "integer"].includes(arg.type)
+    ) {
       throw new TypeError(
         `Argument "${name}" autocomplete is only supported for strings and numbers.`,
       );
     }
-    if (arg.choices && arg.type !== "string" && arg.type !== "number") {
+    if (arg.choices && !["string", "number", "integer"].includes(arg.type)) {
       throw new TypeError(
         `Argument "${name}" choices are only supported for strings and numbers.`,
       );
@@ -87,7 +102,8 @@ export function checkArgs(args: Args | undefined): void {
     if (arg.default !== undefined) {
       const valid =
         (arg.type === "string" && typeof arg.default === "string") ||
-        (arg.type === "number" && typeof arg.default === "number") ||
+        ((arg.type === "number" || arg.type === "integer") &&
+          typeof arg.default === "number") ||
         (arg.type === "boolean" && typeof arg.default === "boolean");
       if (!valid)
         throw new TypeError(
@@ -98,6 +114,37 @@ export function checkArgs(args: Args | undefined): void {
           `Argument "${name}" cannot be required and have a default value.`,
         );
     }
+    if (
+      arg.type === "integer" &&
+      typeof arg.default === "number" &&
+      !Number.isInteger(arg.default)
+    )
+      throw new TypeError(
+        `Argument "${name}" integer default must be an integer.`,
+      );
+    if (
+      (arg.minLength !== undefined || arg.maxLength !== undefined) &&
+      arg.type !== "string"
+    )
+      throw new TypeError(
+        `Argument "${name}" length constraints require a string.`,
+      );
+    if (arg.channelTypes && arg.type !== "channel")
+      throw new TypeError(
+        `Argument "${name}" channel types require a channel.`,
+      );
+    if (arg.min !== undefined && arg.max !== undefined && arg.min > arg.max)
+      throw new TypeError(
+        `Argument "${name}" minimum cannot exceed its maximum.`,
+      );
+    if (
+      arg.minLength !== undefined &&
+      arg.maxLength !== undefined &&
+      arg.minLength > arg.maxLength
+    )
+      throw new TypeError(
+        `Argument "${name}" minimum length cannot exceed its maximum length.`,
+      );
 
     if (!arg.required) optional = true;
     else if (optional) {
@@ -135,4 +182,6 @@ function checkDescriptions(
         `${label} localized descriptions must contain 1-100 characters.`,
       );
 }
-import type { LocalizationMap } from "discord.js";
+import type { Localization } from "discordeno";
+
+type LocalizationMap = Localization;

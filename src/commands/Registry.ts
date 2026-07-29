@@ -1,6 +1,7 @@
 import type { Cmd, CmdType, Entry } from "./Cmd.ts";
 import { checkArgs } from "./Arg.ts";
 import { Catalog } from "./Catalog.ts";
+import { validateRateLimit } from "../core/RateLimit.ts";
 
 export interface Match {
   command: Entry;
@@ -203,6 +204,25 @@ function validate(
   }
 
   checkArgs(command.args);
+  if (command.rateLimit) validateRateLimit(command.rateLimit);
+  if (
+    command.timeout !== undefined &&
+    (!Number.isFinite(command.timeout) || command.timeout < 0)
+  )
+    throw new TypeError(
+      "Command timeouts must be zero or positive milliseconds.",
+    );
+  if (
+    command.concurrency &&
+    (!Number.isInteger(command.concurrency.max) || command.concurrency.max < 1)
+  )
+    throw new TypeError("Command concurrency must be a positive integer.");
+  if (
+    typeof command.autoDefer === "object" &&
+    command.autoDefer.after !== undefined &&
+    (!Number.isFinite(command.autoDefer.after) || command.autoDefer.after < 0)
+  )
+    throw new TypeError("Command auto-defer delays must be zero or positive.");
 
   if (!command.description.trim() || command.description.length > 100) {
     throw new TypeError(
@@ -278,13 +298,27 @@ function validate(
 }
 
 function tokenize(input: string): string[] {
-  const matches = input.trim().match(/"[^"]*"|'[^']*'|\S+/g) ?? [];
-
-  return matches.map((token) => {
-    const isQuoted =
-      (token.startsWith('"') && token.endsWith('"')) ||
-      (token.startsWith("'") && token.endsWith("'"));
-
-    return isQuoted ? token.slice(1, -1) : token;
-  });
+  const values: string[] = [];
+  let value = "";
+  let quote: "'" | '"' | undefined;
+  let escaped = false;
+  for (const character of input.trim()) {
+    if (escaped) {
+      value += character;
+      escaped = false;
+    } else if (character === "\\") escaped = true;
+    else if (quote) {
+      if (character === quote) quote = undefined;
+      else value += character;
+    } else if (character === "'" || character === '"') quote = character;
+    else if (/\s/.test(character)) {
+      if (value) {
+        values.push(value);
+        value = "";
+      }
+    } else value += character;
+  }
+  if (escaped) value += "\\";
+  if (value) values.push(value);
+  return values;
 }

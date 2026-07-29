@@ -1,11 +1,11 @@
-import type { GuildBasedChannel, Role, User } from "discord.js";
+import type { Channel, Role, User } from "discordeno";
 
 import type { Args } from "./Arg.ts";
 
 export interface ArgLookups {
   user(id: string): User | undefined;
   role(id: string): Role | undefined;
-  channel(id: string): GuildBasedChannel | undefined;
+  channel(id: string): Channel | undefined;
 }
 
 export interface Parsed {
@@ -44,6 +44,28 @@ export function parse(
     if (value === undefined) {
       return { values, issue: `Invalid ${arg.type} value for "${name}".` };
     }
+    if (typeof value === "number" && arg.min !== undefined && value < arg.min)
+      return {
+        values,
+        issue: `Argument "${name}" must be at least ${arg.min}.`,
+      };
+    if (typeof value === "number" && arg.max !== undefined && value > arg.max)
+      return {
+        values,
+        issue: `Argument "${name}" must be at most ${arg.max}.`,
+      };
+    if (
+      typeof value === "string" &&
+      arg.minLength !== undefined &&
+      value.length < arg.minLength
+    )
+      return { values, issue: `Argument "${name}" is too short.` };
+    if (
+      typeof value === "string" &&
+      arg.maxLength !== undefined &&
+      value.length > arg.maxLength
+    )
+      return { values, issue: `Argument "${name}" is too long.` };
 
     values.set(name, value);
     index = lastString ? tokens.length : index + (role?.used ?? 1);
@@ -80,6 +102,12 @@ function read(
       const value = Number(token);
       return Number.isFinite(value) ? value : undefined;
     }
+    case "integer": {
+      const value = Number(token);
+      return Number.isSafeInteger(value) ? value : undefined;
+    }
+    case "attachment":
+      return undefined;
     case "boolean":
       return readBoolean(token);
     case "user":

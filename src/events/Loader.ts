@@ -1,13 +1,18 @@
 import { resolve } from "node:path";
-import { pathToFileURL } from "node:url";
-import type { Client, ClientEvents } from "discord.js";
+import type { DiscordEvent, DiscordRuntime } from "../core/Discord.ts";
 
-import { scan } from "../core/Files.ts";
+import { moduleUrl, scan } from "../core/Files.ts";
 import { log } from "../core/Log.ts";
 import type { Kyro } from "../Kyro.ts";
+import type { WorkTracker } from "../core/Work.ts";
+import { FrameworkError, type FrameworkErrorHandler } from "../core/Errors.ts";
+import {
+  noInstrumentation,
+  type Instrumentation,
+} from "../core/Instrumentation.ts";
 
 interface LoadedEvt {
-  name: keyof ClientEvents;
+  name: DiscordEvent;
   once?: boolean;
   priority?: number;
   when?(...args: unknown[]): boolean | Promise<boolean>;
@@ -16,21 +21,40 @@ interface LoadedEvt {
 }
 
 interface Listener {
-  name: keyof ClientEvents;
+  name: DiscordEvent;
   run(...args: unknown[]): void;
 }
 
 export class Loader {
-  readonly #client: Client;
+  readonly #runtime: DiscordRuntime;
   readonly #bot: Kyro | undefined;
   readonly #directory: string;
   readonly #listeners: Listener[] = [];
   #loaded = false;
+  #loads = 0;
+  readonly #work?: WorkTracker;
+  readonly #onError?: FrameworkErrorHandler;
+  readonly #instrumentation: Instrumentation;
+  public get size(): number {
+    return this.#listeners.length;
+  }
 
-  public constructor(client: Client, directory: string, bot?: Kyro) {
-    this.#client = client;
+  public constructor(
+    runtime: DiscordRuntime,
+    directory: string,
+    bot?: Kyro,
+    options: {
+      work?: WorkTracker;
+      onError?: FrameworkErrorHandler;
+      instrumentation?: Instrumentation;
+    } = {},
+  ) {
+    this.#runtime = runtime;
     this.#bot = bot;
     this.#directory = resolve(directory);
+    this.#work = options.work;
+    this.#onError = options.onError;
+    this.#instrumentation = options.instrumentation ?? noInstrumentation;
   }
 
   public async load(): Promise<void> {
@@ -39,7 +63,7 @@ export class Loader {
     const events: LoadedEvt[] = [];
 
     for (const file of await scan(this.#directory)) {
-      const module = (await import(pathToFileURL(file).href)) as {
+      const module = (await import(moduleUrl(file, this.#loads > 0))) as {
         default?: unknown;
       };
 
@@ -63,11 +87,12 @@ export class Loader {
     for (const event of events) this.#listen(event);
 
     this.#loaded = true;
+    this.#loads += 1;
   }
 
   public unload(): void {
     for (const event of this.#listeners) {
-      this.#client.off(event.name, event.run as never);
+      this.#runtime.off(event.name, event.run as never);
     }
 
     this.#listeners.length = 0;
@@ -82,25 +107,33 @@ export class Loader {
       if (done || (event.once && checking)) return;
       if (event.once) checking = true;
 
-      void (async () => {
+      const execute = async () => {
+        const span = this.#instrumentation.start("kyro.event", {
+          event: String(event.name),
+        });
+        let failure: unknown;
         try {
           if (event.when && !(await event.when(...args))) return;
 
           if (event.once) {
             done = true;
-            this.#client.off(event.name, run as never);
+            this.#runtime.off(event.name, run as never);
           }
 
           await event.run(...args, ...(this.#bot ? [this.#bot] : []));
         } catch (error) {
+          failure = error;
           await this.#error(event, error, args);
         } finally {
           checking = false;
+          span.end(failure);
         }
-      })();
+      };
+      if (this.#work) void this.#work.run(execute).catch(() => undefined);
+      else void execute();
     };
 
-    this.#client.on(event.name, run as never);
+    this.#runtime.on(event.name, run as never);
     this.#listeners.push({ name: event.name, run });
   }
 
@@ -110,7 +143,14 @@ export class Loader {
     args: unknown[],
   ): Promise<void> {
     if (!event.error) {
-      log.error(`Event "${String(event.name)}" failed.`, error);
+      const wrapped = new FrameworkError({
+        phase: "event",
+        route: String(event.name),
+        cause: error,
+      });
+      if (this.#onError)
+        await Promise.resolve(this.#onError(wrapped)).catch(() => undefined);
+      else log.error(wrapped.message, error);
       return;
     }
 

@@ -3,6 +3,8 @@ import type { Kyro } from "../Kyro.ts";
 export interface Plugin {
   name: string;
   version?: string;
+  requires?: readonly string[];
+  kyro?: string;
   setup(kyro: Kyro): void | Promise<void>;
   stop?(kyro: Kyro): void | Promise<void>;
 }

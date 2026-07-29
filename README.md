@@ -1,214 +1,332 @@
 # Kyro
 
-Kyro is a TypeScript framework built on top of Discord.js. It removes the repetitive parts of building a Discord bot while keeping Discord.js available whenever you need it.
+Kyro is a production-oriented TypeScript framework built natively on [Discordeno](https://discordeno.js.org/). It provides file-based and programmatic commands, typed events, component and modal routing, middleware, plugins, dependency-injected services, PostgreSQL integration, modern Discord UI payloads, and deterministic startup, reload, and shutdown behavior.
 
-It provides file-based commands, events and components, message and slash command routing, argument parsing, permissions, cooldowns, middleware, modern Discord UI builders, plugins, PostgreSQL integration and graceful shutdown.
+Kyro owns its framework abstractions and routing. It does not wrap or emulate discord.js. Discordeno remains available through `kyro.client` whenever an application needs direct REST, gateway, or helper access.
+
+## Contents
+
+- [Requirements](#requirements)
+- [Discord application setup](#discord-application-setup)
+- [Create a bot](#create-a-bot)
+- [Configuration reference](#configuration-reference)
+- [Project layout and file loaders](#project-layout-and-file-loaders)
+- [Commands](#commands)
+- [Middleware, permissions, and errors](#middleware-permissions-and-errors)
+- [Events](#events)
+- [Components and modals](#components-and-modals)
+- [UI helpers](#ui-helpers)
+- [Services and plugins](#services-and-plugins)
+- [Database](#database)
+- [Lifecycle and reloading](#lifecycle-and-reloading)
+- [Direct Discordeno access](#direct-discordeno-access)
+- [Deployment](#deployment)
+- [Migration from discord.js](#migration-from-discordjs)
+- [Troubleshooting](#troubleshooting)
 
 ## Requirements
 
-- [Bun](https://bun.sh/) or Node.js with a TypeScript build step
-- Discord.js 14.26.5 or newer within major version 14
+- [Bun](https://bun.sh/) 1.3 or newer (recommended), or Node.js 22 or newer
 - TypeScript 5 or newer
 - A Discord application and bot token
+- Discordeno 21, installed automatically with Kyro
 
-Message commands require the `MessageContent` privileged intent to be enabled in the Discord Developer Portal.
+Install Kyro in a new or existing project:
 
-## Installation
-
-From GitHub:
-
-```bash
-bun add github:lucvxc/kyro
+```sh
+bun add @lucvmf/kyro
 ```
 
-For a private repository, use an authenticated Git remote:
+Kyro includes Discordeno. Do not install discord.js.
 
-```bash
-bun add git+ssh://git@github.com/lucvxc/kyro.git
+## Discord application setup
+
+1. Open the [Discord Developer Portal](https://discord.com/developers/applications) and create an application.
+2. Open **Bot**, create the bot user, and reset/copy its token. Treat the token like a password.
+3. Enable only the privileged gateway intents your bot needs. Message and hybrid commands require **Message Content Intent**.
+4. Open **OAuth2 > URL Generator** and select the `bot` and `applications.commands` scopes.
+5. Select the permissions your bot needs, copy the generated URL, and invite the bot to a development server.
+6. Copy the application ID from **General Information**. To copy a server ID, enable Developer Mode in Discord and use **Copy Server ID**.
+
+Use a development guild while building. Guild commands update almost immediately; global command updates can take longer to appear.
+
+Create a `.env` file and keep it out of source control:
+
+```dotenv
+DISCORD_TOKEN=your_bot_token
+DISCORD_APP_ID=123456789012345678
+DISCORD_GUILD_ID=123456789012345678
 ```
 
-Install Discord.js in the bot project as well:
+## Create a bot
 
-```bash
-bun add discord.js
+The smallest working project needs a package file, TypeScript configuration, and entry point.
+
+`package.json`:
+
+```json
+{
+  "type": "module",
+  "scripts": {
+    "dev": "bun --watch src/bot.ts",
+    "start": "bun src/bot.ts",
+    "check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@lucvmf/kyro": "latest"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "^5"
+  }
+}
 ```
 
-## Quick start
+`tsconfig.json`:
+
+```json
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "skipLibCheck": true,
+    "types": ["bun"]
+  },
+  "include": ["src"]
+}
+```
+
+`src/bot.ts`:
 
 ```ts
-// index.ts
-import { GatewayIntentBits, Partials } from "discord.js";
+import { GatewayIntents } from "discordeno";
 import { Kyro } from "@lucvmf/kyro";
 
+const token = process.env.DISCORD_TOKEN;
+const appID = process.env.DISCORD_APP_ID;
+const guildID = process.env.DISCORD_GUILD_ID;
+
+if (!token || !appID) {
+  throw new Error("DISCORD_TOKEN and DISCORD_APP_ID are required.");
+}
+
 const bot = new Kyro({
-  token: process.env.DISCORD_TOKEN!,
-  appID: process.env.DISCORD_APP_ID!,
-  intents: [
-    GatewayIntentBits.Guilds,
-    GatewayIntentBits.GuildMessages,
-    GatewayIntentBits.MessageContent,
-  ],
-  partials: [Partials.Channel],
+  token,
+  appID,
+  guildID,
+  sync: guildID ? "guild" : "global",
+  intents: GatewayIntents.Guilds,
   commands: `${import.meta.dir}/commands`,
   events: `${import.meta.dir}/events`,
   components: `${import.meta.dir}/components`,
-  prefix: ",",
-  sync: "global",
-  help: true,
+  hooks: {
+    afterStart: (kyro) => {
+      console.info(`Connected as ${kyro.client.id}.`);
+    },
+  },
 });
 
 await bot.start();
 ```
 
+Create `src/commands/ping.ts`:
+
 ```ts
-// commands/ping.ts
 import { cmd } from "@lucvmf/kyro";
 
 export default cmd({
   name: "ping",
-  description: "Check the bot latency.",
-  type: "hybrid",
-  async run(ctx) {
-    await ctx.reply(`Pong! ${ctx.client.ws.ping}ms`);
-  },
+  description: "Check whether the bot is responding.",
+  run: (ctx) => ctx.reply("Pong!"),
 });
 ```
 
-Run the bot:
+Start the bot:
 
-```bash
-bun run index.ts
+```sh
+bun run dev
 ```
 
-Kyro loads every default export below the configured directories. Files can be nested however you prefer; command names and categories come from command metadata, not file paths.
+The command should appear in the configured development server. An executable programmatic example also lives in [`examples/bot.ts`](./examples/bot.ts).
 
-## Project structure
+## Configuration reference
 
-```text
-my-bot/
-├─ commands/
-│  ├─ info/
-│  │  └─ ping.ts
-│  └─ moderation/
-│     └─ ban.ts
-├─ components/
-│  └─ confirm.ts
-├─ events/
-│  └─ ready.ts
-└─ index.ts
-```
-
-## Configuration
-
-`new Kyro(options)` accepts a flat object, or separate `client` and `config` objects.
-
-| Option        | Purpose                                                      |
-| ------------- | ------------------------------------------------------------ |
-| `token`       | Discord bot token. Required.                                 |
-| `appID`       | Discord application ID. Required.                            |
-| `intents`     | Discord gateway intents. Required.                           |
-| `partials`    | Discord.js partials.                                         |
-| `presence`    | Initial Discord presence.                                    |
-| `commands`    | Absolute path to the command directory.                      |
-| `events`      | Absolute path to the event directory.                        |
-| `components`  | Absolute path to the component directory.                    |
-| `prefix`      | Message prefix or an async prefix function. Defaults to `!`. |
-| `getAlias`    | Looks up a custom command alias for a guild.                 |
-| `cooldown`    | Default command/component cooldown in seconds.               |
-| `sync`        | `global`, `guild`, or `none`. Defaults to global.            |
-| `guildID`     | Development guild used by `sync: "guild"`.                   |
-| `guilds`      | Guild restrictions used by command registration.             |
-| `help`        | Adds Kyro's default help command.                            |
-| `ownerIDs`    | User IDs allowed to use framework owner commands.            |
-| `middleware`  | Middleware applied to every command.                         |
-| `plugins`     | Plugin objects or plugin directory paths.                    |
-| `permissions` | Custom permission resolver.                                  |
-| `replies`     | Custom framework reply builders.                             |
-| `onError`     | Central command error callback.                              |
-| `database`    | A Kyro `DrizzleDB` instance.                                 |
-| `onStop`      | Async cleanup called during shutdown.                        |
-
-Kyro disables automatic mentions by default. It uses `allowedMentions: { parse: [], repliedUser: false }` unless you explicitly override those settings.
-
-### Dynamic prefixes
+`new Kyro(options)` accepts one flat object, as shown above. For applications that prefer separation, Discord connection fields may be placed under `client` and framework fields under `config`.
 
 ```ts
 const bot = new Kyro({
-  // client options...
-  prefix: async (message) => getGuildPrefix(message.guildId),
+  client: {
+    token,
+    appID,
+    intents: GatewayIntents.Guilds,
+  },
+  config: {
+    commands: `${import.meta.dir}/commands`,
+    sync: "guild",
+    guildID,
+  },
+  onError: (error, ctx) => console.error(ctx.command.name, error),
 });
 ```
 
-### Command synchronization
+### Discord connection options
 
-- `global` publishes slash commands globally.
-- `guild` publishes commands to `guildID` for fast development updates.
-- `none` loads commands locally without contacting Discord's command API.
+| Option     | Type                       | Description                                                              |
+| ---------- | -------------------------- | ------------------------------------------------------------------------ |
+| `token`    | `string`                   | Required Discord bot token.                                              |
+| `appID`    | `string`                   | Required Discord application ID. Configuration IDs remain strings.       |
+| `intents`  | `GatewayIntents`           | Required Discordeno gateway intent bitfield. Combine intents with `\|`.  |
+| `gateway`  | Discordeno gateway options | Advanced gateway manager overrides. Kyro supplies the token and intents. |
+| `rest`     | Discordeno REST options    | Advanced REST manager overrides. Kyro supplies the token.                |
+| `presence` | Discordeno status update   | Initial activities and status.                                           |
 
-Use guild synchronization while developing and global synchronization in production.
+Example intents for slash, guild-message, and DM-message commands:
+
+```ts
+const intents =
+  GatewayIntents.Guilds |
+  GatewayIntents.GuildMessages |
+  GatewayIntents.DirectMessages |
+  GatewayIntents.MessageContent;
+```
+
+Request the smallest set of intents your application needs. Privileged intents must also be enabled in the Developer Portal.
+
+### Framework options
+
+| Option                | Default       | Description                                                                            |
+| --------------------- | ------------- | -------------------------------------------------------------------------------------- |
+| `commands`            | none          | Absolute directory containing command modules.                                         |
+| `events`              | none          | Absolute directory containing event modules.                                           |
+| `components`          | none          | Absolute directory containing component/modal modules.                                 |
+| `sync`                | `"global"`    | Command registration strategy: `"global"`, `"guild"`, or `"none"`.                     |
+| `guildID`             | none          | Development guild used by `sync: "guild"`. Required for guild sync.                    |
+| `guilds`              | `[]`          | Restricts registration to an explicit list of guild IDs where supported.               |
+| `prefix`              | `"!"`         | Message prefix, an async prefix resolver, or multiple prefixes returned by a resolver. |
+| `getAlias`            | none          | Async application-specific alias lookup for message input.                             |
+| `cooldown`            | `0`           | Global command/component cooldown in seconds. Zero disables it.                        |
+| `help`                | `false`       | Adds Kyro's generated message help command.                                            |
+| `middleware`          | `[]`          | Global command middleware, in declaration order.                                       |
+| `plugins`             | `[]`          | Plugin objects or absolute plugin module paths.                                        |
+| `ownerIDs`            | `[]`          | Application owner IDs used by owner-only framework functionality.                      |
+| `permissions`         | none          | Custom fallback resolver for missing user permissions.                                 |
+| `replies`             | defaults      | Overrides framework-generated command responses.                                       |
+| `onError`             | logger        | Global unexpected command error handler.                                               |
+| `database`            | none          | A Kyro `DrizzleDB` connection, closed during shutdown.                                 |
+| `services`            | none          | Iterable of `[token, instance]` dependency entries.                                    |
+| `hooks`               | none          | Lifecycle callbacks.                                                                   |
+| `onStop`              | none          | Additional shutdown callback retained for compatibility.                               |
+| `logger`              | console       | Structured logger implementation.                                                      |
+| `onFrameworkError`    | logger        | Receives normalized framework failures and metadata.                                   |
+| `rateLimit`           | none          | Default adapter-backed rate-limit policy.                                              |
+| `autoDefer`           | `false`       | Automatically acknowledges long-running interactions.                                  |
+| `timeout`             | `30000`       | Default handler abort timeout in milliseconds.                                         |
+| `shutdownTimeout`     | `10000`       | Maximum time to drain active work.                                                     |
+| `componentMiddleware` | `[]`          | Global component and modal middleware.                                                 |
+| `groupMiddleware`     | `{}`          | Middleware keyed by command category or root.                                          |
+| `messages`            | safe mentions | Default allowed-mention policy.                                                        |
+| `instrumentation`     | no-op         | Trace/span adapter suitable for OpenTelemetry.                                         |
+| `syncRetries`         | `2`           | Command-registration retry count.                                                      |
+| `syncLock`            | none          | Optional distributed synchronization lock.                                             |
+
+Paths passed to loaders should be absolute. With Bun, `` `${import.meta.dir}/commands` `` is the simplest portable choice.
+
+## Project layout and file loaders
+
+A typical application looks like this:
+
+```text
+src/
+  bot.ts
+  commands/
+    ping.ts
+    profile/
+      avatar.ts
+  components/
+    profile-edit.ts
+    profile-modal.ts
+  events/
+    ready.ts
+    message-create.ts
+  plugins/
+    metrics.ts
+```
+
+Loader modules should default-export the relevant `cmd()`, `cmp()`, or `evt()` definition. Nested directories are supported. The module filename is organizational; the definition's `name` or `id` controls routing.
+
+Commands can also be registered before startup without a loader:
+
+```ts
+bot.command(
+  cmd({
+    name: "ping",
+    description: "Check the bot.",
+    run: (ctx) => ctx.reply("Pong!"),
+  }),
+);
+```
 
 ## Commands
 
-Commands are created with `cmd()` and exported as the file's default export.
+`cmd()` defines slash, message, or hybrid commands:
+
+- `slash` is the default and registers an application command.
+- `message` listens for prefixed messages only.
+- `hybrid` supports both sources with one handler.
 
 ```ts
 import { cmd } from "@lucvmf/kyro";
 
 export default cmd({
-  name: "avatar",
+  name: "profile avatar",
   description: "Show a user's avatar.",
   type: "hybrid",
-  aliases: ["av", "pfp"],
-  category: "info",
-  context: "both",
-  syntax: "avatar [user]",
-  example: "avatar @June",
+  aliases: ["avatar", "pfp"],
+  context: "guild",
+  category: "Profile",
+  syntax: "profile avatar [user]",
+  example: "profile avatar @Kyro",
   args: {
     user: {
       type: "user",
-      description: "The user to display.",
+      description: "User to show.",
+      required: false,
     },
   },
   async run(ctx) {
     const user = ctx.user("user") ?? ctx.author;
-    await ctx.reply(user.displayAvatarURL({ size: 1024 }));
+    await ctx.reply(`Selected <@${user.id}>`);
   },
 });
 ```
 
-### Command types
+Names containing spaces compile to slash subcommands and use the same route for message commands. For example, `profile avatar` becomes `/profile avatar` and `!profile avatar`.
 
-| Type      | Behavior                                                  |
-| --------- | --------------------------------------------------------- |
-| `slash`   | Registered with Discord and used only as a slash command. |
-| `message` | Used only through the configured message prefix.          |
-| `hybrid`  | Available as both a slash and message command.            |
+### Command definition
 
-The default type is `hybrid`.
-
-### Subcommands
-
-Use spaces in the command name. Kyro compiles the path into Discord slash subcommands and matches the same path for message commands.
-
-```ts
-export default cmd({
-  name: "prefix set",
-  description: "Change the server prefix.",
-  type: "hybrid",
-  context: "guild",
-  args: {
-    prefix: { type: "string", description: "The new prefix.", required: true },
-  },
-  async run(ctx) {
-    await savePrefix(ctx.guild!.id, ctx.string("prefix")!);
-    await ctx.reply("The prefix has been updated.");
-  },
-});
-```
+| Field                                           | Description                                                   |
+| ----------------------------------------------- | ------------------------------------------------------------- |
+| `name`                                          | Command route. Space-separated names create subcommand paths. |
+| `description`                                   | Discord command description.                                  |
+| `type`                                          | `"slash"`, `"message"`, or `"hybrid"`; defaults to slash.     |
+| `aliases`                                       | Alternative message-command names.                            |
+| `args`                                          | Ordered argument definition object.                           |
+| `context`                                       | `"both"`, `"guild"`, or `"dms"`.                              |
+| `permissions`                                   | Discord permission names required from the invoking member.   |
+| `botPermissions`                                | Discord permission names required by the bot.                 |
+| `guilds`                                        | Guild allowlist for the command.                              |
+| `category`, `syntax`, `example`                 | Help/catalog metadata.                                        |
+| `nameLocalizations`, `descriptionLocalizations` | Discord localization maps.                                    |
+| `meta`                                          | Read-only application metadata.                               |
+| `autocomplete`                                  | Autocomplete handler for arguments that enable it.            |
+| `run`                                           | Command handler.                                              |
 
 ### Arguments
 
-Supported argument types are `string`, `number`, `boolean`, `user`, `role`, and `channel`.
+Supported types are `string`, `number`, `integer`, `boolean`, `user`, `role`, `channel`, and `attachment`. Strings support `minLength`/`maxLength`, numbers support `min`/`max`, and channels support `channelTypes`.
 
 ```ts
 args: {
@@ -223,146 +341,141 @@ args: {
   },
   amount: {
     type: "number",
-    description: "How many times.",
+    description: "Amount to use.",
     default: 1,
   },
 }
 ```
 
-Read arguments with the matching context method:
+Required arguments must be declared before optional arguments. Defaults are supported for string, number, and boolean arguments. An argument cannot use both `choices` and `autocomplete`.
+
+Read values with the matching context accessor:
 
 ```ts
-ctx.string("name");
-ctx.number("amount");
-ctx.boolean("enabled");
-ctx.user("user");
-ctx.role("role");
-ctx.channel("channel");
+const action = ctx.string("action");
+const amount = ctx.number("amount");
+const enabled = ctx.boolean("enabled");
+const user = ctx.user("user");
+const role = ctx.role("role");
+const channel = ctx.channel("channel");
 ```
 
-Required arguments must appear before optional arguments. Choices and autocomplete are supported only by string and number arguments and cannot be enabled together.
+Accessors return `null` when an optional value is absent. They throw if the named argument is missing from the command definition or has a different type, catching handler mistakes early.
 
 ### Autocomplete
 
+Autocomplete is available for string and number arguments:
+
 ```ts
 export default cmd({
-  name: "timezone set",
-  description: "Set your timezone.",
+  name: "search",
+  description: "Search the catalog.",
   args: {
-    timezone: {
+    query: {
       type: "string",
-      description: "Your timezone.",
+      description: "Search term.",
       required: true,
       autocomplete: true,
     },
   },
-  autocomplete(ctx) {
-    return findTimezones(ctx.focused).map((zone) => ({
-      name: zone,
-      value: zone,
-    }));
+  autocomplete: (ctx) => {
+    const input = ctx.value.toLowerCase();
+    return catalog
+      .filter((item) => item.toLowerCase().includes(input))
+      .slice(0, 25)
+      .map((item) => ({ name: item, value: item }));
   },
-  async run(ctx) {
-    // ...
-  },
+  run: (ctx) => ctx.reply(`Searching for ${ctx.string("query")}`),
 });
 ```
 
-### Permissions and contexts
+Discord accepts at most 25 autocomplete choices.
+
+### Command context
+
+Every handler receives a normalized `Context` with:
+
+- `source`: `"slash"` or `"message"`
+- `author`, `guild`, `guildId`, and `channelId`
+- `interaction` or `message`, with the unused source set to `null`
+- `command`, `commands`, `prefix`, and raw message arguments
+- typed argument accessors
+- `reply(content)` and `send(channel, content)`
+- `defer()`, `deferPrivate()`, `editReply()`, `followUp()`, and `deleteReply()`
+- `showModal(modal)` for slash interactions
+- `response`, when Discord returned a response message
+- lazy `mod`, `server`, `stats`, and `music` service contexts
+- `services`, `service(token)`, and an abort `signal`
+
+Discordeno represents snowflakes on Discord objects as `bigint`. Configuration IDs and environment variables remain strings. Convert only at boundaries:
 
 ```ts
-import { PermissionFlagsBits } from "discord.js";
-
-export default cmd({
-  name: "purge",
-  description: "Delete recent messages.",
-  context: "guild",
-  permissions: [PermissionFlagsBits.ManageMessages],
-  botPermissions: [PermissionFlagsBits.ManageMessages],
-  async run(ctx) {
-    // ...
-  },
-});
+const storedID = ctx.author.id.toString();
+const discordID = BigInt(storedID);
 ```
 
-`context` can be `guild`, `dms`, or `both`. Permission metadata requires a guild command.
+## Middleware, permissions, and errors
 
-### Localization
-
-Commands, descriptions, arguments, and choices accept Discord.js localization maps:
-
-```ts
-nameLocalizations: { "es-ES": "perfil" },
-descriptionLocalizations: { "es-ES": "Muestra tu perfil." },
-```
-
-### The command context
-
-Every command receives a `Context`. Common properties and methods include:
-
-- `ctx.author`, `ctx.guild`, `ctx.client`, `ctx.command`, and `ctx.prefix`
-- `ctx.source`, `ctx.message`, and `ctx.interaction`
-- `ctx.reply(content)` and `ctx.send(channel, content)`
-- `ctx.showModal(modal)`, `ctx.collect()`, `ctx.update()` and `ctx.notice()`
-- `ctx.server`, `ctx.mod`, `ctx.stats`, `ctx.music`, and `ctx.thread`
-- `ctx.userStats()`, `ctx.roleStats()`, `ctx.channelStats()` and `ctx.emojiStats()`
-
-Throw `UserError` for a safe message that should be shown to the user:
-
-```ts
-import { UserError } from "@lucvmf/kyro";
-
-if (!ctx.guild) throw new UserError("This command only works in a server.");
-```
-
-## Middleware
-
-Middleware wraps command execution. Call `next()` to continue.
+Middleware wraps every command and is ideal for timing, tracing, authorization, or application-level checks. Always call `next()` when the command should continue.
 
 ```ts
 import type { Middleware } from "@lucvmf/kyro";
 
-const trackCommands: Middleware = async (ctx, next) => {
+const timing: Middleware = async (ctx, next) => {
   const started = performance.now();
   try {
     await next();
   } finally {
-    console.log(ctx.command.name, performance.now() - started);
+    console.info(ctx.command.name, performance.now() - started);
   }
 };
 
 const bot = new Kyro({
   // ...
-  middleware: [trackCommands],
+  middleware: [timing],
 });
 ```
+
+Declare Discord permissions on commands and components. Kyro checks user and bot permissions before invoking the handler:
+
+```ts
+export default cmd({
+  name: "ban",
+  description: "Ban a member.",
+  context: "guild",
+  permissions: ["BanMembers"],
+  botPermissions: ["BanMembers"],
+  // ...
+});
+```
+
+Use `permissions(ctx, missing)` in the root options to grant application-specific overrides, such as an owner or staff role. Return `true` only when the missing Discord permissions should be bypassed.
+
+Throw `UserError` for expected, safe-to-display failures:
+
+```ts
+import { UserError } from "@lucvmf/kyro";
+
+if (!account) throw new UserError("You do not have an account yet.");
+```
+
+Unexpected failures are sent to the root `onError` handler. Component and event definitions additionally support local `error` handlers. Log the original error, include route/context information, and avoid exposing internal exception text to users.
 
 ## Events
 
-Event files export `evt()` definitions. Event names and arguments are inferred from Discord.js.
+Event names and handler arguments are inferred from Discordeno. Kyro safely supports multiple handlers for the same Discordeno event and executes higher `priority` values first.
+
+`src/events/message-create.ts`:
 
 ```ts
-// events/ready.ts
 import { evt } from "@lucvmf/kyro";
 
-export default evt({
-  name: "clientReady",
-  once: true,
-  run(client) {
-    console.log(`Logged in as ${client.user.username}`);
-  },
-});
-```
-
-Events support priority, async filters, and local error callbacks:
-
-```ts
 export default evt({
   name: "messageCreate",
   priority: 10,
   when: (message) => !message.author.bot,
   async run(message, kyro) {
-    // ...
+    kyro?.client.logger.debug(`Received message ${message.id}.`);
   },
   error(error, message) {
     console.error(`messageCreate failed for ${message.id}`, error);
@@ -370,36 +483,89 @@ export default evt({
 });
 ```
 
-Higher-priority handlers run first. A `once` event is removed only after an event passes its `when` filter.
+Use `once: true` for a handler that should run once. `when` may be synchronous or asynchronous. The optional final `kyro` argument gives loaded event modules access to the application instance.
 
-## Components
+## Components and modals
 
-Component handlers work with buttons, string selects, and modal submissions. IDs can be strings or regular expressions.
+`cmp()` routes button clicks, select interactions, and modal submissions. IDs may be exact strings or regular expressions.
+
+Create a button in a command:
 
 ```ts
-// components/confirm.ts
-import { cmp } from "@lucvmf/kyro";
+import { button, cmd, container } from "@lucvmf/kyro";
+
+export default cmd({
+  name: "profile",
+  description: "Open your profile.",
+  run: (ctx) =>
+    ctx.reply(
+      container()
+        .accent("#5865F2")
+        .text("## Your profile")
+        .row(button({ id: `profile:edit:${ctx.author.id}`, label: "Edit" })),
+    ),
+});
+```
+
+Handle it in `src/components/profile-edit.ts`:
+
+```ts
+import { cmp, modal } from "@lucvmf/kyro";
 
 export default cmp({
-  id: /^confirm:(\d+)$/,
-  context: "guild",
-  cooldown: 2,
+  id: /^profile:edit:\\d+$/,
   async run(ctx) {
-    const targetID = ctx.params[0];
-    await ctx.update(`Confirmed ${targetID}.`);
+    const [, , ownerID] = ctx.params;
+    if (ctx.user.id.toString() !== ownerID) {
+      await ctx.private("This is not your profile.");
+      return;
+    }
+
+    await ctx.showModal(
+      modal({
+        id: `profile:save:${ownerID}`,
+        title: "Edit profile",
+        inputs: [
+          {
+            id: "bio",
+            label: "Biography",
+            style: "paragraph",
+            max: 500,
+          },
+        ],
+      }),
+    );
   },
 });
 ```
 
-The component context provides:
+Handle the submitted modal in another component module:
 
-- `ctx.id`, `ctx.params`, `ctx.values`, `ctx.user`, `ctx.guild`, and `ctx.server`
-- `ctx.reply()`, `ctx.private()`, `ctx.update()`, `ctx.defer()`, and `ctx.showModal()`
-- Modal readers: `field()`, `strings()`, `channelIds()`, `files()`, `radio()`, `checkbox()`, and `checks()`
+```ts
+import { cmp } from "@lucvmf/kyro";
 
-Components support the same guild context and permission checks as commands.
+export default cmp({
+  id: /^profile:save:\\d+$/,
+  async run(ctx) {
+    const bio = ctx.field("bio") ?? "";
+    await ctx.private(`Saved ${bio.length} characters.`);
+  },
+});
+```
 
-## Embeds and Components V2
+Component contexts provide:
+
+- `id` and colon-separated `params`
+- `user`, `guild`, and raw `interaction`
+- select `values`
+- modal helpers: `field()`, `strings()`, `channelIds()`, and `files()`
+- `reply()`, ephemeral `private()`, message `update()`, `defer()`, and `showModal()`
+
+Definitions support `context`, member and bot permissions, per-component cooldowns, and a local `error(error, ctx)` handler.
+
+## UI helpers
+
+Kyro's UI helpers create Discord API payloads directly and do not use discord.js builders.
 
 ### Embeds
 
@@ -407,255 +573,378 @@ Components support the same guild context and permission checks as commands.
 import { embed } from "@lucvmf/kyro";
 
 await ctx.reply(
-  embed({
-    title: "Server information",
-    description: "Everything is online.",
-    color: "#5865f2",
-    thumbnail: ctx.guild?.iconURL() ?? undefined,
-    fields: [
-      { name: "Members", value: String(ctx.guild?.memberCount), inline: true },
-    ],
-    timestamp: true,
-  }),
+  embed()
+    .title("Account")
+    .desc("Your account is ready.")
+    .color("#57F287")
+    .field("Plan", "Pro", true)
+    .footer("Kyro")
+    .time(),
 );
 ```
 
-The chainable API is also available:
-
-```ts
-embed().title("Result").desc("Done.").color("Green").footer("June").time();
-```
-
-### Containers
+### Components V2 containers
 
 ```ts
 import { button, container, select, thumb } from "@lucvmf/kyro";
 
-const card = container()
-  .accent("#5865f2")
-  .section("# Profile\nChoose an action below.", thumb(user.displayAvatarURL()))
-  .separator()
-  .row(
-    button({ id: `profile:edit:${user.id}`, label: "Edit" }),
-    button({ url: "https://example.com", label: "Website" }),
-  )
-  .row(
-    select({
-      id: "profile:section",
-      placeholder: "Choose a section",
-      options: [
-        { label: "Overview", value: "overview" },
-        { label: "History", value: "history" },
-      ],
-    }),
-  );
-
-await ctx.reply(card);
-```
-
-Containers support text, sections, thumbnails, buttons, selects, separators, galleries and file attachments.
-
-### Modals
-
-```ts
-import { modal } from "@lucvmf/kyro";
-
-await ctx.showModal(
-  modal({
-    id: "profile:edit",
-    title: "Edit profile",
-    inputs: [
-      {
-        id: "bio",
-        label: "Biography",
-        style: "paragraph",
-        max: 500,
-      },
-      {
-        type: "checkbox",
-        id: "public",
-        label: "Public profile",
-        default: true,
-      },
-    ],
-  }),
+await ctx.reply(
+  container()
+    .accent("#5865F2")
+    .text("## Settings")
+    .section("Update your preferences.", thumb("https://example.com/icon.png"))
+    .separator()
+    .row(
+      select({
+        id: "settings:theme",
+        placeholder: "Choose a theme",
+        options: [
+          { label: "Dark", value: "dark" },
+          { label: "Light", value: "light" },
+        ],
+      }),
+    )
+    .row(button({ id: "settings:save", label: "Save", style: "success" })),
 );
 ```
 
-Kyro supports text fields, displayed text, string/user/role/channel/mentionable selects, file uploads, radio groups, checkboxes, and checkbox groups.
+Containers support text, sections, separators, galleries, files, and action rows. `button()`, `select()`, `modal()`, `input()`, `row()`, and `thumb()` can also be composed directly where their payload type is accepted.
 
-## Cached stores
+Kyro disables automatic mentions in its normalized message helpers. This avoids accidentally pinging users or roles when rendering stored or user-supplied content.
 
-`store()` combines async persistence with an in-memory TTL/LRU cache and deduplicates simultaneous reads.
+## Services and plugins
+
+Use `kyro.services` for application dependencies instead of module globals. Tokens may be classes, strings, or symbols.
 
 ```ts
-import { store } from "@lucvmf/kyro";
+class Accounts {
+  async find(userID: bigint) {
+    // ...
+  }
 
-const prefixes = store<string, string>({
-  ttl: 60_000,
-  max: 10_000,
-  async load(guildID) {
-    return (await readPrefix(guildID)) ?? ",";
-  },
-  async save(guildID, prefix) {
-    await writePrefix(guildID, prefix);
-  },
+  async dispose() {
+    // Close owned resources.
+  }
+}
+
+const accounts = new Accounts();
+const bot = new Kyro({
+  // ...
+  services: [[Accounts, accounts]],
 });
 
-await prefixes.get(guildID);
-await prefixes.set(guildID, "!");
-await prefixes.update(guildID, () => "?");
-prefixes.delete(guildID);
+const service = bot.services.get(Accounts);
+bot.services.set(Symbol.for("metrics"), metrics);
+bot.services.replace(Accounts, replacement);
+bot.services.optional(Accounts);
 ```
 
-Use `prime()` to seed a value and `clear()` to invalidate the whole cache.
+Duplicate registration through `set()` is rejected. Services implementing `dispose()` are closed once in reverse registration order during shutdown.
 
-## PostgreSQL and Drizzle
+Plugins package related setup and teardown:
 
-Kyro can own a PostgreSQL connection and close it automatically during shutdown.
+```ts
+import { plugin } from "@lucvmf/kyro";
+
+export default plugin({
+  name: "metrics",
+  version: "1.0.0",
+  setup(kyro) {
+    kyro.services.set("metrics", createMetrics());
+  },
+  async stop(kyro) {
+    await kyro.services.optional<Metrics>("metrics")?.flush();
+  },
+});
+```
+
+Pass plugin objects or absolute module paths in `plugins`. Plugins may register commands and services through the same Kyro instance. They participate in startup, reload, and shutdown.
+
+## Database
+
+Kyro provides a lightweight PostgreSQL/Drizzle connection wrapper:
 
 ```ts
 import { drizzle, Kyro } from "@lucvmf/kyro";
 import * as schema from "./db/schema.ts";
 
-const database = drizzle(process.env.DATABASE_URL!, { schema });
+const databaseURL = process.env.DATABASE_URL;
+if (!databaseURL) throw new Error("DATABASE_URL is required.");
+
+const database = drizzle(databaseURL, { schema });
 
 const bot = new Kyro({
   // ...
   database,
 });
 
-const rows = await database.db.query.users.findMany();
+const rows = await bot.db?.db.query.users.findMany();
 ```
 
-You remain responsible for defining the schema and running migrations.
+Kyro closes the connection during graceful shutdown. Schema migrations remain the application's responsibility; use the standard Drizzle tooling in development and deployment.
 
-## Plugins
+## Lifecycle and reloading
 
-```ts
-import { plugin } from "@lucvmf/kyro";
-
-const metrics = plugin({
-  name: "metrics",
-  version: "1.0.0",
-  setup(kyro) {
-    console.log(`Tracking ${kyro.client.user?.username ?? "bot"}`);
-  },
-  async stop() {
-    await flushMetrics();
-  },
-});
-```
-
-Add the plugin object to `plugins`, or provide a directory containing default-exported plugins. Plugins load in order and stop in reverse order. If setup fails, Kyro rolls back plugins that already started.
-
-## NodeLink music
-
-Kyro includes an optional Moonlink/NodeLink music plugin.
-
-```ts
-import { Kyro, nodelink } from "@lucvmf/kyro";
-
-const bot = new Kyro({
-  // ...
-  plugins: [
-    nodelink({
-      nodes: [
-        {
-          host: "127.0.0.1",
-          port: 2333,
-          password: "youshallnotpass",
-          secure: false,
-        },
-      ],
-    }),
-  ],
-});
-```
-
-Commands can then use `ctx.music`; the running framework exposes the same integration through `bot.music`.
-
-## Lifecycle and shutdown
-
-```ts
-await bot.start();
-await bot.reload();
-await bot.stop();
-```
-
-`start()` loads commands, events, components and plugins before logging into Discord. After login, Kyro synchronizes slash commands according to `sync`.
-
-`reload()` reloads file-based commands, events, components and plugins, then synchronizes commands again.
-
-`stop()` runs `onStop`, detaches routers, unloads events and plugins, destroys the Discord client, and closes the configured database. Kyro automatically calls it on `SIGINT` and `SIGTERM`.
-
-Use `onStop` for resources outside Kyro's ownership:
+Lifecycle hooks make startup and shutdown work explicit:
 
 ```ts
 const bot = new Kyro({
   // ...
-  async onStop() {
-    await api.stop();
-    await queue.close();
+  hooks: {
+    beforeLoad: async (kyro) => {},
+    afterLoad: async (kyro) => {},
+    beforeStart: async (kyro) => {},
+    afterStart: async (kyro) => {},
+    beforeStop: async (kyro) => {},
+    afterStop: async (kyro) => {},
+    afterReload: async (kyro) => {},
   },
 });
 ```
 
-## Error handling
+Startup order:
 
-Use `UserError` for expected input failures. Use `onError` for centralized logging and custom responses for unexpected failures.
+1. `beforeLoad`
+2. Load commands, events, components, and plugins
+3. Validate command requirements and seal the registry
+4. Attach routers
+5. `afterLoad`, then `beforeStart`
+6. Connect Discordeno and wait for the ready event
+7. Synchronize application commands unless `sync` is `"none"`
+8. `afterStart`
+
+`await bot.reload()` detaches routers, reloads definitions and plugins, reseals the registry, synchronizes commands, and invokes `afterReload`. The bot must already be ready.
+
+`await bot.stop()` runs shutdown once, detaches routing, unloads plugins, closes the database, disposes services, and invokes stop hooks. `SIGINT` and `SIGTERM` use the same graceful path.
+
+## Direct Discordeno access
+
+Kyro deliberately keeps an escape hatch for platform features that do not need framework abstractions:
 
 ```ts
-const bot = new Kyro({
-  // ...
-  async onError(error, ctx) {
-    console.error(`Command ${ctx.command.name} failed`, error);
-    await ctx.reply("Something went wrong while running that command.");
-  },
+await bot.client.helpers.sendMessage(channelID, {
+  content: "Sent directly through Discordeno.",
 });
 ```
 
-Components and events can define their own `error` callbacks close to the failing behavior.
+- `kyro.client` is the Discordeno `Bot`.
+- `kyro.client.helpers` contains typed Discord REST helpers.
+- `kyro.client.rest` provides lower-level REST access.
+- `kyro.client.gateway` provides gateway, shard, status, and voice operations.
+- `kyro.runtime` is Kyro's typed multi-listener event boundary.
 
-## Framework utilities
+Guild administration helpers are Discordeno-native and use explicit dependencies:
 
-Kyro also exports focused helpers for common Discord bot work:
+```ts
+import { BotProfile, Server } from "@lucvmf/kyro";
 
-- `duration`, `time`, and `unix` for time formatting
-- `compact`, `fill`, `groups`, `mention`, and `codes` for text formatting
-- `dominant` for extracting an image's dominant color
-- `findRole` and `audit` for guild lookup and audit logs
-- `BotProfile`, `GuildStats`, `ChannelStats`, `EmojiStats`, `RoleStats`, and `UserStats`
-- `Cache`, `Store`, `Limit`, and `Shards`
-- `CommandLoader`, `compileSlash`, `Registry`, and `Catalog` for advanced tooling
+const guildID = BigInt(process.env.DISCORD_GUILD_ID!);
+const server = new Server(bot.client, guildID);
+const profile = new BotProfile(bot.client, guildID);
+```
 
-## Intents
+## Deployment
 
-Kyro validates the intents required by loaded commands:
+Before deploying, run the release gate:
 
-- Message and hybrid guild commands require `GuildMessages` and `MessageContent`.
-- Message and hybrid DM commands require `DirectMessages` and the `Channel` partial.
-- Your events and features may require additional Discord intents.
-
-Declare only the intents your bot actually uses.
-
-## Development
-
-```bash
-bun install
+```sh
 bun run check
 bun test
 bun run build
 ```
 
-Run formatting checks with:
+For an application using Kyro, a simple production script can run the TypeScript entry point with Bun:
 
-```bash
-bun run format:check
+```sh
+bun src/bot.ts
 ```
 
-The test suite covers command registration and parsing, guards, middleware-facing behavior, events, components, UI, stores, music, plugins, status spoofing, shutdown, and the framework/package boundary.
+Production recommendations:
 
-## License
+- Store tokens and database URLs in your host's secret manager, never in Git.
+- Use `sync: "guild"` in development and `sync: "global"` for production commands.
+- Use `sync: "none"` only when another deployment step owns command registration.
+- Enable only required gateway intents and Discord permissions.
+- Configure `onError` and lifecycle hooks to feed structured logs or monitoring.
+- Let the process receive `SIGTERM` so Kyro can close plugins, services, and the database cleanly.
+- Run one command synchronization owner during multi-instance deployments to avoid redundant registration.
 
-Kyro is available under the MIT License.
+## Migration from discord.js
+
+The command, event, component, plugin, and loader concepts remain intact. Platform-level changes are intentional:
+
+| discord.js                      | Kyro with Discordeno                                                       |
+| ------------------------------- | -------------------------------------------------------------------------- |
+| `Client`                        | `kyro.client`, a Discordeno `Bot`                                          |
+| `GatewayIntentBits`             | `GatewayIntents`                                                           |
+| String IDs on objects           | `bigint` snowflakes on Discordeno objects                                  |
+| `client.on(...)`                | `evt()` files or `kyro.runtime.on(...)`                                    |
+| Collection/cache-centric access | Discordeno helpers and explicit REST calls                                 |
+| Builder classes                 | Kyro `embed()`, `container()`, `button()`, `modal()`, and raw API payloads |
+| `channel.send(...)`             | `bot.helpers.sendMessage(...)`, `ctx.send(...)`, or Kyro `send(...)`       |
+| Stateful guild wrappers         | Explicit `new Server(bot, guildID)` and related services                   |
+| `ShardingManager` wrappers      | Discordeno gateway manager                                                 |
+| Partials                        | Not applicable; design around Discordeno events and REST helpers           |
+
+Common conversions:
+
+```ts
+// discord.js
+await channel.send("Hello");
+
+// Kyro context
+await ctx.send(channel, "Hello");
+
+// Discordeno directly
+await bot.client.helpers.sendMessage(channel.id, { content: "Hello" });
+```
+
+Do not convert Discordeno objects back into discord.js-like classes. Keep application logic on Kyro contexts/services and use Discordeno helpers at platform boundaries.
+
+## Troubleshooting
+
+### Commands do not appear
+
+- Confirm the invite used both `bot` and `applications.commands` scopes.
+- During development, set `sync: "guild"` and provide the correct `guildID`.
+- Verify `DISCORD_APP_ID` is the application ID, not the bot token or guild ID.
+- Confirm the loader path is absolute and the file default-exports `cmd(...)`.
+- Global command propagation may not be immediate.
+
+### Message commands do not run
+
+- Set the command `type` to `"message"` or `"hybrid"`.
+- Add `GatewayIntents.GuildMessages` and `GatewayIntents.MessageContent`.
+- Enable Message Content Intent in the Developer Portal.
+- For DM commands, also add `GatewayIntents.DirectMessages` and use `context: "both"` or `"dms"`.
+- Confirm the configured prefix matches the message.
+
+### The bot reports missing intents
+
+Kyro validates intents before connecting when loaded commands require them. Add the named intent to the bitfield and, when privileged, enable it in the Developer Portal.
+
+### An ID causes a type error
+
+Environment/configuration IDs are strings. Discordeno object IDs are `bigint`. Use `BigInt(value)` when entering Discordeno APIs and `.toString()` when storing or displaying an ID.
+
+### A component does not respond
+
+- Configure the `components` loader directory.
+- Ensure the component's custom ID matches the `cmp()` string or regular expression.
+- Acknowledge interactions promptly with `reply()`, `private()`, `update()`, or `defer()`.
+- Use `showModal()` only from slash commands, buttons, or selects as allowed by Discord.
+
+### Permission checks fail unexpectedly
+
+Use `context: "guild"` whenever a definition declares member or bot permissions. Confirm the bot's role is high enough in the server role hierarchy; Discord permission bits alone cannot override role hierarchy.
+
+### Shutdown hangs or resources leak
+
+Give resource-owning services a `dispose()` method and plugins a `stop()` method. Await asynchronous work in lifecycle hooks. Allow the process manager to deliver `SIGTERM` before forcing termination.
+
+## Production capabilities
+
+### Scoped middleware, rate limits, and concurrency
+
+Commands may declare `middleware`, `timeout`, `autoDefer`, `concurrency`, and `rateLimit`. Global middleware runs first, followed by matching category/root middleware and command middleware.
+
+```ts
+export default cmd({
+  name: "report create",
+  description: "Create a report.",
+  autoDefer: { after: 2_000, private: true },
+  timeout: 20_000,
+  concurrency: { max: 1, scope: "user" },
+  rateLimit: { limit: 5, window: 60, scope: "guild" },
+  middleware: [requireAccount],
+  async run(ctx) {
+    const accounts = ctx.service(Accounts);
+    await accounts.create(ctx.author.id, { signal: ctx.signal });
+    await ctx.reply("Created.");
+  },
+});
+```
+
+The built-in limiter is process-local. Implement `RateLimitAdapter.consume()` with an atomic Redis operation for multi-process deployments. Implement `SyncLock.run()` with the same shared store so only one process owns application-command synchronization.
+
+### Component ownership and signed IDs
+
+String routes pass their trailing segments through `ctx.params`; regular expressions pass capture groups. Components may enforce ownership before their middleware and handler execute:
+
+```ts
+export default cmp({
+  id: /^invoice:pay:(\d+)$/,
+  owner: (ctx) => ctx.params[0]!,
+  run: (ctx) => ctx.update("Paid."),
+});
+```
+
+`ComponentSigner` produces HMAC-signed custom IDs for controls whose parameters must not be altered. Construct it with a deployment secret of at least 16 characters, call `sign(id)`, and accept a value only when `verify(value)` returns the original ID.
+
+### Logging, errors, tracing, and health
+
+Supply any implementation of Kyro's `Logger` interface. `onFrameworkError` receives a normalized `FrameworkError` with its phase, cause, route, and available user, guild, and interaction IDs. The instrumentation interface starts spans for commands, components, and loaded events and can be backed by OpenTelemetry without adding it as a required dependency.
+
+```ts
+const bot = new Kyro({
+  // ...
+  logger: appLogger,
+  onFrameworkError: (error) => errorReporter.capture(error),
+  instrumentation: tracingAdapter,
+});
+
+console.info(bot.health());
+```
+
+`health()` reports readiness, uptime, loaded definition counts, active handlers, guild count, accumulated errors, and the last successful synchronization. During shutdown Kyro stops accepting work, signals cancellation through `ctx.signal` and `kyro.signal`, drains active handlers up to `shutdownTimeout`, and then disposes plugins, the database, and services.
+
+### Plugin dependencies and scheduling
+
+Plugins may declare `requires` for explicit load ordering and `kyro` for major-version compatibility. The optional `scheduler()` plugin runs named interval tasks and cancels them during shutdown:
+
+```ts
+plugins: [
+  scheduler({
+    name: "refresh-stats",
+    every: 60_000,
+    immediate: true,
+    run: (kyro, signal) => refreshStats(kyro, signal),
+  }),
+];
+```
+
+### CLI and testing harness
+
+The package installs a `kyro` executable:
+
+```sh
+kyro validate src/commands
+kyro generate command admin/ban
+kyro generate event guild-create
+kyro generate component ticket/close
+kyro commands diff src/kyro.ts
+kyro commands sync src/kyro.ts
+```
+
+The sync/diff module must default-export a configured Kyro instance. Validation loads and compiles commands without connecting the gateway.
+
+Use the testing harness for command unit tests without Discord:
+
+```ts
+const app = createTestKyro(pingCommand);
+const result = await app.run("ping");
+expect(result.replies).toEqual(["Pong!"]);
+```
+
+## Development
+
+Kyro's own validation commands are:
+
+```sh
+bun run format:check
+bun run check
+bun test
+bun run build
+```
+
+Contributions should preserve Kyro's public abstractions, keep Discordeno-specific operations at clear platform boundaries, and include focused tests for routing or lifecycle behavior.

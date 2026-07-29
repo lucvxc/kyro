@@ -1,5 +1,6 @@
 import { readdir } from "node:fs/promises";
 import { resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 
 export async function scan(directory: string): Promise<string[]> {
   let entries;
@@ -29,6 +30,12 @@ export async function scan(directory: string): Promise<string[]> {
   }
 
   return files;
+}
+
+export function moduleUrl(file: string, fresh = false): string {
+  const url = pathToFileURL(file);
+  if (fresh) url.searchParams.set("kyro", `${Date.now()}-${Math.random()}`);
+  return url.href;
 }
 
 function isModule(name: string): boolean {

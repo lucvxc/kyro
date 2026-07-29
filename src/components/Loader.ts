@@ -1,12 +1,15 @@
 import { resolve } from "node:path";
-import { pathToFileURL } from "node:url";
-import { scan } from "../core/Files.ts";
+import { moduleUrl, scan } from "../core/Files.ts";
 import { assertCmp, type Cmp } from "./Cmp.ts";
 
 export class Loader {
   readonly #directory: string;
   readonly #items: Cmp[] = [];
   #loaded = false;
+  #loads = 0;
+  public get size(): number {
+    return this.#items.length;
+  }
 
   public constructor(directory: string) {
     this.#directory = resolve(directory);
@@ -15,7 +18,7 @@ export class Loader {
   public async load(): Promise<void> {
     if (this.#loaded) return;
     for (const file of await scan(this.#directory)) {
-      const module = (await import(pathToFileURL(file).href)) as {
+      const module = (await import(moduleUrl(file, this.#loads > 0))) as {
         default?: unknown;
       };
       const value = module.default;
@@ -34,6 +37,7 @@ export class Loader {
       this.#items.push(item);
     }
     this.#loaded = true;
+    this.#loads += 1;
   }
 
   public async reload(): Promise<void> {

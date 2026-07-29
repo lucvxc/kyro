@@ -1,29 +1,25 @@
-import { ChannelType, type GuildBasedChannel } from "discord.js";
-
+import { ChannelTypes, snowflakeToTimestamp, type Channel } from "discordeno";
 export class ChannelStats {
-  public constructor(private readonly channel: GuildBasedChannel) {}
-
+  public constructor(private readonly channel: Channel) {}
   public get id(): string {
-    return this.channel.id;
+    return String(this.channel.id);
   }
   public get name(): string {
-    return this.channel.name;
+    return this.channel.name ?? "channel";
   }
   public get type(): string {
-    return ChannelType[this.channel.type].replace(/^Guild/, "");
+    return ChannelTypes[this.channel.type] ?? String(this.channel.type);
   }
   public get topic(): string | null {
-    return "topic" in this.channel ? this.channel.topic : null;
+    return this.channel.topic ?? null;
   }
   public get parent(): string | null {
-    return "parent" in this.channel
-      ? (this.channel.parent?.toString() ?? null)
-      : null;
+    return this.channel.parentId ? `<#${this.channel.parentId}>` : null;
   }
   public get position(): number {
-    return "position" in this.channel ? this.channel.position : 0;
+    return this.channel.position ?? 0;
   }
   public get created(): number {
-    return Math.floor((this.channel.createdTimestamp ?? Date.now()) / 1_000);
+    return Math.floor(snowflakeToTimestamp(this.channel.id) / 1_000);
   }
 }

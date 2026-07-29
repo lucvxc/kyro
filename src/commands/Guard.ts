@@ -1,5 +1,11 @@
+import { BitwisePermissionFlags } from "discordeno";
 import type { Context } from "./Context.ts";
 import type { Entry } from "./Cmd.ts";
+import {
+  MemoryRateLimitAdapter,
+  type RateLimitPolicy,
+  validateRateLimit,
+} from "../core/RateLimit.ts";
 
 export type PermissionResolver = (
   ctx: Context,
@@ -10,10 +16,18 @@ export class Guard {
   readonly #cooldown: number;
   readonly #permissions: PermissionResolver | undefined;
   readonly #uses = new Map<string, { expires: number; warned: boolean }>();
+  readonly #rateLimit?: RateLimitPolicy;
+  readonly #defaultAdapter = new MemoryRateLimitAdapter();
 
-  public constructor(cooldown = 0, permissions?: PermissionResolver) {
+  public constructor(
+    cooldown = 0,
+    permissions?: PermissionResolver,
+    rateLimit?: RateLimitPolicy,
+  ) {
     this.#cooldown = cooldown * 1_000;
     this.#permissions = permissions;
+    if (rateLimit) validateRateLimit(rateLimit);
+    this.#rateLimit = rateLimit;
   }
 
   public async check(
@@ -30,8 +44,9 @@ export class Guard {
 
     if (command.permissions.length > 0) {
       const permissions =
-        ctx.interaction?.memberPermissions ?? ctx.message?.member?.permissions;
-      const missing = permissions?.missing(command.permissions) ?? [];
+        ctx.interaction?.member?.permissions ??
+        ctx.message?.member?.permissions;
+      const missing = permissions?.missing([...command.permissions]) ?? [];
 
       if (missing.length > 0 && !(await this.#permissions?.(ctx, missing))) {
         const names = missing.map((name) =>
@@ -42,16 +57,41 @@ export class Guard {
     }
 
     if (command.botPermissions.length > 0) {
-      const permissions = ctx.guild?.members.me?.permissionsIn(
-        ctx.input.channelId,
+      const permissions = ctx.interaction?.appPermissions;
+      const missing = command.botPermissions.filter(
+        (permission) =>
+          permissions === undefined ||
+          (permissions & BitwisePermissionFlags[permission]) !==
+            BitwisePermissionFlags[permission],
       );
-      const missing = permissions?.missing(command.botPermissions) ?? [];
       if (missing.length > 0) {
         const names = missing.map((name) =>
           name.replace(/([a-z])([A-Z])/g, "$1 $2"),
         );
         return `I need permissions: ${names.join(", ")}.`;
       }
+    }
+
+    const policy = command.rateLimit ?? this.#rateLimit;
+    if (policy) {
+      validateRateLimit(policy);
+      const scope = policy.scope ?? "user";
+      const subject =
+        scope === "global"
+          ? "global"
+          : scope === "guild"
+            ? String(ctx.guildId ?? "dm")
+            : scope === "channel"
+              ? String(ctx.channelId)
+              : String(ctx.author.id);
+      const adapter = policy.adapter ?? this.#defaultAdapter;
+      const retry = await adapter.consume(
+        `${command.name}:${scope}:${subject}`,
+        policy.limit,
+        policy.window * 1_000,
+      );
+      if (retry > 0) return `Try again in ${retry}s.`;
+      return undefined;
     }
 
     if (this.#cooldown <= 0) return undefined;

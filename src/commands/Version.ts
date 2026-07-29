@@ -13,7 +13,7 @@ export function version(kyro: Kyro): ReturnType<typeof cmd> {
         [
           `Kyro: **${kyro.version}**`,
           `Node: **${process.version}**`,
-          `Guilds: **${kyro.client.guilds.cache.size}**`,
+          `Guilds: **${ctx.stats.servers}**`,
           `Commands: **${kyro.commands.size}**`,
           `Errors: **${log.errors}**`,
         ].join("\n"),

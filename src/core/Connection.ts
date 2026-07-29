@@ -1,8 +1,7 @@
-import type { Client } from "discord.js";
+import type { DiscordRuntime } from "./Discord.ts";
 
 export interface ConnectionOptions {
-  client: Client;
-  token: string;
+  runtime: DiscordRuntime;
   beforeStart?: () => void | Promise<void>;
   afterStart?: () => void | Promise<void>;
   beforeStop?: () => void | Promise<void>;
@@ -10,8 +9,7 @@ export interface ConnectionOptions {
 }
 
 export class Connection {
-  readonly #client: Client;
-  readonly #token: string;
+  readonly #runtime: DiscordRuntime;
   readonly #beforeStart: (() => void | Promise<void>) | undefined;
   readonly #afterStart: (() => void | Promise<void>) | undefined;
   readonly #beforeStop: (() => void | Promise<void>) | undefined;
@@ -20,8 +18,7 @@ export class Connection {
   #stopPromise: Promise<void> | undefined;
 
   public constructor(options: ConnectionOptions) {
-    this.#client = options.client;
-    this.#token = options.token;
+    this.#runtime = options.runtime;
     this.#beforeStart = options.beforeStart;
     this.#afterStart = options.afterStart;
     this.#beforeStop = options.beforeStop;
@@ -29,7 +26,7 @@ export class Connection {
   }
 
   public get isReady(): boolean {
-    return this.#client.isReady();
+    return this.#runtime.isReady;
   }
 
   public start(): Promise<void> {
@@ -57,14 +54,13 @@ export class Connection {
   async #connect(): Promise<void> {
     try {
       await this.#beforeStart?.();
-      await this.#client.login(this.#token);
+      await this.#runtime.start();
       await this.#afterStart?.();
     } catch (error) {
       try {
         await this.#beforeStop?.();
       } finally {
-        if (this.#client.token)
-          await this.#client.destroy().catch(() => undefined);
+        await this.#runtime.stop().catch(() => undefined);
         await this.#afterStop?.();
       }
       throw error;
@@ -79,7 +75,7 @@ export class Connection {
     try {
       await this.#beforeStop?.();
     } finally {
-      if (this.#client.token) await this.#client.destroy();
+      await this.#runtime.stop();
       await this.#afterStop?.();
     }
   }

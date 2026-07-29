@@ -1,9 +1,6 @@
-import { createRequire } from "node:module";
-import type * as DiscordWS from "@discordjs/ws";
-
 export type DeviceStatus = "android" | "ios" | "vr";
 
-const load = createRequire(import.meta.url);
+let selected: DeviceStatus | undefined;
 
 const deviceNames: Record<DeviceStatus, string> = {
   android: "Discord Android",
@@ -16,13 +13,12 @@ export function isDeviceStatus(value: unknown): value is DeviceStatus {
 }
 
 export function status(device: DeviceStatus = "android"): void {
-  const name = deviceNames[device];
-  const { DefaultWebSocketManagerOptions } = load(
-    "@discordjs/ws",
-  ) as typeof DiscordWS;
-  Object.assign(DefaultWebSocketManagerOptions.identifyProperties, {
-    browser: name,
-    device: name,
-    os: device,
-  });
+  selected = device;
+}
+
+export function deviceProperties():
+  { os: string; browser: string; device: string } | undefined {
+  if (!selected) return undefined;
+  const name = deviceNames[selected];
+  return { os: selected, browser: name, device: name };
 }

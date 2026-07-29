@@ -1,19 +1,24 @@
 import {
-  ChannelType,
-  PermissionFlagsBits,
-  type Guild,
-  type GuildBasedChannel,
-  type GuildMember,
+  OverwriteTypes,
+  type Channel,
+  type CreateGuildChannel,
+  type Member,
   type Message,
+  type ModifyChannel,
+  type PermissionStrings,
   type Role,
-  type ThreadChannel,
   type User,
-} from "discord.js";
+} from "discordeno";
+import type { DiscordBot } from "../core/Discord.ts";
 import { UserError } from "../commands/Errors.ts";
 import { BotProfile } from "./BotProfile.ts";
-
-type Target = User | string;
-export type CleanMessages = "bots" | "links" | "images" | "embeds" | "files";
+type Target = User | string | bigint;
+const idOf = (target: Target): bigint =>
+  typeof target === "object"
+    ? target.id
+    : typeof target === "bigint"
+      ? target
+      : BigInt(target.replace(/\D/g, ""));
 
 export class Server {
   public readonly roles: Roles;
@@ -23,339 +28,345 @@ export class Server {
   public readonly permissions: Permissions;
   public readonly settings: Settings;
   public readonly profile: BotProfile;
-
-  public constructor(public readonly guild: Guild) {
-    this.roles = new Roles(guild);
-    this.members = new Members(guild);
-    this.channels = new Channels(guild);
-    this.threads = new Threads(guild);
-    this.permissions = new Permissions(guild);
-    this.settings = new Settings(guild);
-    this.profile = new BotProfile(guild);
+  public constructor(
+    public readonly bot: DiscordBot,
+    public readonly guildId: bigint,
+  ) {
+    this.roles = new Roles(bot, guildId);
+    this.members = new Members(bot, guildId);
+    this.channels = new Channels(bot, guildId);
+    this.threads = new Threads(bot);
+    this.permissions = new Permissions(bot, guildId);
+    this.settings = new Settings(bot, guildId);
+    this.profile = new BotProfile(bot, guildId);
   }
 }
-
-class Roles {
-  public constructor(private readonly guild: Guild) {}
-  public async add(
+export class Roles {
+  public constructor(
+    private readonly bot: DiscordBot,
+    private readonly guildId: bigint,
+  ) {}
+  public add(
     target: Target,
-    role: Role | string,
+    role: Role | string | bigint,
     reason?: string,
-  ): Promise<GuildMember> {
-    const member = await memberOf(this.guild, target);
-    const value = findRole(this.guild, role);
-    hierarchy(this.guild, value);
-    await member.roles.add(value, reason);
-    return member;
-  }
-  public async remove(
-    target: Target,
-    role: Role | string,
-    reason?: string,
-  ): Promise<GuildMember> {
-    const member = await memberOf(this.guild, target);
-    const value = findRole(this.guild, role);
-    await member.roles.remove(value, reason);
-    return member;
-  }
-  public async create(
-    name: string,
-    color?: number | string,
-    reason?: string,
-  ): Promise<Role> {
-    if (!name.trim()) throw new UserError("Role names cannot be empty.");
-    const role = await this.guild.roles.create({
-      name,
-      color: color as never,
+  ): Promise<void> {
+    return this.bot.helpers.addRole(
+      this.guildId,
+      idOf(target),
+      typeof role === "object"
+        ? role.id
+        : BigInt(String(role).replace(/\D/g, "")),
       reason,
-    });
-    return role;
+    );
+  }
+  public remove(
+    target: Target,
+    role: Role | string | bigint,
+    reason?: string,
+  ): Promise<void> {
+    return this.bot.helpers.removeRole(
+      this.guildId,
+      idOf(target),
+      typeof role === "object"
+        ? role.id
+        : BigInt(String(role).replace(/\D/g, "")),
+      reason,
+    );
+  }
+  public create(name: string, color?: number, reason?: string): Promise<Role> {
+    return this.bot.helpers.createRole(this.guildId, { name, color }, reason);
   }
   public async snapshot(target: Target): Promise<string[]> {
-    const member = await memberOf(this.guild, target);
-    return [...member.roles.cache.values()]
-      .filter(
-        (role) => role.id !== this.guild.id && !role.managed && role.editable,
-      )
-      .map((role) => role.id);
+    return (
+      await this.bot.helpers.getMember(this.guildId, idOf(target))
+    ).roles.map(String);
   }
   public async restore(
     target: Target,
-    roleIDs: readonly string[],
+    roles: readonly string[],
     reason?: string,
-  ): Promise<Role[]> {
-    const member = await memberOf(this.guild, target);
-    const roles = roleIDs
-      .map((id) => this.guild.roles.cache.get(id))
-      .filter((role): role is Role => Boolean(role?.editable));
-    if (roles.length) await member.roles.add(roles, reason);
-    return roles;
+  ): Promise<void> {
+    const member = await this.bot.helpers.getMember(this.guildId, idOf(target));
+    const desired = roles.map(BigInt);
+    await Promise.all([
+      ...member.roles
+        .filter((id) => !desired.includes(id))
+        .map((id) =>
+          this.bot.helpers.removeRole(this.guildId, member.id, id, reason),
+        ),
+      ...desired
+        .filter((id) => !member.roles.includes(id))
+        .map((id) =>
+          this.bot.helpers.addRole(this.guildId, member.id, id, reason),
+        ),
+    ]);
   }
 }
-
-class Members {
-  public constructor(private readonly guild: Guild) {}
-  public get(target: Target): Promise<GuildMember> {
-    return memberOf(this.guild, target);
+export class Members {
+  public constructor(
+    private readonly bot: DiscordBot,
+    private readonly guildId: bigint,
+  ) {}
+  public get(target: Target): Promise<Member> {
+    return this.bot.helpers.getMember(this.guildId, idOf(target)).catch(() => {
+      throw new UserError("That user is not in this server.");
+    });
   }
   public async nickname(
     target: Target,
-    name: string | null,
+    value: string | null,
     reason?: string,
-  ): Promise<GuildMember> {
-    const member = await memberOf(this.guild, target);
-    hierarchy(this.guild, member.roles.highest);
-    await member.setNickname(name, reason);
-    return member;
+  ): Promise<void> {
+    await this.bot.helpers.editMember(
+      this.guildId,
+      idOf(target),
+      { nick: value },
+      reason,
+    );
   }
   public async timeout(
     target: Target,
-    duration: number,
+    duration: number | null,
     reason?: string,
-  ): Promise<GuildMember> {
-    const member = await memberOf(this.guild, target);
-    if (duration < 1_000 || duration > 28 * 86_400_000)
-      throw new UserError("Timeouts must be between 1 second and 28 days.");
-    await member.timeout(duration, reason);
-    return member;
+  ): Promise<void> {
+    await this.bot.helpers.editMember(
+      this.guildId,
+      idOf(target),
+      {
+        communicationDisabledUntil:
+          duration === null
+            ? null
+            : new Date(Date.now() + duration).toISOString(),
+      },
+      reason,
+    );
   }
 }
-
-class Channels {
-  public constructor(private readonly guild: Guild) {}
+export class Channels {
+  public constructor(
+    private readonly bot: DiscordBot,
+    private readonly guildId: bigint,
+  ) {}
   public create(
     name: string,
-    type: ChannelType = ChannelType.GuildText,
+    type: CreateGuildChannel["type"],
     reason?: string,
-  ) {
-    return this.guild.channels.create({ name, type: type as never, reason });
+  ): Promise<Channel> {
+    return this.bot.helpers.createChannel(this.guildId, { name, type }, reason);
   }
-  public async delete(
-    channel: { delete(reason?: string): Promise<unknown> },
-    reason?: string,
-  ): Promise<void> {
-    await channel.delete(reason);
+  public delete(channel: Channel, reason?: string): Promise<void> {
+    return this.bot.helpers.deleteChannel(channel.id, reason);
   }
-  public async lock(
-    channel: GuildBasedChannel,
-    reason?: string,
-  ): Promise<void> {
-    await this.#overwrite(channel, { SendMessages: false }, reason);
+  public lock(channel: Channel, reason?: string): Promise<void> {
+    return this.overwrite(channel, ["SEND_MESSAGES"], [], reason);
   }
-  public async unlock(
-    channel: GuildBasedChannel,
-    reason?: string,
-  ): Promise<void> {
-    await this.#overwrite(channel, { SendMessages: null }, reason);
+  public unlock(channel: Channel, reason?: string): Promise<void> {
+    return this.bot.helpers.deleteChannelPermissionOverride(
+      channel.id,
+      this.guildId,
+      reason,
+    );
   }
-  public async hide(
-    channel: GuildBasedChannel,
-    reason?: string,
-  ): Promise<void> {
-    await this.#overwrite(channel, { ViewChannel: false }, reason);
+  public hide(channel: Channel, reason?: string): Promise<void> {
+    return this.overwrite(channel, ["VIEW_CHANNEL"], [], reason);
   }
-  public async show(
-    channel: GuildBasedChannel,
-    reason?: string,
-  ): Promise<void> {
-    await this.#overwrite(channel, { ViewChannel: null }, reason);
+  public show(channel: Channel, reason?: string): Promise<void> {
+    return this.bot.helpers.deleteChannelPermissionOverride(
+      channel.id,
+      this.guildId,
+      reason,
+    );
   }
   public async slowmode(
-    channel: GuildBasedChannel,
+    channel: Channel,
     seconds: number,
     reason?: string,
   ): Promise<void> {
-    if (!Number.isInteger(seconds) || seconds < 0 || seconds > 21_600)
-      throw new UserError("Slowmode must be between 0 seconds and 6 hours.");
-    if (
-      !("setRateLimitPerUser" in channel) ||
-      typeof channel.setRateLimitPerUser !== "function"
-    )
-      throw new UserError("This channel does not support slowmode.");
-    await channel.setRateLimitPerUser(seconds, reason);
+    await this.bot.helpers.editChannel(
+      channel.id,
+      { rateLimitPerUser: seconds },
+      reason,
+    );
   }
   public async purge(
-    channel: GuildBasedChannel,
-    amount: number,
+    channel: Channel,
+    count = 100,
     userID?: string,
-  ): Promise<number> {
-    if (!Number.isInteger(amount) || amount < 1 || amount > 100)
-      throw new UserError("You can delete between 1 and 100 messages.");
-    if (!("messages" in channel) || !("bulkDelete" in channel))
-      throw new UserError("Messages cannot be deleted in this channel.");
-    const messages = await channel.messages.fetch({ limit: 100 });
-    const selected = [...messages.values()]
-      .filter((message) => !userID || message.author.id === userID)
-      .slice(0, amount);
-    const deleted = await channel.bulkDelete(selected, true);
-    return deleted.size;
-  }
-  public async nuke(
-    channel: GuildBasedChannel,
     reason?: string,
-  ): Promise<GuildBasedChannel> {
-    if (!("clone" in channel) || typeof channel.clone !== "function")
-      throw new UserError("This channel cannot be nuked.");
-    const replacement = await channel.clone({ reason });
-    await replacement.setPosition(channel.rawPosition, { reason });
-    await channel.delete(reason);
+  ): Promise<number> {
+    const messages = await this.bot.helpers.getMessages(channel.id, {
+      limit: Math.min(count, 100),
+    });
+    const selected = messages.filter(
+      (message) => !userID || message.author.id === BigInt(userID),
+    );
+    if (selected.length > 1)
+      await this.bot.helpers.deleteMessages(
+        channel.id,
+        selected.map((message) => message.id),
+        reason,
+      );
+    else if (selected[0])
+      await this.bot.helpers.deleteMessage(channel.id, selected[0].id, reason);
+    return selected.length;
+  }
+  public async nuke(channel: Channel, reason?: string): Promise<Channel> {
+    const replacement = await this.bot.helpers.createChannel(
+      this.guildId,
+      {
+        name: channel.name ?? "channel",
+        type: channel.type,
+        parentId: channel.parentId,
+      },
+      reason,
+    );
+    await this.bot.helpers.deleteChannel(channel.id, reason);
     return replacement;
   }
-  public async clean(
-    channel: GuildBasedChannel,
-    kind: CleanMessages,
-    amount = 100,
-  ): Promise<number> {
-    if (!("messages" in channel) || !("bulkDelete" in channel))
-      throw new UserError("Messages cannot be deleted in this channel.");
-    const messages = await channel.messages.fetch({ limit: 100 });
-    const matches = {
-      bots: (message: Message) => message.author.bot,
-      links: (message: Message) => /https?:\/\/\S+/i.test(message.content),
-      images: (message: Message) =>
-        message.attachments.some((file) =>
-          file.contentType?.startsWith("image/"),
-        ),
-      embeds: (message: Message) => message.embeds.length > 0,
-      files: (message: Message) => message.attachments.size > 0,
-    }[kind];
-    const selected = [...messages.values()]
-      .filter(matches)
-      .slice(0, Math.min(100, Math.max(1, amount)));
-    const deleted = await channel.bulkDelete(selected, true);
-    return deleted.size;
-  }
-  public async lockAll(reason?: string): Promise<number> {
-    return this.#all({ SendMessages: false }, reason, true);
-  }
-  public async unlockAll(reason?: string): Promise<number> {
-    return this.#all({ SendMessages: null }, reason, true);
-  }
-  public async hideAll(reason?: string): Promise<number> {
-    return this.#all({ ViewChannel: false }, reason);
-  }
-  public async showAll(reason?: string): Promise<number> {
-    return this.#all({ ViewChannel: null }, reason);
-  }
-
-  async #overwrite(
-    channel: GuildBasedChannel,
-    permissions: object,
+  public clean(
+    channel: Channel,
+    kind: "bots" | "links" | "images" | "embeds" | "files",
     reason?: string,
-  ): Promise<void> {
-    if (!("permissionOverwrites" in channel))
-      throw new UserError("Permissions cannot be changed for this channel.");
-    await channel.permissionOverwrites.edit(
-      this.guild.roles.everyone.id,
-      permissions,
-      { reason },
-    );
-  }
-  async #all(
-    permissions: object,
-    reason?: string,
-    textOnly = false,
   ): Promise<number> {
-    const channels = [...this.guild.channels.cache.values()].filter(
-      (channel) =>
-        "permissionOverwrites" in channel &&
-        (!textOnly || channel.isTextBased()),
+    return this.cleanMatching(channel, kind, reason);
+  }
+  public lockAll(reason?: string): Promise<number> {
+    return this.all((channel) => this.lock(channel, reason));
+  }
+  public unlockAll(reason?: string): Promise<number> {
+    return this.all((channel) => this.unlock(channel, reason));
+  }
+  public hideAll(reason?: string): Promise<number> {
+    return this.all((channel) => this.hide(channel, reason));
+  }
+  public showAll(reason?: string): Promise<number> {
+    return this.all((channel) => this.show(channel, reason));
+  }
+  private async cleanMatching(
+    channel: Channel,
+    kind: "bots" | "links" | "images" | "embeds" | "files",
+    reason?: string,
+  ): Promise<number> {
+    const messages = await this.bot.helpers.getMessages(channel.id, {
+      limit: 100,
+    });
+    const selected = messages.filter(
+      (message) =>
+        ({
+          bots: message.author.bot,
+          links: /https?:\/\/\S+/i.test(message.content),
+          images: (message.attachments ?? []).some((file) =>
+            file.contentType?.startsWith("image/"),
+          ),
+          embeds: Boolean(message.embeds?.length),
+          files: Boolean(message.attachments?.length),
+        })[kind],
     );
-    await Promise.all(
-      channels.map((channel) => this.#overwrite(channel, permissions, reason)),
-    );
+    if (selected.length > 1)
+      await this.bot.helpers.deleteMessages(
+        channel.id,
+        selected.map((message) => message.id),
+        reason,
+      );
+    else if (selected[0])
+      await this.bot.helpers.deleteMessage(channel.id, selected[0].id, reason);
+    return selected.length;
+  }
+  private async all(run: (channel: Channel) => Promise<void>): Promise<number> {
+    const channels = await this.bot.helpers.getChannels(this.guildId);
+    await Promise.all(channels.map(run));
     return channels.length;
   }
+  private overwrite(
+    channel: Channel,
+    deny: PermissionStrings[],
+    allow: PermissionStrings[],
+    reason?: string,
+  ): Promise<void> {
+    return this.bot.helpers.editChannelPermissionOverrides(
+      channel.id,
+      { id: this.guildId, type: OverwriteTypes.Role, deny, allow },
+      reason,
+    );
+  }
 }
-
-class Threads {
-  public constructor(private readonly guild: Guild) {}
-  public async create(message: Message, name: string, reason?: string) {
-    if (message.guildId !== this.guild.id)
-      throw new UserError("That message is not in this server.");
-    return message.startThread({ name, reason });
+export class Threads {
+  public constructor(private readonly bot: DiscordBot) {}
+  public create(
+    message: Message,
+    name: string,
+    reason?: string,
+  ): Promise<Channel> {
+    return this.bot.helpers.startThreadWithMessage(
+      message.channelId,
+      message.id,
+      { name, autoArchiveDuration: 1440 },
+      reason,
+    );
   }
   public async archive(
-    thread: ThreadChannel,
+    thread: Channel,
     value = true,
     reason?: string,
   ): Promise<void> {
-    await thread.setArchived(value, reason);
+    await this.edit(thread, { archived: value }, reason);
   }
   public async lock(
-    thread: ThreadChannel,
+    thread: Channel,
     value = true,
     reason?: string,
   ): Promise<void> {
-    await thread.setLocked(value, reason);
+    await this.edit(thread, { locked: value }, reason);
   }
   public async name(
-    thread: ThreadChannel,
+    thread: Channel,
     value: string,
     reason?: string,
   ): Promise<void> {
-    if (!value.trim()) throw new UserError("Thread names cannot be empty.");
-    await thread.setName(value, reason);
+    await this.edit(thread, { name: value }, reason);
   }
   public async slowmode(
-    thread: ThreadChannel,
+    thread: Channel,
     seconds: number,
     reason?: string,
   ): Promise<void> {
-    if (!Number.isInteger(seconds) || seconds < 0 || seconds > 21_600)
-      throw new UserError(
-        "Thread slowmode must be between 0 seconds and 6 hours.",
-      );
-    await thread.setRateLimitPerUser(seconds, reason);
+    await this.edit(thread, { rateLimitPerUser: seconds }, reason);
+  }
+  private async edit(
+    thread: Channel,
+    options: ModifyChannel,
+    reason?: string,
+  ): Promise<void> {
+    await this.bot.helpers.editChannel(thread.id, options, reason);
   }
 }
-
-class Permissions {
-  public constructor(private readonly guild: Guild) {}
-  public bot(permission: keyof typeof PermissionFlagsBits): boolean {
-    return Boolean(
-      this.guild.members.me?.permissions.has(PermissionFlagsBits[permission]),
+export class Permissions {
+  public constructor(
+    private readonly botClient?: DiscordBot,
+    private readonly guildId?: bigint,
+  ) {}
+  public async bot(permission: PermissionStrings): Promise<boolean> {
+    if (!this.botClient || !this.guildId) return false;
+    const member = await this.botClient.helpers.getMember(
+      this.guildId,
+      this.botClient.id,
     );
+    return member.permissions?.has(permission) ?? false;
   }
-  public member(
-    target: Target,
-    permission: keyof typeof PermissionFlagsBits,
-  ): Promise<boolean> {
-    return memberOf(this.guild, target).then((member) =>
-      member.permissions.has(PermissionFlagsBits[permission]),
-    );
+  public member(member: Member, permission: PermissionStrings): boolean {
+    return member.permissions?.has(permission) ?? false;
   }
 }
-
-class Settings {
-  public constructor(private readonly guild: Guild) {}
-  public async name(value: string, reason?: string): Promise<Guild> {
-    if (!value.trim()) throw new UserError("Server names cannot be empty.");
-    return this.guild.setName(value, reason);
+export class Settings {
+  public constructor(
+    private readonly bot: DiscordBot,
+    private readonly guildId: bigint,
+  ) {}
+  public name(value: string, reason?: string) {
+    return this.bot.helpers.editGuild(this.guildId, { name: value }, reason);
   }
-  public async icon(value: string | null, reason?: string): Promise<Guild> {
-    return this.guild.setIcon(value, reason);
+  public icon(value: string | null, reason?: string) {
+    return this.bot.helpers.editGuild(this.guildId, { icon: value }, reason);
   }
-}
-
-async function memberOf(guild: Guild, target: Target): Promise<GuildMember> {
-  const id = typeof target === "string" ? target : target.id;
-  return guild.members.fetch(id).catch(() => {
-    throw new UserError("That user is not in this server.");
-  });
-}
-function findRole(guild: Guild, target: Role | string): Role {
-  if (typeof target !== "string") return target;
-  const role =
-    guild.roles.cache.get(target) ??
-    guild.roles.cache.find(
-      (value) => value.name.toLowerCase() === target.toLowerCase(),
-    );
-  if (!role) throw new UserError(`Role "${target}" was not found.`);
-  return role;
-}
-function hierarchy(guild: Guild, role: Role): void {
-  const me = guild.members.me;
-  if (!me || role.position >= me.roles.highest.position)
-    throw new UserError("That role is too high for the bot to manage.");
 }
