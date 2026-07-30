@@ -52,7 +52,7 @@ export class Guard {
         const names = missing.map((name) =>
           name.replace(/([a-z])([A-Z])/g, "$1 $2"),
         );
-        return `Missing permissions: ${names.join(", ")}.`;
+        return permissionError(names);
       }
     }
 
@@ -68,7 +68,7 @@ export class Guard {
         const names = missing.map((name) =>
           name.replace(/([a-z])([A-Z])/g, "$1 $2"),
         );
-        return `I need permissions: ${names.join(", ")}.`;
+        return permissionError(names, true);
       }
     }
 
@@ -120,4 +120,20 @@ export class Guard {
       if (use.expires <= now) this.#uses.delete(key);
     }
   }
+}
+
+export function permissionError(
+  permissions: readonly string[],
+  bot = false,
+): string {
+  const names = permissions.map(
+    (permission) => `**\`${permission.replace(/([a-z])([A-Z])/g, "$1 $2")}\`**`,
+  );
+  const list =
+    names.length === 1
+      ? names[0]
+      : `${names.slice(0, -1).join(", ")} and ${names.at(-1)}`;
+  return bot
+    ? `I need the ${list} permission${names.length === 1 ? "" : "s"} to do that.`
+    : `You need the ${list} permission${names.length === 1 ? "" : "s"} to use this.`;
 }

@@ -5,6 +5,7 @@ import type {
 } from "../core/Discord.ts";
 import { log } from "../core/Log.ts";
 import { UserError } from "../commands/Errors.ts";
+import { permissionError } from "../commands/Guard.ts";
 import { ComponentContext } from "./Context.ts";
 import { isComponentInteraction } from "./Cmp.ts";
 import type { Loader } from "./Loader.ts";
@@ -158,7 +159,7 @@ export class Router {
       if (missing.length)
         return void interaction.respond(
           {
-            content: `Missing permissions: ${missing.join(", ")}.`,
+            content: permissionError(missing),
           },
           { isPrivate: true },
         );
@@ -172,7 +173,7 @@ export class Router {
       if (missing.length)
         return void interaction.respond(
           {
-            content: `I need permissions: ${missing.join(", ")}.`,
+            content: permissionError(missing, true),
           },
           { isPrivate: true },
         );
