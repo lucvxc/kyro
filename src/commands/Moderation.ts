@@ -110,11 +110,16 @@ export class Moderation {
     add: boolean,
     options: ModOptions = {},
   ): Promise<void> {
-    await this.checkedMember(
+    const member = await this.checkedRole(
       user,
+      role,
       add ? "give a role to" : "remove a role from",
-      BitwisePermissionFlags.MANAGE_ROLES,
     );
+    const hasRole = member.roles.includes(role.id);
+    if (add && hasRole)
+      throw new UserError("That member already has that role.");
+    if (!add && !hasRole)
+      throw new UserError("That member does not have that role.");
     await this.bot.helpers[add ? "addRole" : "removeRole"](
       this.guild(),
       user.id,
@@ -266,6 +271,56 @@ export class Moderation {
       throw new UserError(
         `You cannot ${action} that member because of role hierarchy.`,
       );
+    return target;
+  }
+  private async checkedRole(
+    user: User,
+    role: Role,
+    action: string,
+  ): Promise<Member> {
+    const guildId = this.guild();
+    const [guild, target, actor, me, roles] = await Promise.all([
+      this.bot.helpers.getGuild(guildId),
+      this.member(user),
+      this.bot.helpers.getMember(guildId, this.actor.id),
+      this.bot.helpers.getMember(guildId, this.bot.id),
+      this.bot.helpers.getRoles(guildId),
+    ]);
+    if (
+      !me.permissions ||
+      (me.permissions.bitfield & BitwisePermissionFlags.MANAGE_ROLES) !==
+        BitwisePermissionFlags.MANAGE_ROLES
+    )
+      throw new UserError("I do not have permission to manage roles.");
+    if (role.id === guildId)
+      throw new UserError("The everyone role cannot be assigned or removed.");
+    if (role.managed)
+      throw new UserError("That role is managed by an integration.");
+
+    const position = (member: Member): number =>
+      Math.max(
+        0,
+        ...member.roles.map(
+          (id) => roles.find((item) => item.id === id)?.position ?? 0,
+        ),
+      );
+    if (role.position >= position(me))
+      throw new UserError("That role is too high for me to manage.");
+    if (actor.id !== guild.ownerId && role.position >= position(actor))
+      throw new UserError("That role is too high for you to manage.");
+
+    if (target.id !== actor.id) {
+      if (target.id === guild.ownerId)
+        throw new UserError(`You cannot ${action} the server owner.`);
+      if (target.id === me.id || position(target) >= position(me))
+        throw new UserError(
+          `I cannot ${action} that member because of role hierarchy.`,
+        );
+      if (actor.id !== guild.ownerId && position(target) >= position(actor))
+        throw new UserError(
+          `You cannot ${action} that member because of role hierarchy.`,
+        );
+    }
     return target;
   }
   private reason(options: ModOptions): string {
