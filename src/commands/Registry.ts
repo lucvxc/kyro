@@ -42,7 +42,12 @@ export class Registry {
     const path = parsePath(command.name);
     const type = command.type ?? "slash";
     const context = command.context ?? "both";
-    const aliases = (command.aliases ?? []).map(normalize);
+    const name = path.join(" ");
+    const aliases = (command.aliases ?? [])
+      .map(normalize)
+      // A self-alias is redundant and can be produced by legacy command
+      // manifests. Keep the primary name, but do not fail the whole loader.
+      .filter((alias) => alias !== name);
     const permissions = command.permissions ?? [];
     const botPermissions = command.botPermissions ?? [];
     const guilds = [...new Set(command.guilds ?? [])].sort();
@@ -52,7 +57,6 @@ export class Registry {
 
     validate(command, path, type, aliases, context, guilds);
 
-    const name = path.join(" ");
     this.#assertAvailable(name);
 
     for (const alias of aliases) this.#assertAvailable(alias);
