@@ -4,7 +4,11 @@ import type {
   GatewayIntents,
   StatusUpdate,
 } from "discordeno";
-import { DiscordRuntime, type DiscordBot } from "./core/Discord.ts";
+import {
+  DiscordRuntime,
+  runtimeStats,
+  type DiscordBot,
+} from "./core/Discord.ts";
 
 import type { Cmd } from "./commands/Cmd.ts";
 import { Guard, type PermissionResolver } from "./commands/Guard.ts";
@@ -45,7 +49,6 @@ import type { RateLimitPolicy } from "./core/RateLimit.ts";
 import type { ComponentMiddleware } from "./components/Cmp.ts";
 import { validateConfig } from "./core/Config.ts";
 import type { HealthSnapshot } from "./core/Health.ts";
-import { runtimeStats } from "./core/Discord.ts";
 import type { SyncDiff, SyncLock } from "./commands/Registrar.ts";
 import type { MessagePolicy } from "./ui/Message.ts";
 import type { Instrumentation } from "./core/Instrumentation.ts";
@@ -303,7 +306,8 @@ export class Kyro {
       },
       afterStart: async () => {
         if (config.sync !== "none") await this.#sync();
-        const name = String(this.client.id);
+        const name =
+          runtimeStats(this.client).user?.username ?? String(this.client.id);
         log.info(
           `${name} is online (${config.sync === "guild" ? "guild" : config.sync === "none" ? "sync disabled" : "global"} commands).`,
         );

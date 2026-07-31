@@ -22,8 +22,10 @@ import type {
   DiscordInteraction as Interaction,
   DiscordMessage as Message,
 } from "../core/Discord.ts";
+import { runtimeStats } from "../core/Discord.ts";
 import { Moderation } from "./Moderation.ts";
 import { Server } from "../guild/Server.ts";
+import { withStats, type GuildWithStats } from "../guild/Stats.ts";
 import { Stats } from "../core/Stats.ts";
 import { ChannelStats } from "../guild/ChannelStats.ts";
 import { RoleStats } from "../guild/RoleStats.ts";
@@ -86,13 +88,19 @@ export class Context {
     return this.#entry;
   }
 
-  public get guild() {
+  public get guild(): GuildWithStats | null {
     const input = this.input;
-    return this.source === "slash"
-      ? (input as Interaction).guildId
-        ? (input as Interaction).guild
-        : null
-      : null;
+    if (this.source === "slash") {
+      const interaction = input as Interaction;
+      return interaction.guildId && interaction.guild
+        ? withStats(interaction.guild)
+        : null;
+    }
+    const guildId = (input as Message).guildId;
+    const guild = guildId
+      ? runtimeStats(this.client).guildObjects.get(guildId)
+      : undefined;
+    return guild ? withStats(guild) : null;
   }
 
   public get guildId(): bigint | undefined {

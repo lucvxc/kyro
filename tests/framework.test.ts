@@ -34,6 +34,7 @@ describe("Discordeno migration boundary", () => {
     const [command] = compileSlash(registry.values());
     expect(command?.name).toBe("admin");
     expect(command?.contexts).toEqual([DiscordInteractionContextType.Guild]);
+    expect(command?.integrationTypes).toBeUndefined();
     expect(
       (command as CreateSlashApplicationCommand | undefined)?.options?.[0]
         ?.type,

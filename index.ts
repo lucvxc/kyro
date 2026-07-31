@@ -65,6 +65,7 @@ export {
   messageOptions,
   send,
   DiscordRuntime,
+  runtimeStats,
   Services,
   snowflake,
   snowflakeString,

@@ -2,6 +2,7 @@ import {
   ApplicationCommandOptionTypes,
   ApplicationCommandTypes,
   DiscordInteractionContextType,
+  type DiscordApplicationIntegrationType,
   type CreateApplicationCommand,
   type CreateSlashApplicationCommand,
 } from "discordeno";
@@ -51,9 +52,7 @@ function compileRoot(
       contexts: contexts([direct]),
       nameLocalizations: direct.nameLocalizations,
       descriptionLocalizations: direct.descriptionLocalizations,
-      integrationTypes: direct.integrationTypes
-        ? [...direct.integrationTypes]
-        : undefined,
+      integrationTypes: integrationTypes([direct]),
     };
   }
 
@@ -79,9 +78,7 @@ function compileRoot(
     type: ApplicationCommandTypes.ChatInput,
     options,
     contexts: contexts(entries),
-    integrationTypes: [
-      ...new Set(entries.flatMap((entry) => entry.integrationTypes ?? [])),
-    ],
+    integrationTypes: integrationTypes(entries),
   };
 }
 
@@ -149,6 +146,15 @@ function contexts(commands: readonly Entry[]): DiscordInteractionContextType[] {
     }
   }
   return [...result];
+}
+
+function integrationTypes(
+  commands: readonly Entry[],
+): DiscordApplicationIntegrationType[] | undefined {
+  const result = [
+    ...new Set(commands.flatMap((command) => command.integrationTypes ?? [])),
+  ];
+  return result.length ? result : undefined;
 }
 
 function groupBy<T, K>(values: Iterable<T>, key: (value: T) => K): Map<K, T[]> {

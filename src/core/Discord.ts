@@ -7,10 +7,15 @@ import {
   type CreateRestManagerOptions,
   type EventHandlers,
   type GatewayIntents,
+  type Guild,
   type User,
 } from "discordeno";
 
-export type DiscordProperties = CompleteDesiredProperties<{}, true>;
+type DesiredProperties = { guild: { presences: false } };
+export type DiscordProperties = CompleteDesiredProperties<
+  DesiredProperties,
+  true
+>;
 export type DiscordBot = Bot<DiscordProperties>;
 export type DiscordEvent = keyof EventHandlers<DiscordProperties, 0>;
 export type DiscordEvents = EventHandlers<DiscordProperties, 0>;
@@ -31,12 +36,19 @@ export interface DiscordOptions {
 export interface RuntimeStats {
   user?: User;
   guilds: Set<bigint>;
+  guildObjects: Map<bigint, Guild>;
   guildMembers: Map<bigint, number>;
   startedAt?: number;
 }
 const stats = new WeakMap<DiscordBot, RuntimeStats>();
 export function runtimeStats(bot: DiscordBot): RuntimeStats {
-  return stats.get(bot) ?? { guilds: new Set(), guildMembers: new Map() };
+  return (
+    stats.get(bot) ?? {
+      guilds: new Set(),
+      guildObjects: new Map(),
+      guildMembers: new Map(),
+    }
+  );
 }
 
 /**
@@ -66,6 +78,7 @@ export class DiscordRuntime {
             stats.set(this.bot, {
               user: ready.user,
               guilds: new Set(ready.guilds),
+              guildObjects: new Map(),
               guildMembers: new Map(),
               startedAt: Date.now(),
             });
@@ -75,6 +88,7 @@ export class DiscordRuntime {
               memberCount?: number;
             };
             runtimeStats(this.bot).guilds.add(guild.id);
+            runtimeStats(this.bot).guildObjects.set(guild.id, guild as Guild);
             runtimeStats(this.bot).guildMembers.set(
               guild.id,
               guild.memberCount ?? 0,
@@ -82,7 +96,15 @@ export class DiscordRuntime {
           } else if (name === "guildDelete") {
             const guildId = args[0] as unknown as bigint;
             runtimeStats(this.bot).guilds.delete(guildId);
+            runtimeStats(this.bot).guildObjects.delete(guildId);
             runtimeStats(this.bot).guildMembers.delete(guildId);
+          } else if (name === "guildUpdate") {
+            const guild = args[0] as unknown as Guild;
+            runtimeStats(this.bot).guildObjects.set(guild.id, guild);
+            runtimeStats(this.bot).guildMembers.set(
+              guild.id,
+              guild.memberCount ?? guild.members.size,
+            );
           }
           this.emit(name as DiscordEvent, ...(args as never[]));
         },
@@ -95,9 +117,16 @@ export class DiscordRuntime {
       gateway: options.gateway,
       rest: options.rest,
       events: events as Partial<EventHandlers<DiscordProperties, 0>>,
-      desiredProperties: createDesiredPropertiesObject({}, true),
+      desiredProperties: createDesiredPropertiesObject(
+        { guild: { presences: false } },
+        true,
+      ),
     });
-    stats.set(this.bot, { guilds: new Set(), guildMembers: new Map() });
+    stats.set(this.bot, {
+      guilds: new Set(),
+      guildObjects: new Map(),
+      guildMembers: new Map(),
+    });
   }
 
   public get isReady(): boolean {

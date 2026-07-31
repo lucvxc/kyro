@@ -6,7 +6,12 @@ export {
   type PresenceConfig,
   type LifecycleHooks,
 } from "./Kyro.ts";
-export { DiscordRuntime, snowflake, snowflakeString } from "./core/Discord.ts";
+export {
+  DiscordRuntime,
+  runtimeStats,
+  snowflake,
+  snowflakeString,
+} from "./core/Discord.ts";
 export type {
   DiscordBot,
   DiscordEvent,

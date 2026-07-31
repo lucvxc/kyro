@@ -34,6 +34,9 @@ export class Stats {
   public get servers(): number {
     return runtimeStats(this.client).guilds.size;
   }
+  public get serverIds(): string[] {
+    return [...runtimeStats(this.client).guilds].map(String);
+  }
   public get users(): number {
     return [...runtimeStats(this.client).guildMembers.values()].reduce(
       (total, count) => total + count,

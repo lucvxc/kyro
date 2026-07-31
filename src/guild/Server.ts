@@ -227,9 +227,10 @@ export class Channels {
   public clean(
     channel: Channel,
     kind: "bots" | "links" | "images" | "embeds" | "files",
+    count = 100,
     reason?: string,
   ): Promise<number> {
-    return this.cleanMatching(channel, kind, reason);
+    return this.cleanMatching(channel, kind, count, reason);
   }
   public lockAll(reason?: string): Promise<number> {
     return this.all((channel) => this.lock(channel, reason));
@@ -246,10 +247,11 @@ export class Channels {
   private async cleanMatching(
     channel: Channel,
     kind: "bots" | "links" | "images" | "embeds" | "files",
+    count: number,
     reason?: string,
   ): Promise<number> {
     const messages = await this.bot.helpers.getMessages(channel.id, {
-      limit: 100,
+      limit: Math.min(Math.max(Math.floor(count), 1), 100),
     });
     const selected = messages.filter(
       (message) =>
