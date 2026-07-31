@@ -103,7 +103,7 @@ export class DiscordRuntime {
             runtimeStats(this.bot).guildObjects.set(guild.id, guild);
             runtimeStats(this.bot).guildMembers.set(
               guild.id,
-              guild.memberCount ?? guild.members.size,
+              guild.memberCount ?? guild.members?.size ?? 0,
             );
           }
           this.emit(name as DiscordEvent, ...(args as never[]));

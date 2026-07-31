@@ -20,7 +20,7 @@ export class GuildStats {
     return String(this.guild.ownerId);
   }
   public get members(): number {
-    return this.guild.memberCount ?? this.guild.members.size;
+    return this.guild.memberCount ?? this.guild.members?.size ?? 0;
   }
   public get roles(): number {
     return this.guild.roles.size;
