@@ -3,7 +3,6 @@ export {
   type Options,
   type ClientConfig,
   type KyroConfig,
-  type PresenceConfig,
   type LifecycleHooks,
 } from "./Kyro.ts";
 export {
@@ -86,7 +85,17 @@ export { Store, store, type StoreOptions } from "./core/Store.ts";
 export { Limit, type LimitOptions } from "./core/Limit.ts";
 export { codes, compact, fill, groups, mention } from "./core/Text.ts";
 export { Shards, type ShardOptions } from "./core/Shards.ts";
-export { status, type DeviceStatus } from "./core/Status.ts";
+export {
+  status,
+  activity,
+  presence,
+  type ActivityType,
+  type DeviceStatus,
+  type PresenceActivity,
+  type PresenceConfig,
+  type PresenceInput,
+  type PresenceStatus,
+} from "./core/Status.ts";
 export { plugin, type Plugin } from "./plugins/Plugin.ts";
 export { scheduler, type ScheduledTask } from "./plugins/Scheduler.ts";
 export { jsk } from "./plugins/Jsk.ts";

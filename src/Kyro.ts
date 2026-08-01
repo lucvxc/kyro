@@ -2,7 +2,6 @@ import type {
   CreateGatewayManagerOptions,
   CreateRestManagerOptions,
   GatewayIntents,
-  StatusUpdate,
 } from "discordeno";
 import {
   DiscordRuntime,
@@ -36,8 +35,10 @@ import { version as versionCommand } from "./commands/Version.ts";
 import {
   deviceProperties,
   isDeviceStatus,
+  presence,
   status,
-  type DeviceStatus,
+  type PresenceConfig,
+  type PresenceInput,
 } from "./core/Status.ts";
 import { musicFor, type Music } from "./plugins/music/index.ts";
 import { Services, type ServiceToken } from "./core/Services.ts";
@@ -62,10 +63,6 @@ export interface LifecycleHooks {
   afterStop?(kyro: Kyro): void | Promise<void>;
   afterReload?(kyro: Kyro): void | Promise<void>;
 }
-
-export type PresenceConfig = Omit<StatusUpdate, "status"> & {
-  status?: StatusUpdate["status"] | DeviceStatus;
-};
 
 export type ClientConfig = {
   token: string;
@@ -194,12 +191,15 @@ export class Kyro {
     this.services = new Services(options.services);
     this.signal = this.#work.signal;
     this.#onFrameworkError = options.onFrameworkError;
-    let presence = client.presence;
-    if (client.presence !== undefined) {
-      if (isDeviceStatus(client.presence.status)) {
-        status(client.presence.status);
-        const { status: _device, ...rest } = client.presence;
-        presence = rest;
+    let makePresence = client.gateway?.makePresence;
+    const presenceConfig = client.presence;
+    if (presenceConfig !== undefined) {
+      if (isDeviceStatus(presenceConfig.status)) {
+        status(presenceConfig.status);
+        const { status: _device, ...rest } = presenceConfig;
+        makePresence = async () => presence(rest) as never;
+      } else {
+        makePresence = async () => presence(presenceConfig) as never;
       }
     }
     this.runtime = new DiscordRuntime({
@@ -209,9 +209,7 @@ export class Kyro {
       gateway: {
         ...client.gateway,
         properties: deviceProperties() ?? client.gateway?.properties,
-        makePresence: presence
-          ? async () => presence as never
-          : client.gateway?.makePresence,
+        makePresence,
       },
       rest: client.rest,
     });
@@ -361,6 +359,12 @@ export class Kyro {
 
   public get music(): Music | undefined {
     return musicFor(this.client);
+  }
+
+  public async setPresence(input: PresenceInput): Promise<void> {
+    if (!this.isReady)
+      throw new Error("Kyro must be running before setting a presence.");
+    await this.client.gateway.editBotStatus(presence(input) as never);
   }
 
   public command(cmd: Cmd): this {
