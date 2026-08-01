@@ -9,6 +9,7 @@ import {
   type GatewayIntents,
   type Guild,
   type User,
+  type VoiceState,
 } from "discordeno";
 
 type DesiredProperties = { guild: { presences: false } };
@@ -38,6 +39,7 @@ export interface RuntimeStats {
   guilds: Set<bigint>;
   guildObjects: Map<bigint, Guild>;
   guildMembers: Map<bigint, number>;
+  voiceStates: Map<bigint, Map<bigint, VoiceState>>;
   startedAt?: number;
 }
 const stats = new WeakMap<DiscordBot, RuntimeStats>();
@@ -47,6 +49,7 @@ export function runtimeStats(bot: DiscordBot): RuntimeStats {
       guilds: new Set(),
       guildObjects: new Map(),
       guildMembers: new Map(),
+      voiceStates: new Map(),
     }
   );
 }
@@ -80,6 +83,7 @@ export class DiscordRuntime {
               guilds: new Set(ready.guilds),
               guildObjects: new Map(),
               guildMembers: new Map(),
+              voiceStates: new Map(),
               startedAt: Date.now(),
             });
           } else if (name === "guildCreate") {
@@ -93,18 +97,37 @@ export class DiscordRuntime {
               guild.id,
               guild.memberCount ?? 0,
             );
+            runtimeStats(this.bot).voiceStates.set(
+              guild.id,
+              new Map(
+                [...((guild as Guild).voiceStates?.values() ?? [])]
+                  .filter((state) => state.channelId)
+                  .map((state) => [state.userId, state]),
+              ),
+            );
           } else if (name === "guildDelete") {
             const guildId = args[0] as unknown as bigint;
             runtimeStats(this.bot).guilds.delete(guildId);
             runtimeStats(this.bot).guildObjects.delete(guildId);
             runtimeStats(this.bot).guildMembers.delete(guildId);
+            runtimeStats(this.bot).voiceStates.delete(guildId);
           } else if (name === "guildUpdate") {
             const guild = args[0] as unknown as Guild;
-            runtimeStats(this.bot).guildObjects.set(guild.id, guild);
+            const current = runtimeStats(this.bot).guildObjects.get(guild.id);
+            const snapshot = current ? Object.assign(current, guild) : guild;
+            runtimeStats(this.bot).guildObjects.set(guild.id, snapshot);
             runtimeStats(this.bot).guildMembers.set(
               guild.id,
-              guild.memberCount ?? guild.members?.size ?? 0,
+              snapshot.memberCount ?? snapshot.members?.size ?? 0,
             );
+          } else if (name === "voiceStateUpdate") {
+            const state = args[0] as unknown as VoiceState;
+            const guild =
+              runtimeStats(this.bot).voiceStates.get(state.guildId) ??
+              new Map<bigint, VoiceState>();
+            if (state.channelId) guild.set(state.userId, state);
+            else guild.delete(state.userId);
+            runtimeStats(this.bot).voiceStates.set(state.guildId, guild);
           }
           this.emit(name as DiscordEvent, ...(args as never[]));
         },
@@ -126,6 +149,7 @@ export class DiscordRuntime {
       guilds: new Set(),
       guildObjects: new Map(),
       guildMembers: new Map(),
+      voiceStates: new Map(),
     });
   }
 

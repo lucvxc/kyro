@@ -89,17 +89,13 @@ export class Context {
   }
 
   public get guild(): GuildWithStats | null {
-    const input = this.input;
-    if (this.source === "slash") {
-      const interaction = input as Interaction;
-      return interaction.guildId && interaction.guild
-        ? withStats(interaction.guild)
-        : null;
-    }
-    const guildId = (input as Message).guildId;
-    const guild = guildId
+    const guildId = this.guildId;
+    const cached = guildId
       ? runtimeStats(this.client).guildObjects.get(guildId)
       : undefined;
+    const guild =
+      cached ??
+      (this.source === "slash" ? (this.input as Interaction).guild : undefined);
     return guild ? withStats(guild) : null;
   }
 

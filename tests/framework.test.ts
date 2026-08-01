@@ -4,6 +4,7 @@ import {
   DiscordInteractionContextType,
   GatewayIntents,
   type CreateSlashApplicationCommand,
+  type Guild,
 } from "discordeno";
 import { Registry } from "../src/commands/Registry.ts";
 import { compileSlash } from "../src/commands/Compiler.ts";
@@ -18,7 +19,11 @@ import { validateConfig, ConfigurationError } from "../src/core/Config.ts";
 import { WorkTracker } from "../src/core/Work.ts";
 import { Context } from "../src/commands/Context.ts";
 import { ComponentContext } from "../src/components/Context.ts";
-import type { DiscordInteraction } from "../src/core/Discord.ts";
+import {
+  DiscordRuntime,
+  runtimeStats,
+  type DiscordInteraction,
+} from "../src/core/Discord.ts";
 import type { Entry } from "../src/commands/Cmd.ts";
 
 describe("Discordeno migration boundary", () => {
@@ -61,6 +66,56 @@ describe("Discordeno migration boundary", () => {
     );
     expect(Number(payload.flags)).toBe(32_768);
     expect(payload.components).toHaveLength(1);
+  });
+
+  test("preserves native Discordeno message payloads", () => {
+    const payload = messageOptions({
+      content: "hello",
+      files: [{ blob: new Blob(["file"]), name: "file.txt" }],
+    });
+    expect(payload.content).toBe("hello");
+    expect(payload.files?.[0]?.name).toBe("file.txt");
+  });
+
+  test("preserves complete guild state across partial updates", () => {
+    const runtime = new DiscordRuntime({
+      token: "MTIzNDU2Nzg5MDEyMzQ1Njc4.test.test",
+      applicationId: 1n,
+      intents: GatewayIntents.Guilds,
+    });
+    const channels = new Map([[2n, { id: 2n }]]) as unknown as Guild["channels"];
+    const guild = { id: 1n, name: "Before", channels } as unknown as Guild;
+    runtimeStats(runtime.bot).guildObjects.set(guild.id, guild);
+    runtime.bot.events.guildUpdate?.({
+      id: guild.id,
+      name: "After",
+    } as Guild);
+
+    const command = {
+      name: "guild",
+      path: ["guild"],
+      description: "Guild",
+      type: "slash",
+      aliases: [],
+      context: "guild",
+      permissions: [],
+      botPermissions: [],
+      guilds: [],
+      category: "general",
+      syntax: "guild",
+      run() {},
+    } as Entry;
+    const interaction = {
+      bot: runtime.bot,
+      user: { id: 1n },
+      guildId: guild.id,
+      guild: { id: guild.id },
+      channelId: 2n,
+    } as unknown as DiscordInteraction;
+    const ctx = new Context("slash", interaction, command);
+
+    expect(ctx.guild?.name).toBe("After");
+    expect(ctx.guild?.channels).toBe(channels);
   });
 
   test("rejects invalid component payloads before Discord", () => {

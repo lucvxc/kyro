@@ -8,7 +8,7 @@ import type { Container } from "./Container.ts";
 import type { Embed } from "./Embed.ts";
 import { readFileSync } from "node:fs";
 
-export type MessageContent = string | Embed | Container;
+export type MessageContent = string | Embed | Container | CreateMessageOptions;
 export interface MessagePolicy {
   allowedMentions?: CreateMessageOptions["allowedMentions"];
 }
@@ -25,6 +25,15 @@ export function messageOptions(
   };
   if (typeof value === "string")
     return { content: value, flags: privateFlag, allowedMentions };
+  if (!("kind" in value)) {
+    const flags =
+      Number(value.flags ?? 0) | (ephemeral ? MessageFlags.Ephemeral : 0);
+    return {
+      ...value,
+      flags: flags || undefined,
+      allowedMentions: value.allowedMentions ?? allowedMentions,
+    };
+  }
   if (value.kind === "embed")
     return { embeds: [value.toJSON()], flags: privateFlag, allowedMentions };
   return {
