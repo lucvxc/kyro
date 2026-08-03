@@ -122,10 +122,16 @@ interface ComponentData {
   customId?: string;
   value?: string;
   values?: (string | bigint)[];
-  components?: ComponentData[];
+  component?: ComponentData;
+  components?: (ComponentData | undefined)[];
 }
-function componentChildren(component: ComponentData): ComponentData[] {
-  return component.components
-    ? component.components.flatMap(componentChildren)
-    : [component];
+function componentChildren(
+  component: ComponentData | undefined,
+): ComponentData[] {
+  if (!component) return [];
+  const children = [
+    ...(component.components ?? []),
+    ...(component.component ? [component.component] : []),
+  ];
+  return children.length ? children.flatMap(componentChildren) : [component];
 }

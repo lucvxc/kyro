@@ -140,6 +140,26 @@ export class DiscordRuntime {
       gateway: options.gateway,
       rest: options.rest,
       events: events as Partial<EventHandlers<DiscordProperties, 0>>,
+      transformers: {
+        customizers: {
+          component: (bot, payload, component) => {
+            const raw = payload as unknown as SubmittedComponent;
+            if (raw.type === 18)
+              return {
+                type: raw.type,
+                label: raw.label,
+                description: raw.description,
+                component: raw.component
+                  ? bot.transformers.component(bot, raw.component as never)
+                  : undefined,
+              };
+            if (!component) return component;
+            return raw.values
+              ? { ...component, values: raw.values }
+              : component;
+          },
+        },
+      },
       desiredProperties: createDesiredPropertiesObject(
         { guild: { presences: false } },
         true,
@@ -211,6 +231,14 @@ export class DiscordRuntime {
       }
     }
   }
+}
+
+interface SubmittedComponent {
+  type: number;
+  label?: string;
+  description?: string;
+  component?: SubmittedComponent;
+  values?: (string | bigint)[];
 }
 
 export function snowflake(value: string | bigint): bigint {

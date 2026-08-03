@@ -269,6 +269,32 @@ describe("Discordeno migration boundary", () => {
     expect(ctx.params).toEqual(["42"]);
   });
 
+  test("reads values submitted through modal label components", () => {
+    const runtime = new DiscordRuntime({
+      token: "MTIzNDU2Nzg5MDEyMzQ1Njc4.test.test",
+      applicationId: 1n,
+      intents: GatewayIntents.Guilds,
+    });
+    const field = runtime.bot.transformers.component(runtime.bot, {
+      type: 18,
+      label: "Prize",
+      component: {
+        type: 4,
+        custom_id: "prize",
+        style: 1,
+        value: "Nitro",
+      },
+    } as never);
+    const interaction = {
+      bot: runtime.bot,
+      user: { id: 1n },
+      data: { components: [field] },
+    } as unknown as DiscordInteraction;
+    const ctx = new ComponentContext(interaction, "giveaway_setup");
+
+    expect(ctx.field("prize")).toBe("Nitro");
+  });
+
   test("simulates owned components and regex captures", async () => {
     const harness = createTestKyro().component({
       id: /^profile:(\d+)$/,
