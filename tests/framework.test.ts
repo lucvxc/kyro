@@ -9,7 +9,7 @@ import {
 import { Registry } from "../src/commands/Registry.ts";
 import { compileSlash } from "../src/commands/Compiler.ts";
 import { container } from "../src/ui/Container.ts";
-import { button, select } from "../src/ui/Control.ts";
+import { button, modal, select } from "../src/ui/Control.ts";
 import { messageOptions } from "../src/ui/Message.ts";
 import { Services } from "../src/core/Services.ts";
 import { ComponentSigner } from "../src/components/SignedId.ts";
@@ -77,13 +77,29 @@ describe("Discordeno migration boundary", () => {
     expect(payload.files?.[0]?.name).toBe("file.txt");
   });
 
+  test("keeps modal labels off nested text inputs", () => {
+    const payload = modal({
+      id: "profile",
+      title: "Edit profile",
+      inputs: [{ id: "name", label: "Name" }],
+    });
+    const field = payload.components?.[0] as unknown as {
+      label: string;
+      component: { label?: string };
+    };
+    expect(field.label).toBe("Name");
+    expect(field.component.label).toBeUndefined();
+  });
+
   test("preserves complete guild state across partial updates", () => {
     const runtime = new DiscordRuntime({
       token: "MTIzNDU2Nzg5MDEyMzQ1Njc4.test.test",
       applicationId: 1n,
       intents: GatewayIntents.Guilds,
     });
-    const channels = new Map([[2n, { id: 2n }]]) as unknown as Guild["channels"];
+    const channels = new Map([
+      [2n, { id: 2n }],
+    ]) as unknown as Guild["channels"];
     const guild = { id: 1n, name: "Before", channels } as unknown as Guild;
     runtimeStats(runtime.bot).guildObjects.set(guild.id, guild);
     runtime.bot.events.guildUpdate?.({

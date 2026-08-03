@@ -168,7 +168,10 @@ export function modal(options: ModalOptions): InteractionCallbackData {
   } as InteractionCallbackData;
 }
 function modalComponent(field: Exclude<ModalInput, ModalTextOptions>): Control {
-  if (!field.type || field.type === "text") return input(field);
+  if (!field.type || field.type === "text") {
+    const { label: _label, ...component } = input(field);
+    return component as Control;
+  }
   if (field.type === "string") return select(field);
   if (
     field.type === "user" ||
