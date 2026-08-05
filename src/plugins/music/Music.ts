@@ -98,8 +98,6 @@ export class Music extends EventEmitter<MusicEvents> {
     this.#started = true;
     this.manager.use(this.#connector, this.#runtime);
     this.#offVoice = this.#runtime.on("voiceStateUpdate", this.#voiceState);
-    if (this.#runtime.isReady)
-      void this.manager.init(String(this.#runtime.bot.id));
   }
 
   public async stop(): Promise<void> {

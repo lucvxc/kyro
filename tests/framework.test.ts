@@ -25,8 +25,32 @@ import {
   type DiscordInteraction,
 } from "../src/core/Discord.ts";
 import type { Entry } from "../src/commands/Cmd.ts";
+import { Music } from "../src/plugins/music/Music.ts";
 
 describe("Discordeno migration boundary", () => {
+  test("initializes NodeLink once when plugins reload after ready", async () => {
+    const runtime = {
+      isReady: true,
+      bot: { id: 1n },
+      on: () => () => undefined,
+      once: () => () => undefined,
+    } as unknown as DiscordRuntime;
+    const music = new Music(runtime, {
+      nodes: [{ host: "node.example.com", password: "test" }],
+    });
+    let starts = 0;
+    music.manager.init = (async () => {
+      starts += 1;
+      return music.manager;
+    }) as typeof music.manager.init;
+
+    music.start();
+    await Promise.resolve();
+
+    expect(starts).toBe(1);
+    await music.stop();
+  });
+
   test("compiles nested commands to Discord API payloads", () => {
     const registry = new Registry();
     registry.add({
