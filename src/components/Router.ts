@@ -1,4 +1,3 @@
-import { BitwisePermissionFlags } from "discordeno";
 import type {
   DiscordInteraction as Interaction,
   DiscordRuntime,
@@ -6,6 +5,7 @@ import type {
 import { log } from "../core/Log.ts";
 import { UserError } from "../commands/Errors.ts";
 import { permissionError } from "../commands/Guard.ts";
+import { missingPermissions } from "../guild/Permissions.ts";
 import { ComponentContext } from "./Context.ts";
 import { isComponentInteraction } from "./Cmp.ts";
 import type { Loader } from "./Loader.ts";
@@ -153,8 +153,9 @@ export class Router {
         { isPrivate: true },
       );
     if (item.permissions?.length) {
-      const missing = item.permissions.filter(
-        (permission) => !interaction.member?.permissions?.has(permission),
+      const missing = missingPermissions(
+        interaction.member?.permissions?.bitfield,
+        item.permissions,
       );
       if (missing.length)
         return void interaction.respond(
@@ -165,10 +166,9 @@ export class Router {
         );
     }
     if (item.botPermissions?.length) {
-      const missing = item.botPermissions.filter(
-        (permission) =>
-          (interaction.appPermissions & BitwisePermissionFlags[permission]) !==
-          BitwisePermissionFlags[permission],
+      const missing = missingPermissions(
+        interaction.appPermissions,
+        item.botPermissions,
       );
       if (missing.length)
         return void interaction.respond(

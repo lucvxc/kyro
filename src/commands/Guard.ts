@@ -1,6 +1,9 @@
-import { BitwisePermissionFlags } from "discordeno";
 import type { Context } from "./Context.ts";
 import type { Entry } from "./Cmd.ts";
+import {
+  getMemberPermissions,
+  missingPermissions,
+} from "../guild/Permissions.ts";
 import {
   MemoryRateLimitAdapter,
   type RateLimitPolicy,
@@ -44,9 +47,18 @@ export class Guard {
 
     if (command.permissions.length > 0) {
       const permissions =
-        ctx.interaction?.member?.permissions ??
-        ctx.message?.member?.permissions;
-      const missing = permissions?.missing([...command.permissions]) ?? [];
+        ctx.interaction?.member?.permissions?.bitfield ??
+        (ctx.guildId
+          ? await getMemberPermissions(
+              ctx.client,
+              ctx.guildId,
+              ctx.channelId,
+              ctx.author.id,
+              ctx.guild,
+              ctx.message?.member,
+            )
+          : undefined);
+      const missing = missingPermissions(permissions, command.permissions);
 
       if (missing.length > 0 && !(await this.#permissions?.(ctx, missing))) {
         const names = missing.map((name) =>
@@ -57,13 +69,18 @@ export class Guard {
     }
 
     if (command.botPermissions.length > 0) {
-      const permissions = ctx.interaction?.appPermissions;
-      const missing = command.botPermissions.filter(
-        (permission) =>
-          permissions === undefined ||
-          (permissions & BitwisePermissionFlags[permission]) !==
-            BitwisePermissionFlags[permission],
-      );
+      const permissions =
+        ctx.interaction?.appPermissions ??
+        (ctx.guildId
+          ? await getMemberPermissions(
+              ctx.client,
+              ctx.guildId,
+              ctx.channelId,
+              ctx.client.id,
+              ctx.guild,
+            )
+          : undefined);
+      const missing = missingPermissions(permissions, command.botPermissions);
       if (missing.length > 0) {
         const names = missing.map((name) =>
           name.replace(/([a-z])([A-Z])/g, "$1 $2"),

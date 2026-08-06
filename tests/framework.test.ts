@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import {
   ApplicationCommandOptionTypes,
+  BitwisePermissionFlags,
   DiscordInteractionContextType,
   GatewayIntents,
   type CreateSlashApplicationCommand,
@@ -26,8 +27,21 @@ import {
 } from "../src/core/Discord.ts";
 import type { Entry } from "../src/commands/Cmd.ts";
 import { Music } from "../src/plugins/music/Music.ts";
+import { missingPermissions } from "../src/guild/Permissions.ts";
 
 describe("Discordeno migration boundary", () => {
+  test("administrator satisfies every declared permission", () => {
+    expect(
+      missingPermissions(BitwisePermissionFlags.ADMINISTRATOR, [
+        "MANAGE_GUILD_EXPRESSIONS",
+        "BAN_MEMBERS",
+      ]),
+    ).toEqual([]);
+    expect(missingPermissions(0n, ["MANAGE_GUILD_EXPRESSIONS"])).toEqual([
+      "MANAGE_GUILD_EXPRESSIONS",
+    ]);
+  });
+
   test("initializes NodeLink once when plugins reload after ready", async () => {
     const runtime = {
       isReady: true,
