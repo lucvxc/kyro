@@ -66,9 +66,7 @@ export class ComponentContext {
   }
   public private(content: ComponentReply): Promise<void> {
     return this.interaction
-      .respond(messageOptions(content, true, this.messagePolicy), {
-        isPrivate: true,
-      })
+      .respond(messageOptions(content, true, this.messagePolicy))
       .then(() => undefined);
   }
   public update(content: ComponentReply): Promise<void> {
@@ -90,9 +88,7 @@ export class ComponentContext {
     privateResponse = false,
   ): Promise<void> {
     return this.interaction
-      .respond(messageOptions(content, privateResponse, this.messagePolicy), {
-        isPrivate: privateResponse,
-      })
+      .respond(messageOptions(content, privateResponse, this.messagePolicy))
       .then(() => undefined);
   }
   public deleteReply(messageId?: bigint): Promise<void> {

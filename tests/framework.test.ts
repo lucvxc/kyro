@@ -307,6 +307,25 @@ describe("Discordeno migration boundary", () => {
     expect(ctx.params).toEqual(["42"]);
   });
 
+  test("keeps components-v2 enabled on private component replies", async () => {
+    let payload: { flags?: bigint | number } | undefined;
+    let responseOptions: unknown = "not called";
+    const interaction = {
+      bot: {},
+      user: { id: 1n },
+      respond: async (value: typeof payload, options?: unknown) => {
+        payload = value;
+        responseOptions = options;
+      },
+    } as unknown as DiscordInteraction;
+    const ctx = new ComponentContext(interaction, "private");
+
+    await ctx.private(container().text("Private container"));
+
+    expect(Number(payload?.flags)).toBe(32_768 | 64);
+    expect(responseOptions).toBeUndefined();
+  });
+
   test("reads values submitted through modal label components", () => {
     const runtime = new DiscordRuntime({
       token: "MTIzNDU2Nzg5MDEyMzQ1Njc4.test.test",

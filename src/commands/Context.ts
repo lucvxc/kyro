@@ -253,7 +253,6 @@ export class Context {
       throw new Error("Only interactions can receive follow-up responses.");
     const response = await this.interaction.respond(
       messageOptions(content, privateResponse, this.messagePolicy),
-      { isPrivate: privateResponse },
     );
     if (response && "id" in response) this.#response = response as Message;
   }

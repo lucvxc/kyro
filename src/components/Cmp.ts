@@ -5,14 +5,13 @@ import {
   type PermissionStrings,
 } from "discordeno";
 import type { DiscordBot, DiscordInteraction } from "../core/Discord.ts";
-import type { Container } from "../ui/Container.ts";
-import type { Embed } from "../ui/Embed.ts";
+import type { MessageContent } from "../ui/Message.ts";
 import type { RateLimitPolicy } from "../core/RateLimit.ts";
 import type { ServiceToken, Services } from "../core/Services.ts";
 import { validateRateLimit } from "../core/RateLimit.ts";
 
 export type ComponentInput = DiscordInteraction;
-export type ComponentReply = string | Embed | Container;
+export type ComponentReply = MessageContent;
 export type ComponentId = string | RegExp;
 export type ComponentNext = () => Promise<void>;
 export type ComponentMiddleware = (
