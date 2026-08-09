@@ -172,6 +172,71 @@ describe("Discordeno migration boundary", () => {
     expect(ctx.guild?.channels).toBe(channels);
   });
 
+  test("keeps guild member counts current after joins and leaves", () => {
+    const runtime = new DiscordRuntime({
+      token: "MTIzNDU2Nzg5MDEyMzQ1Njc4.test.test",
+      applicationId: 1n,
+      intents: GatewayIntents.Guilds | GatewayIntents.GuildMembers,
+    });
+    const guild = {
+      id: 1n,
+      memberCount: 25,
+      members: new Map(),
+    } as unknown as Guild;
+    const state = runtimeStats(runtime.bot);
+    state.guildObjects.set(guild.id, guild);
+    state.guildMembers.set(guild.id, guild.memberCount!);
+
+    runtime.bot.events.guildMemberAdd?.(
+      { guildId: guild.id } as never,
+      {} as never,
+    );
+    expect(state.guildMembers.get(guild.id)).toBe(26);
+    expect(guild.memberCount).toBe(26);
+
+    runtime.bot.events.guildMemberRemove?.({} as never, guild.id);
+    expect(state.guildMembers.get(guild.id)).toBe(25);
+    expect(guild.memberCount).toBe(25);
+  });
+
+  test("keeps cached guild channels and roles current", () => {
+    const runtime = new DiscordRuntime({
+      token: "MTIzNDU2Nzg5MDEyMzQ1Njc4.test.test",
+      applicationId: 1n,
+      intents: GatewayIntents.Guilds,
+    });
+    const guild = {
+      id: 1n,
+      channels: new Map(),
+      roles: new Map(),
+    } as unknown as Guild;
+    runtimeStats(runtime.bot).guildObjects.set(guild.id, guild);
+
+    runtime.bot.events.channelCreate?.({ id: 2n, guildId: guild.id } as never);
+    runtime.bot.events.roleCreate?.({ id: 3n, guildId: guild.id } as never);
+    expect(guild.channels.has(2n)).toBeTrue();
+    expect(guild.roles.has(3n)).toBeTrue();
+
+    runtime.bot.events.channelDelete?.({ id: 2n, guildId: guild.id } as never);
+    runtime.bot.events.roleDelete?.({ roleId: 3n, guildId: guild.id });
+    expect(guild.channels.has(2n)).toBeFalse();
+    expect(guild.roles.has(3n)).toBeFalse();
+  });
+
+  test("does not append the discontinued discriminator to modern users", () => {
+    const runtime = new DiscordRuntime({
+      token: "MTIzNDU2Nzg5MDEyMzQ1Njc4.test.test",
+      applicationId: 1n,
+      intents: GatewayIntents.Guilds,
+    });
+    const user = runtime.bot.transformers.user(runtime.bot, {
+      id: "1",
+      username: "june",
+      discriminator: "0",
+    } as never);
+    expect(user.tag).toBe("june");
+  });
+
   test("rejects invalid component payloads before Discord", () => {
     expect(() => button({ id: "empty", label: "   " })).toThrow(
       "non-empty label or emoji",

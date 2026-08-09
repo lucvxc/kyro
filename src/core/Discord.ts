@@ -95,7 +95,11 @@ export class DiscordRuntime {
             runtimeStats(this.bot).guildObjects.set(guild.id, guild as Guild);
             runtimeStats(this.bot).guildMembers.set(
               guild.id,
-              guild.memberCount ?? 0,
+              guild.memberCount ??
+                (guild as { approximateMemberCount?: number })
+                  .approximateMemberCount ??
+                (guild as Guild).members?.size ??
+                0,
             );
             runtimeStats(this.bot).voiceStates.set(
               guild.id,
@@ -114,12 +118,52 @@ export class DiscordRuntime {
           } else if (name === "guildUpdate") {
             const guild = args[0] as unknown as Guild;
             const current = runtimeStats(this.bot).guildObjects.get(guild.id);
-            const snapshot = current ? Object.assign(current, guild) : guild;
+            const snapshot = current ? assignDefined(current, guild) : guild;
             runtimeStats(this.bot).guildObjects.set(guild.id, snapshot);
             runtimeStats(this.bot).guildMembers.set(
               guild.id,
               snapshot.memberCount ?? snapshot.members?.size ?? 0,
             );
+          } else if (name === "guildMemberAdd") {
+            const member = args[0] as unknown as { guildId: bigint };
+            changeMemberCount(this.bot, member.guildId, 1);
+          } else if (name === "guildMemberRemove") {
+            const guildId = args[1] as unknown as bigint;
+            changeMemberCount(this.bot, guildId, -1);
+          } else if (name === "channelCreate" || name === "channelUpdate") {
+            const channel = args[0] as unknown as {
+              id: bigint;
+              guildId?: bigint;
+            };
+            if (channel.guildId)
+              runtimeStats(this.bot)
+                .guildObjects.get(channel.guildId)
+                ?.channels.set(channel.id, channel as never);
+          } else if (name === "channelDelete") {
+            const channel = args[0] as unknown as {
+              id: bigint;
+              guildId?: bigint;
+            };
+            if (channel.guildId)
+              runtimeStats(this.bot)
+                .guildObjects.get(channel.guildId)
+                ?.channels.delete(channel.id);
+          } else if (name === "roleCreate" || name === "roleUpdate") {
+            const role = args[0] as unknown as {
+              id: bigint;
+              guildId: bigint;
+            };
+            runtimeStats(this.bot)
+              .guildObjects.get(role.guildId)
+              ?.roles.set(role.id, role as never);
+          } else if (name === "roleDelete") {
+            const role = args[0] as unknown as {
+              guildId: bigint;
+              roleId: bigint;
+            };
+            runtimeStats(this.bot)
+              .guildObjects.get(role.guildId)
+              ?.roles.delete(role.roleId);
           } else if (name === "voiceStateUpdate") {
             const state = args[0] as unknown as VoiceState;
             const guild =
@@ -142,6 +186,14 @@ export class DiscordRuntime {
       events: events as Partial<EventHandlers<DiscordProperties, 0>>,
       transformers: {
         customizers: {
+          user: (_bot, _payload, user) => {
+            if (user.discriminator === "0")
+              Object.defineProperty(user, "tag", {
+                value: user.username,
+                enumerable: true,
+              });
+            return user;
+          },
           component: (bot, payload, component) => {
             const raw = payload as unknown as SubmittedComponent;
             if (raw.type === 18)
@@ -231,6 +283,29 @@ export class DiscordRuntime {
       }
     }
   }
+}
+
+function assignDefined<T extends object>(target: T, source: T): T {
+  for (const [key, value] of Object.entries(source))
+    if (value !== undefined) (target as Record<string, unknown>)[key] = value;
+  return target;
+}
+
+function changeMemberCount(
+  bot: DiscordBot,
+  guildId: bigint,
+  change: 1 | -1,
+): void {
+  const state = runtimeStats(bot);
+  const guild = state.guildObjects.get(guildId);
+  const current =
+    state.guildMembers.get(guildId) ??
+    guild?.memberCount ??
+    guild?.members?.size ??
+    0;
+  const count = Math.max(0, current + change);
+  state.guildMembers.set(guildId, count);
+  if (guild) guild.memberCount = count;
 }
 
 interface SubmittedComponent {

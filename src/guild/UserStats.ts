@@ -21,7 +21,7 @@ export class UserStats {
     return this.user.username;
   }
   public get tag(): string {
-    return this.user.tag;
+    return this.user.discriminator === "0" ? this.user.username : this.user.tag;
   }
   public get mention(): string {
     return `<@${this.user.id}>`;
