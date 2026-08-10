@@ -22,6 +22,7 @@ import { Context } from "../src/commands/Context.ts";
 import { ComponentContext } from "../src/components/Context.ts";
 import {
   DiscordRuntime,
+  freshMemberCount,
   runtimeStats,
   type DiscordInteraction,
 } from "../src/core/Discord.ts";
@@ -197,6 +198,24 @@ describe("Discordeno migration boundary", () => {
     runtime.bot.events.guildMemberRemove?.({} as never, guild.id);
     expect(state.guildMembers.get(guild.id)).toBe(25);
     expect(guild.memberCount).toBe(25);
+  });
+
+  test("reconciles cached member counts with Discord", async () => {
+    const runtime = new DiscordRuntime({
+      token: "MTIzNDU2Nzg5MDEyMzQ1Njc4.test.test",
+      applicationId: 1n,
+      intents: GatewayIntents.Guilds,
+    });
+    const guild = { id: 1n, memberCount: 10 } as unknown as Guild;
+    const state = runtimeStats(runtime.bot);
+    state.guildObjects.set(guild.id, guild);
+    state.guildMembers.set(guild.id, 10);
+    runtime.bot.rest.getGuild = (() =>
+      Promise.resolve({ approximateMemberCount: 42 })) as never;
+
+    expect(await freshMemberCount(runtime.bot, guild.id)).toBe(42);
+    expect(state.guildMembers.get(guild.id)).toBe(42);
+    expect(guild.memberCount).toBe(42);
   });
 
   test("keeps cached guild channels and roles current", () => {

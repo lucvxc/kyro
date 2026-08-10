@@ -7,6 +7,7 @@ export {
 } from "./Kyro.ts";
 export {
   DiscordRuntime,
+  freshMemberCount,
   runtimeStats,
   snowflake,
   snowflakeString,

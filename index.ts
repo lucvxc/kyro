@@ -67,6 +67,7 @@ export {
   messageOptions,
   send,
   DiscordRuntime,
+  freshMemberCount,
   runtimeStats,
   Services,
   snowflake,

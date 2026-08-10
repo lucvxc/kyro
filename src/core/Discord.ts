@@ -54,6 +54,24 @@ export function runtimeStats(bot: DiscordBot): RuntimeStats {
   );
 }
 
+export async function freshMemberCount(
+  bot: DiscordBot,
+  guildId: string | bigint,
+): Promise<number> {
+  const id = snowflake(guildId);
+  const state = runtimeStats(bot);
+  const live = await bot.rest.getGuild(id, { counts: true });
+  const count =
+    live.approximateMemberCount ??
+    state.guildMembers.get(id) ??
+    state.guildObjects.get(id)?.memberCount ??
+    0;
+  state.guildMembers.set(id, count);
+  const guild = state.guildObjects.get(id);
+  if (guild) guild.memberCount = count;
+  return count;
+}
+
 /**
  * Kyro's Discordeno runtime boundary. Discordeno intentionally exposes one
  * handler per gateway event; Kyro needs many independently reloadable routers,
