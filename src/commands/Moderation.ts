@@ -251,10 +251,7 @@ export class Moderation {
     ]);
     if (target.id === guild.ownerId)
       throw new UserError(`You cannot ${action} the server owner.`);
-    if (
-      !me.permissions ||
-      (me.permissions.bitfield & permission) !== permission
-    )
+    if (!can(memberPermissions(me, roles, guildId), permission))
       throw new UserError(`I do not have permission to ${action} members.`);
     const position = (member: Member): number =>
       Math.max(
@@ -287,9 +284,10 @@ export class Moderation {
       this.bot.helpers.getRoles(guildId),
     ]);
     if (
-      !me.permissions ||
-      (me.permissions.bitfield & BitwisePermissionFlags.MANAGE_ROLES) !==
-        BitwisePermissionFlags.MANAGE_ROLES
+      !can(
+        memberPermissions(me, roles, guildId),
+        BitwisePermissionFlags.MANAGE_ROLES,
+      )
     )
       throw new UserError("I do not have permission to manage roles.");
     if (role.id === guildId)
@@ -328,4 +326,26 @@ export class Moderation {
       options.reason?.trim() || `Moderation action by ${this.actor.tag}`
     ).slice(0, 512);
   }
+}
+
+function memberPermissions(
+  member: Member,
+  roles: readonly Role[],
+  guildId: bigint,
+): bigint {
+  return roles.reduce(
+    (permissions, role) =>
+      role.id === guildId || member.roles.includes(role.id)
+        ? permissions | role.permissions.bitfield
+        : permissions,
+    0n,
+  );
+}
+
+function can(permissions: bigint, required: bigint): boolean {
+  const administrator = BitwisePermissionFlags.ADMINISTRATOR;
+  return (
+    (permissions & administrator) === administrator ||
+    (permissions & required) === required
+  );
 }
