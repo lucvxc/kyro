@@ -6,6 +6,8 @@ import {
   GatewayIntents,
   type CreateSlashApplicationCommand,
   type Guild,
+  type Role,
+  type User,
 } from "discordeno";
 import { Registry } from "../src/commands/Registry.ts";
 import { compileSlash } from "../src/commands/Compiler.ts";
@@ -30,8 +32,42 @@ import type { Entry } from "../src/commands/Cmd.ts";
 import { Music } from "../src/plugins/music/Music.ts";
 import { missingPermissions } from "../src/guild/Permissions.ts";
 import { Guard } from "../src/commands/Guard.ts";
+import { findRole, findUser } from "../src/guild/Lookup.ts";
 
 describe("Discordeno migration boundary", () => {
+  test("finds users and roles from natural message input", () => {
+    const user = {
+      id: 123456789012345678n,
+      username: "lucvxc",
+    } as User;
+    const helper = {
+      id: 223456789012345678n,
+      username: "helper",
+    } as User;
+    const guild = {
+      id: 323456789012345678n,
+      members: new Map([
+        [user.id, { user }],
+        [helper.id, { user: helper }],
+      ]),
+      roles: new Map([
+        [
+          423456789012345678n,
+          { id: 423456789012345678n, name: "Trusted Members" } as Role,
+        ],
+      ]),
+    } as unknown as Guild;
+
+    expect(findUser(guild, "lucvxc")).toBe(user);
+    expect(findUser(guild, String(user.id))).toBe(user);
+    expect(findUser(guild, `<@${user.id}>`)).toBe(user);
+    expect(findRole(guild, "Trusted Members")?.name).toBe("Trusted Members");
+    expect(findRole(guild, "423456789012345678")?.name).toBe(
+      "Trusted Members",
+    );
+    expect(findRole(guild, "trust")?.name).toBe("Trusted Members");
+  });
+
   test("administrator satisfies every declared permission", () => {
     expect(
       missingPermissions(BitwisePermissionFlags.ADMINISTRATOR, [

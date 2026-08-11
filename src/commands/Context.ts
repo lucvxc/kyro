@@ -32,6 +32,7 @@ import { RoleStats } from "../guild/RoleStats.ts";
 import { UserStats } from "../guild/UserStats.ts";
 import { musicFor, type MusicContext } from "../plugins/music/index.ts";
 import { Services, type ServiceToken } from "../core/Services.ts";
+import { findRole, findUser } from "../guild/Lookup.ts";
 
 export type Source = "slash" | "message";
 export type Input = Interaction | Message;
@@ -65,9 +66,14 @@ export class Context {
     this.#entry = entry;
     if (source === "message") {
       const message = input as Message;
+      const guild = message.guildId
+        ? runtimeStats(this.client).guildObjects.get(message.guildId)
+        : undefined;
+      const mentioned = message.mentions ?? [];
       const parsed = parse(entry.args, raw, {
-        user: (id) => message.mentions?.find((user) => user.id === BigInt(id)),
-        role: () => undefined,
+        user: (value) =>
+          findUser(guild, value, [message.author, ...mentioned]),
+        role: (value) => (guild ? findRole(guild, value) : undefined),
         channel: () => undefined,
       });
       this.#values = parsed.values;

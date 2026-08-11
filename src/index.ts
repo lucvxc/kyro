@@ -78,7 +78,7 @@ export { ChannelStats } from "./guild/ChannelStats.ts";
 export { EmojiStats } from "./guild/EmojiStats.ts";
 export { RoleStats } from "./guild/RoleStats.ts";
 export { UserStats } from "./guild/UserStats.ts";
-export { findRole } from "./guild/Lookup.ts";
+export { findRole, findUser } from "./guild/Lookup.ts";
 export { audit, type AuditQuery } from "./guild/Audit.ts";
 export { DrizzleDB, drizzle, type DrizzleOptions } from "./db/Drizzle.ts";
 export { Cache, type CacheOptions } from "./core/Cache.ts";

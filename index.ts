@@ -44,6 +44,7 @@ export {
   RoleStats,
   UserStats,
   findRole,
+  findUser,
   audit,
   DrizzleDB,
   drizzle,
