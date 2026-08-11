@@ -243,12 +243,23 @@ export class DiscordRuntime {
               ? { ...component, values: raw.values }
               : component;
           },
+          guild: (bot, payload, guild) => {
+            const raw = payload as unknown as GuildPayload;
+            if (raw.presences)
+              guild.presences = raw.presences.map((presence) =>
+                bot.transformers.presence(bot, {
+                  ...presence,
+                  guild_id: raw.id,
+                } as never),
+              );
+            return guild;
+          },
         },
       },
       desiredProperties: createDesiredPropertiesObject(
-        { guild: { presences: true } },
+        { guild: { presences: false } },
         true,
-      ),
+      ) as unknown as DiscordProperties,
     });
     stats.set(this.bot, {
       guilds: new Set(),
@@ -347,6 +358,11 @@ interface SubmittedComponent {
   description?: string;
   component?: SubmittedComponent;
   values?: (string | bigint)[];
+}
+
+interface GuildPayload {
+  id: string;
+  presences?: Array<Record<string, unknown>>;
 }
 
 export function snowflake(value: string | bigint): bigint {

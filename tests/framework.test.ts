@@ -66,6 +66,44 @@ describe("Discordeno migration boundary", () => {
     expect(findRole(guild, "trust")?.name).toBe("Trusted Members");
   });
 
+  test("parses role names in prefix commands", () => {
+    const runtime = new DiscordRuntime({
+      token: "MTIzNDU2Nzg5MDEyMzQ1Njc4.test.test",
+      applicationId: 1n,
+      intents: GatewayIntents.Guilds | GatewayIntents.GuildMessages,
+    });
+    const role = { id: 3n, name: "Founder" } as Role;
+    const guild = {
+      id: 1n,
+      roles: new Map([[role.id, role]]),
+    } as unknown as Guild;
+    runtimeStats(runtime.bot).guildObjects.set(guild.id, guild);
+    const command = {
+      name: "role info",
+      args: { role: { type: "role" } },
+    } as unknown as Entry;
+    const message = {
+      id: 4n,
+      guildId: guild.id,
+      channelId: 5n,
+      author: { id: 6n, username: "lucvxc" },
+      mentions: [],
+    };
+
+    const ctx = new Context(
+      "message",
+      message as never,
+      command,
+      ["founder"],
+      undefined,
+      ",",
+      runtime.bot,
+    );
+
+    expect(ctx.issue).toBeUndefined();
+    expect(ctx.role("role")).toBe(role);
+  });
+
   test("administrator satisfies every declared permission", () => {
     expect(
       missingPermissions(BitwisePermissionFlags.ADMINISTRATOR, [
@@ -301,6 +339,31 @@ describe("Discordeno migration boundary", () => {
     expect(
       String(guild.presences?.find((entry) => entry.user.id === 2n)?.status),
     ).toBe("dnd");
+  });
+
+  test("adds the guild ID to initial Discord presences", () => {
+    const runtime = new DiscordRuntime({
+      token: "MTIzNDU2Nzg5MDEyMzQ1Njc4.test.test",
+      applicationId: 1n,
+      intents: GatewayIntents.Guilds | GatewayIntents.GuildPresences,
+    });
+    const guild = runtime.bot.transformers.guild(runtime.bot, {
+      guild: {
+        id: "1",
+        presences: [
+          {
+            user: { id: "2", username: "member", discriminator: "0" },
+            status: "online",
+            activities: [],
+            client_status: {},
+          },
+        ],
+      },
+      shardId: 0,
+    } as never);
+
+    expect(guild.presences?.[0]?.guildId).toBe(1n);
+    expect(guild.presences?.[0]?.user.id).toBe(2n);
   });
 
   test("reconciles cached member counts with Discord", async () => {
