@@ -12,7 +12,7 @@ import {
   type VoiceState,
 } from "discordeno";
 
-type DesiredProperties = { guild: { presences: false } };
+type DesiredProperties = { guild: { presences: true } };
 export type DiscordProperties = CompleteDesiredProperties<
   DesiredProperties,
   true
@@ -148,6 +148,21 @@ export class DiscordRuntime {
           } else if (name === "guildMemberRemove") {
             const guildId = args[1] as unknown as bigint;
             changeMemberCount(this.bot, guildId, -1);
+          } else if (name === "presenceUpdate") {
+            const presence = args[0] as unknown as {
+              guildId: bigint;
+              user: { id: bigint };
+            };
+            const guild = runtimeStats(this.bot).guildObjects.get(
+              presence.guildId,
+            );
+            if (guild)
+              guild.presences = [
+                ...(guild.presences ?? []).filter(
+                  (entry) => entry.user.id !== presence.user.id,
+                ),
+                presence as never,
+              ];
           } else if (name === "channelCreate" || name === "channelUpdate") {
             const channel = args[0] as unknown as {
               id: bigint;
@@ -231,7 +246,7 @@ export class DiscordRuntime {
         },
       },
       desiredProperties: createDesiredPropertiesObject(
-        { guild: { presences: false } },
+        { guild: { presences: true } },
         true,
       ),
     });
