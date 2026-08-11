@@ -29,6 +29,7 @@ import {
 import type { Entry } from "../src/commands/Cmd.ts";
 import { Music } from "../src/plugins/music/Music.ts";
 import { missingPermissions } from "../src/guild/Permissions.ts";
+import { Guard } from "../src/commands/Guard.ts";
 
 describe("Discordeno migration boundary", () => {
   test("administrator satisfies every declared permission", () => {
@@ -41,6 +42,47 @@ describe("Discordeno migration boundary", () => {
     expect(missingPermissions(0n, ["MANAGE_GUILD_EXPRESSIONS"])).toEqual([
       "MANAGE_GUILD_EXPRESSIONS",
     ]);
+  });
+
+  test("refreshes stale interaction permissions before denying a command", async () => {
+    const guildId = 1n;
+    const channelId = 2n;
+    const userId = 3n;
+    const adminRoleId = 4n;
+    const member = { id: userId, roles: [adminRoleId] };
+    const guild = {
+      id: guildId,
+      ownerId: 99n,
+      roles: new Map([
+        [guildId, { id: guildId, permissions: { bitfield: 0n } }],
+        [
+          adminRoleId,
+          {
+            id: adminRoleId,
+            permissions: { bitfield: BitwisePermissionFlags.ADMINISTRATOR },
+          },
+        ],
+      ]),
+      members: new Map([[userId, member]]),
+      channels: new Map([
+        [channelId, { id: channelId, permissionOverwrites: [] }],
+      ]),
+    };
+    const ctx = {
+      interaction: { member: { permissions: { bitfield: 0n } } },
+      guildId,
+      channelId,
+      author: { id: userId },
+      client: { helpers: { getGuild: async () => guild } },
+    };
+    const command = {
+      permissions: ["MODERATE_MEMBERS"],
+      botPermissions: [],
+    };
+
+    expect(
+      await new Guard().check(command as never, ctx as never),
+    ).toBeUndefined();
   });
 
   test("initializes NodeLink once when plugins reload after ready", async () => {

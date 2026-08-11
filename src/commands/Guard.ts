@@ -46,7 +46,7 @@ export class Guard {
     }
 
     if (command.permissions.length > 0) {
-      const permissions =
+      let permissions =
         ctx.interaction?.member?.permissions?.bitfield ??
         (ctx.guildId
           ? await getMemberPermissions(
@@ -58,7 +58,19 @@ export class Guard {
               ctx.message?.member,
             )
           : undefined);
-      const missing = missingPermissions(permissions, command.permissions);
+      let missing = missingPermissions(permissions, command.permissions);
+
+      if (missing.length > 0 && ctx.guildId) {
+        permissions = await getMemberPermissions(
+          ctx.client,
+          ctx.guildId,
+          ctx.channelId,
+          ctx.author.id,
+          undefined,
+          ctx.message?.member,
+        );
+        missing = missingPermissions(permissions, command.permissions);
+      }
 
       if (missing.length > 0 && !(await this.#permissions?.(ctx, missing))) {
         const names = missing.map((name) =>
@@ -69,7 +81,7 @@ export class Guard {
     }
 
     if (command.botPermissions.length > 0) {
-      const permissions =
+      let permissions =
         ctx.interaction?.appPermissions ??
         (ctx.guildId
           ? await getMemberPermissions(
@@ -80,7 +92,16 @@ export class Guard {
               ctx.guild,
             )
           : undefined);
-      const missing = missingPermissions(permissions, command.botPermissions);
+      let missing = missingPermissions(permissions, command.botPermissions);
+      if (missing.length > 0 && ctx.guildId) {
+        permissions = await getMemberPermissions(
+          ctx.client,
+          ctx.guildId,
+          ctx.channelId,
+          ctx.client.id,
+        );
+        missing = missingPermissions(permissions, command.botPermissions);
+      }
       if (missing.length > 0) {
         const names = missing.map((name) =>
           name.replace(/([a-z])([A-Z])/g, "$1 $2"),
