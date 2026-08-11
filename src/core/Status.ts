@@ -25,12 +25,7 @@ export function deviceProperties():
 
 export type PresenceStatus = "online" | "idle" | "dnd" | "offline";
 export type ActivityType =
-  | "playing"
-  | "streaming"
-  | "listening"
-  | "watching"
-  | "competing"
-  | "custom";
+  "playing" | "streaming" | "listening" | "watching" | "competing" | "custom";
 
 export interface PresenceActivity {
   type: ActivityType;
@@ -65,9 +60,10 @@ export function activity(
   return { type, name, ...options };
 }
 
-export function presence(
-  input: PresenceInput,
-): { status: PresenceStatus; activities: unknown[] } {
+export function presence(input: PresenceInput): {
+  status: PresenceStatus;
+  activities: unknown[];
+} {
   const { status: presenceStatus = "online", activity } = input;
   const activities = activity
     ? activity.type === "custom"

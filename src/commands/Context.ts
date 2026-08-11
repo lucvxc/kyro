@@ -71,8 +71,7 @@ export class Context {
         : undefined;
       const mentioned = message.mentions ?? [];
       const parsed = parse(entry.args, raw, {
-        user: (value) =>
-          findUser(guild, value, [message.author, ...mentioned]),
+        user: (value) => findUser(guild, value, [message.author, ...mentioned]),
         role: (value) => (guild ? findRole(guild, value) : undefined),
         channel: () => undefined,
       });

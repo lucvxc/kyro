@@ -62,9 +62,7 @@ describe("Discordeno migration boundary", () => {
     expect(findUser(guild, String(user.id))).toBe(user);
     expect(findUser(guild, `<@${user.id}>`)).toBe(user);
     expect(findRole(guild, "Trusted Members")?.name).toBe("Trusted Members");
-    expect(findRole(guild, "423456789012345678")?.name).toBe(
-      "Trusted Members",
-    );
+    expect(findRole(guild, "423456789012345678")?.name).toBe("Trusted Members");
     expect(findRole(guild, "trust")?.name).toBe("Trusted Members");
   });
 
@@ -276,6 +274,33 @@ describe("Discordeno migration boundary", () => {
     runtime.bot.events.guildMemberRemove?.({} as never, guild.id);
     expect(state.guildMembers.get(guild.id)).toBe(25);
     expect(guild.memberCount).toBe(25);
+  });
+
+  test("keeps cached presences current", () => {
+    const runtime = new DiscordRuntime({
+      token: "MTIzNDU2Nzg5MDEyMzQ1Njc4.test.test",
+      applicationId: 1n,
+      intents: GatewayIntents.Guilds | GatewayIntents.GuildPresences,
+    });
+    const guild = {
+      id: 1n,
+      presences: [
+        { guildId: 1n, user: { id: 2n }, status: "idle" },
+        { guildId: 1n, user: { id: 3n }, status: "online" },
+      ],
+    } as unknown as Guild;
+    runtimeStats(runtime.bot).guildObjects.set(guild.id, guild);
+
+    runtime.bot.events.presenceUpdate?.({
+      guildId: guild.id,
+      user: { id: 2n },
+      status: "dnd",
+    } as never);
+
+    expect(guild.presences).toHaveLength(2);
+    expect(
+      String(guild.presences?.find((entry) => entry.user.id === 2n)?.status),
+    ).toBe("dnd");
   });
 
   test("reconciles cached member counts with Discord", async () => {

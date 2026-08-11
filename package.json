@@ -11,13 +11,13 @@
   "main": "dist/index.js",
   "types": "index.ts",
   "bin": {
-    "kyro": "./dist/cli.js"
+    "kyro": "./dist/src/cli.js"
   },
   "exports": {
     ".": {
       "bun": "./index.ts",
       "types": "./index.ts",
-      "default": "./index.ts"
+      "default": "./dist/index.js"
     }
   },
   "type": "module",
