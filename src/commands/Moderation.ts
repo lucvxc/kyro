@@ -307,9 +307,7 @@ export class Moderation {
     if (actor.id !== guild.ownerId && role.position >= position(actor))
       throw new UserError("That role is too high for you to manage.");
 
-    if (target.id !== actor.id) {
-      if (target.id === guild.ownerId)
-        throw new UserError(`You cannot ${action} the server owner.`);
+    if (target.id !== actor.id && target.id !== guild.ownerId) {
       if (target.id === me.id || position(target) >= position(me))
         throw new UserError(
           `I cannot ${action} that member because of role hierarchy.`,

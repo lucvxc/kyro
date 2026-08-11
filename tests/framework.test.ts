@@ -33,6 +33,7 @@ import { Music } from "../src/plugins/music/Music.ts";
 import { missingPermissions } from "../src/guild/Permissions.ts";
 import { Guard } from "../src/commands/Guard.ts";
 import { findRole, findUser } from "../src/guild/Lookup.ts";
+import { Moderation } from "../src/commands/Moderation.ts";
 
 describe("Discordeno migration boundary", () => {
   test("finds users and roles from natural message input", () => {
@@ -114,6 +115,75 @@ describe("Discordeno migration boundary", () => {
     expect(missingPermissions(0n, ["MANAGE_GUILD_EXPRESSIONS"])).toEqual([
       "MANAGE_GUILD_EXPRESSIONS",
     ]);
+  });
+
+  test("allows manageable roles to be assigned to the server owner", async () => {
+    const guildId = 1n;
+    const ownerId = 2n;
+    const actorId = 3n;
+    const botId = 4n;
+    const roleId = 5n;
+    const botRoleId = 6n;
+    const actorRoleId = 7n;
+    const ownerRoleId = 8n;
+    let assigned = false;
+    const members = new Map([
+      [ownerId, { id: ownerId, roles: [ownerRoleId] }],
+      [actorId, { id: actorId, roles: [actorRoleId] }],
+      [botId, { id: botId, roles: [botRoleId] }],
+    ]);
+    const roles = [
+      {
+        id: guildId,
+        position: 0,
+        permissions: { bitfield: 0n },
+      },
+      {
+        id: roleId,
+        position: 5,
+        managed: false,
+        permissions: { bitfield: 0n },
+      },
+      {
+        id: botRoleId,
+        position: 10,
+        permissions: { bitfield: BitwisePermissionFlags.MANAGE_ROLES },
+      },
+      {
+        id: actorRoleId,
+        position: 9,
+        permissions: { bitfield: BitwisePermissionFlags.MANAGE_ROLES },
+      },
+      {
+        id: ownerRoleId,
+        position: 100,
+        permissions: { bitfield: BitwisePermissionFlags.ADMINISTRATOR },
+      },
+    ];
+    const bot = {
+      id: botId,
+      helpers: {
+        getGuild: async () => ({ id: guildId, ownerId }),
+        getMember: async (_guildId: bigint, userId: bigint) =>
+          members.get(userId),
+        getRoles: async () => roles,
+        addRole: async () => {
+          assigned = true;
+        },
+      },
+    };
+    const moderation = new Moderation(bot as never, guildId, {
+      id: actorId,
+      username: "moderator",
+    } as User);
+
+    await moderation.role(
+      { id: ownerId, username: "owner" } as User,
+      roles[1] as Role,
+      true,
+    );
+
+    expect(assigned).toBe(true);
   });
 
   test("refreshes stale interaction permissions before denying a command", async () => {
