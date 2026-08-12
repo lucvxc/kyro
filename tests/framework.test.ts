@@ -32,7 +32,7 @@ import type { Entry } from "../src/commands/Cmd.ts";
 import { Music } from "../src/plugins/music/Music.ts";
 import { missingPermissions } from "../src/guild/Permissions.ts";
 import { Guard } from "../src/commands/Guard.ts";
-import { findRole, findUser } from "../src/guild/Lookup.ts";
+import { findChannel, findRole, findUser } from "../src/guild/Lookup.ts";
 import { Moderation } from "../src/commands/Moderation.ts";
 
 describe("Discordeno migration boundary", () => {
@@ -57,6 +57,9 @@ describe("Discordeno migration boundary", () => {
           { id: 423456789012345678n, name: "Trusted Members" } as Role,
         ],
       ]),
+      channels: new Map([
+        [523456789012345678n, { id: 523456789012345678n, name: "ticket-logs" }],
+      ]),
     } as unknown as Guild;
 
     expect(findUser(guild, "lucvxc")).toBe(user);
@@ -65,6 +68,12 @@ describe("Discordeno migration boundary", () => {
     expect(findRole(guild, "Trusted Members")?.name).toBe("Trusted Members");
     expect(findRole(guild, "423456789012345678")?.name).toBe("Trusted Members");
     expect(findRole(guild, "trust")?.name).toBe("Trusted Members");
+    expect(findChannel(guild, "ticket-logs")?.name).toBe("ticket-logs");
+    expect(findChannel(guild, "523456789012345678")?.name).toBe("ticket-logs");
+    expect(findChannel(guild, "<#523456789012345678>")?.name).toBe(
+      "ticket-logs",
+    );
+    expect(findChannel(guild, "ticket")?.name).toBe("ticket-logs");
   });
 
   test("parses role names in prefix commands", () => {
@@ -103,6 +112,45 @@ describe("Discordeno migration boundary", () => {
 
     expect(ctx.issue).toBeUndefined();
     expect(ctx.role("role")).toBe(role);
+  });
+
+  test("parses channel mentions in prefix commands", () => {
+    const runtime = new DiscordRuntime({
+      token: "MTIzNDU2Nzg5MDEyMzQ1Njc4.test.test",
+      applicationId: 1n,
+      intents: GatewayIntents.Guilds | GatewayIntents.GuildMessages,
+    });
+    const channel = { id: 523456789012345678n, name: "ticket-logs" };
+    const guild = {
+      id: 1n,
+      roles: new Map(),
+      channels: new Map([[channel.id, channel]]),
+    } as unknown as Guild;
+    runtimeStats(runtime.bot).guildObjects.set(guild.id, guild);
+    const command = {
+      name: "ticket logs",
+      args: { channel: { type: "channel", required: true } },
+    } as unknown as Entry;
+    const message = {
+      id: 4n,
+      guildId: guild.id,
+      channelId: 5n,
+      author: { id: 6n, username: "lucvxc" },
+      mentions: [],
+    };
+
+    const ctx = new Context(
+      "message",
+      message as never,
+      command,
+      [`<#${channel.id}>`],
+      undefined,
+      ",",
+      runtime.bot,
+    );
+
+    expect(ctx.issue).toBeUndefined();
+    expect(ctx.channel("channel")?.id).toBe(channel.id);
   });
 
   test("administrator satisfies every declared permission", () => {

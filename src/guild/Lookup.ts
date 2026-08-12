@@ -1,4 +1,4 @@
-import type { Guild, Role, User } from "discordeno";
+import type { Channel, Guild, Role, User } from "discordeno";
 
 export function findUser(
   guild: Guild | undefined,
@@ -37,10 +37,31 @@ export function findRole(guild: Guild, value: string): Role | undefined {
   );
 }
 
+export function findChannel(guild: Guild, value: string): Channel | undefined {
+  const input = value.trim();
+  const id =
+    input.match(/^<#(\d{17,22})>$/)?.[1] ??
+    (/^\d{17,22}$/.test(input) ? input : undefined);
+  if (id) return guild.channels.get(BigInt(id));
+
+  const name = input.replace(/^#/, "").toLowerCase();
+  const channels = [...guild.channels.values()].filter(
+    (channel): channel is Channel & { name: string } =>
+      "name" in channel && typeof channel.name === "string",
+  );
+  return (
+    channels.find((channel) => channel.name.toLowerCase() === name) ??
+    one(
+      channels.filter((channel) => channel.name.toLowerCase().startsWith(name)),
+    ) ??
+    one(channels.filter((channel) => channel.name.toLowerCase().includes(name)))
+  );
+}
+
 function unique(users: readonly User[]): User[] {
   return [...new Map(users.map((user) => [user.id, user])).values()];
 }
 
-function one(roles: Role[]): Role | undefined {
-  return roles.length === 1 ? roles[0] : undefined;
+function one<T>(items: T[]): T | undefined {
+  return items.length === 1 ? items[0] : undefined;
 }

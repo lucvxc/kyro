@@ -32,7 +32,7 @@ import { RoleStats } from "../guild/RoleStats.ts";
 import { UserStats } from "../guild/UserStats.ts";
 import { musicFor, type MusicContext } from "../plugins/music/index.ts";
 import { Services, type ServiceToken } from "../core/Services.ts";
-import { findRole, findUser } from "../guild/Lookup.ts";
+import { findChannel, findRole, findUser } from "../guild/Lookup.ts";
 
 export type Source = "slash" | "message";
 export type Input = Interaction | Message;
@@ -73,7 +73,7 @@ export class Context {
       const parsed = parse(entry.args, raw, {
         user: (value) => findUser(guild, value, [message.author, ...mentioned]),
         role: (value) => (guild ? findRole(guild, value) : undefined),
-        channel: () => undefined,
+        channel: (value) => (guild ? findChannel(guild, value) : undefined),
       });
       this.#values = parsed.values;
       this.issue = parsed.issue;
