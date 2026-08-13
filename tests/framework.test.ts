@@ -720,6 +720,41 @@ describe("Discordeno migration boundary", () => {
     expect(ctx.field("prize")).toBe("Nitro");
   });
 
+  test("reads files submitted through modal file uploads", () => {
+    const runtime = new DiscordRuntime({
+      token: "MTIzNDU2Nzg5MDEyMzQ1Njc4.test.test",
+      applicationId: 1n,
+      intents: GatewayIntents.Guilds,
+    });
+    const attachment = {
+      id: 42n,
+      filename: "avatar.png",
+      url: "https://cdn.discordapp.com/attachments/avatar.png",
+      proxyUrl: "https://media.discordapp.net/attachments/avatar.png",
+      size: 1,
+    };
+    const field = runtime.bot.transformers.component(runtime.bot, {
+      type: 18,
+      label: "Avatar",
+      component: {
+        type: 19,
+        custom_id: "avatar",
+        values: [String(attachment.id)],
+      },
+    } as never);
+    const interaction = {
+      bot: runtime.bot,
+      user: { id: 1n },
+      data: {
+        components: [field],
+        resolved: { attachments: new Map([[attachment.id, attachment]]) },
+      },
+    } as unknown as DiscordInteraction;
+    const ctx = new ComponentContext(interaction, "customize:save");
+
+    expect(ctx.files("avatar")).toEqual([attachment]);
+  });
+
   test("simulates owned components and regex captures", async () => {
     const harness = createTestKyro().component({
       id: /^profile:(\d+)$/,

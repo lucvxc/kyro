@@ -238,6 +238,12 @@ export class DiscordRuntime {
                   ? bot.transformers.component(bot, raw.component as never)
                   : undefined,
               };
+            if (raw.type === 19)
+              return {
+                type: raw.type,
+                customId: raw.custom_id,
+                values: raw.values,
+              } as never;
             if (!component) return component;
             return raw.values
               ? { ...component, values: raw.values }
@@ -354,6 +360,7 @@ function changeMemberCount(
 
 interface SubmittedComponent {
   type: number;
+  custom_id?: string;
   label?: string;
   description?: string;
   component?: SubmittedComponent;
