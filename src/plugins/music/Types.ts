@@ -53,6 +53,8 @@ export interface PlayerState {
 
 export interface MusicEvents {
   ready: [node: string];
+  disconnect: [node: string];
+  recoveryFailed: [guildID: string];
   trackStart: [guildID: string, track: Track];
   trackEnd: [guildID: string, track: Track, reason: string];
   trackError: [guildID: string, track: Track | null, error: unknown];

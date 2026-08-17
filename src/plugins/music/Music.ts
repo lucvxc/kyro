@@ -284,11 +284,16 @@ export class Music extends EventEmitter<MusicEvents> {
     this.manager.on("nodeError", (node, error) =>
       log.error(`NodeLink "${node.identifier}" failed.`, error),
     );
-    this.manager.on("nodeDisconnect", (node, code, reason) =>
+    this.manager.on("nodeDisconnect", (node, code, reason) => {
       log.warn(
         `NodeLink "${node.identifier}" disconnected (${code}${reason ? `: ${reason}` : ""}).`,
-      ),
-    );
+      );
+      this.emit("disconnect", node.identifier);
+    });
+    this.manager.on("playerRecoveryFailed", (player) => {
+      log.warn(`Music player in guild "${player.guildId}" did not recover.`);
+      this.emit("recoveryFailed", player.guildId);
+    });
     this.manager.on("trackStart", (player, value) =>
       this.emit("trackStart", player.guildId, track(value)),
     );
