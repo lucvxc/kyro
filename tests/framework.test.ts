@@ -29,7 +29,11 @@ import {
   type DiscordInteraction,
 } from "../src/core/Discord.ts";
 import type { Entry } from "../src/commands/Cmd.ts";
-import { Music, voiceChannelOccupied } from "../src/plugins/music/Music.ts";
+import {
+  botInVoice,
+  Music,
+  voiceChannelOccupied,
+} from "../src/plugins/music/Music.ts";
 import {
   getMemberPermissions,
   missingPermissions,
@@ -103,6 +107,19 @@ describe("Discordeno migration boundary", () => {
     expect(voiceChannelOccupied(states.values(), 10n, "20", 1n)).toBeTrue();
     states.delete(2n);
     expect(voiceChannelOccupied(states.values(), 10n, "20", 1n)).toBeFalse();
+  });
+
+  test("detects when Discord drops the bot from voice", () => {
+    const states = new Map([
+      [
+        10n,
+        new Map([[1n, { guildId: 10n, userId: 1n, channelId: 20n } as never]]),
+      ],
+    ]);
+
+    expect(botInVoice(states, 10n, 1n)).toBeTrue();
+    states.get(10n)?.delete(1n);
+    expect(botInVoice(states, 10n, 1n)).toBeFalse();
   });
 
   test("reports unexpected player loss and keeps a larger reconnect budget", () => {

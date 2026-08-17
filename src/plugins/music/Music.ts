@@ -26,6 +26,7 @@ export class Music extends EventEmitter<MusicEvents> {
   readonly #emptyTimeout: number;
   readonly #players = new Map<string, Player>();
   readonly #empty = new Map<string, ReturnType<typeof setTimeout>>();
+  readonly #voiceRecovery = new Map<string, ReturnType<typeof setTimeout>>();
   readonly #voiceStates = new Map<string, VoiceState>();
   #offVoice?: () => void;
   #started = false;
@@ -118,6 +119,8 @@ export class Music extends EventEmitter<MusicEvents> {
     this.#offVoice = undefined;
     for (const timeout of this.#empty.values()) clearTimeout(timeout);
     this.#empty.clear();
+    for (const timeout of this.#voiceRecovery.values()) clearTimeout(timeout);
+    this.#voiceRecovery.clear();
     await this.manager.players.destroyAll();
     for (const node of this.manager.nodes.nodes.values()) await node.destroy();
     this.#players.clear();
@@ -229,6 +232,9 @@ export class Music extends EventEmitter<MusicEvents> {
     const timeout = this.#empty.get(guildID);
     if (timeout) clearTimeout(timeout);
     this.#empty.delete(guildID);
+    const recovery = this.#voiceRecovery.get(guildID);
+    if (recovery) clearTimeout(recovery);
+    this.#voiceRecovery.delete(guildID);
     this.#players.delete(guildID);
     await this.manager.players.destroy(guildID, "Kyro stopped the player.");
   }
@@ -237,10 +243,39 @@ export class Music extends EventEmitter<MusicEvents> {
     const key = `${state.guildId}:${state.userId}`;
     if (state.channelId) this.#voiceStates.set(key, state);
     else this.#voiceStates.delete(key);
-    if (!this.#leaveOnEmpty) return;
     const guildID = String(state.guildId);
     const player = this.manager.players.get(guildID);
     if (!player) return;
+    if (state.userId === this.#runtime.bot.id) {
+      const pending = this.#voiceRecovery.get(guildID);
+      if (state.channelId) {
+        if (pending) clearTimeout(pending);
+        this.#voiceRecovery.delete(guildID);
+      } else if (!pending) {
+        this.#voiceRecovery.set(
+          guildID,
+          setTimeout(() => {
+            this.#voiceRecovery.delete(guildID);
+            const current = this.manager.players.get(guildID);
+            if (
+              !current ||
+              botInVoice(
+                runtimeStats(this.#runtime.bot).voiceStates,
+                state.guildId,
+                this.#runtime.bot.id,
+              )
+            )
+              return;
+            log.warn(
+              `Music voice connection in guild "${guildID}" was lost; requesting recovery.`,
+            );
+            this.emit("recoveryFailed", guildID);
+          }, 2_000),
+        );
+      }
+      return;
+    }
+    if (!this.#leaveOnEmpty) return;
     const voices =
       runtimeStats(this.#runtime.bot)
         .voiceStates.get(state.guildId)
@@ -346,6 +381,14 @@ export function voiceChannelOccupied(
       String(voice.channelId) === channelId &&
       voice.userId !== botId,
   );
+}
+
+export function botInVoice(
+  states: ReadonlyMap<bigint, ReadonlyMap<bigint, VoiceState>>,
+  guildId: bigint,
+  botId: bigint,
+) {
+  return Boolean(states.get(guildId)?.get(botId)?.channelId);
 }
 
 export class MusicContext {
