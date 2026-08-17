@@ -13,10 +13,7 @@ export async function dominant(
   }
 
   try {
-    const source =
-      typeof input === "string" && /^https?:\/\//i.test(input)
-        ? await download(input)
-        : input;
+    const source = await sourceFor(input);
     const image = await (sharp ??= import("sharp").then(
       (module) => module.default,
     ));
@@ -82,6 +79,13 @@ export async function dominant(
   } catch {
     return fallback;
   }
+}
+
+async function sourceFor(input: ImageInput): Promise<ImageInput> {
+  if (typeof input !== "string") return input;
+  if (/^https?:\/\//i.test(input)) return download(input);
+  const data = input.match(/^data:[^;,]+;base64,(.+)$/i)?.[1];
+  return data ? new Uint8Array(Buffer.from(data, "base64")) : input;
 }
 
 async function download(input: string) {
