@@ -29,7 +29,7 @@ import {
   type DiscordInteraction,
 } from "../src/core/Discord.ts";
 import type { Entry } from "../src/commands/Cmd.ts";
-import { Music } from "../src/plugins/music/Music.ts";
+import { Music, voiceChannelOccupied } from "../src/plugins/music/Music.ts";
 import {
   getMemberPermissions,
   missingPermissions,
@@ -92,6 +92,17 @@ describe("Discordeno migration boundary", () => {
       nodes: [{ host: "localhost", password: "test", secure: false }],
     });
     expect(music.voiceChannel(2n, 3n)).toBe("4");
+  });
+
+  test("does not treat a hydrated listener as an empty voice channel", () => {
+    const states = new Map([
+      [1n, { guildId: 10n, userId: 1n, channelId: 20n } as never],
+      [2n, { guildId: 10n, userId: 2n, channelId: 20n } as never],
+    ]);
+
+    expect(voiceChannelOccupied(states.values(), 10n, "20", 1n)).toBeTrue();
+    states.delete(2n);
+    expect(voiceChannelOccupied(states.values(), 10n, "20", 1n)).toBeFalse();
   });
 
   test("dominant colors ignore transparent pixels", async () => {

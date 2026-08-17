@@ -234,11 +234,15 @@ export class Music extends EventEmitter<MusicEvents> {
     const guildID = String(state.guildId);
     const player = this.manager.players.get(guildID);
     if (!player) return;
-    const occupied = [...this.#voiceStates.values()].some(
-      (voice) =>
-        voice.guildId === state.guildId &&
-        String(voice.channelId) === player.voiceChannelId &&
-        voice.userId !== this.#runtime.bot.id,
+    const voices =
+      runtimeStats(this.#runtime.bot)
+        .voiceStates.get(state.guildId)
+        ?.values() ?? this.#voiceStates.values();
+    const occupied = voiceChannelOccupied(
+      voices,
+      state.guildId,
+      player.voiceChannelId,
+      this.#runtime.bot.id,
     );
     if (occupied) {
       const timeout = this.#empty.get(guildID);
@@ -315,6 +319,20 @@ export class Music extends EventEmitter<MusicEvents> {
       this.#players.delete(player.guildId),
     );
   }
+}
+
+export function voiceChannelOccupied(
+  states: Iterable<VoiceState>,
+  guildId: bigint,
+  channelId: string,
+  botId: bigint,
+) {
+  return [...states].some(
+    (voice) =>
+      voice.guildId === guildId &&
+      String(voice.channelId) === channelId &&
+      voice.userId !== botId,
+  );
 }
 
 export class MusicContext {
