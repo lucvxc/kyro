@@ -105,6 +105,30 @@ describe("Discordeno migration boundary", () => {
     expect(voiceChannelOccupied(states.values(), 10n, "20", 1n)).toBeFalse();
   });
 
+  test("reports unexpected player loss and keeps a larger reconnect budget", () => {
+    const runtime = new DiscordRuntime({
+      token: "MTIzNDU2Nzg5MDEyMzQ1Njc4.test.test",
+      applicationId: 1n,
+      intents: GatewayIntents.Guilds | GatewayIntents.GuildVoiceStates,
+    });
+    const music = new Music(runtime, {
+      nodes: [{ host: "localhost", password: "test", secure: false }],
+    });
+    const losses: Array<[string, string]> = [];
+    music.on("playerLost", (guildId, reason) => losses.push([guildId, reason]));
+
+    music.manager.emit(
+      "playerDestroy",
+      { guildId: "10" } as never,
+      "All reconnect attempts exhausted",
+    );
+
+    expect(losses).toEqual([["10", "All reconnect attempts exhausted"]]);
+    expect(music.manager.options.voiceConnection?.maxReconnectAttempts).toBe(
+      10,
+    );
+  });
+
   test("dominant colors ignore transparent pixels", async () => {
     const image = await sharp({
       create: {

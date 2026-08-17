@@ -48,6 +48,12 @@ export class Music extends EventEmitter<MusicEvents> {
       (!Number.isFinite(options.reconnectDelay) || options.reconnectDelay < 0)
     )
       throw new TypeError("Music reconnect delay cannot be negative.");
+    if (
+      options.reconnectAttempts !== undefined &&
+      (!Number.isInteger(options.reconnectAttempts) ||
+        options.reconnectAttempts < 1)
+    )
+      throw new TypeError("Music reconnect attempts must be at least one.");
     this.manager = new Manager({
       nodes: options.nodes.map((node) => {
         const secure = node.secure ?? true;
@@ -73,9 +79,10 @@ export class Music extends EventEmitter<MusicEvents> {
         ...(options.resumeTimeout === undefined
           ? {}
           : { resume: true, resumeTimeout: options.resumeTimeout }),
-        ...(options.reconnectDelay === undefined
-          ? {}
-          : { voiceConnection: { reconnectDelay: options.reconnectDelay } }),
+        voiceConnection: {
+          reconnectDelay: options.reconnectDelay ?? 5_000,
+          maxReconnectAttempts: options.reconnectAttempts ?? 10,
+        },
       },
     });
     this.#search = new Search(this.manager, options.search);
@@ -315,9 +322,15 @@ export class Music extends EventEmitter<MusicEvents> {
       this.emit("empty", player.guildId);
       this.#schedule(player.guildId);
     });
-    this.manager.on("playerDestroy", (player) =>
-      this.#players.delete(player.guildId),
-    );
+    this.manager.on("playerDestroy", (player, reason) => {
+      this.#players.delete(player.guildId);
+      const message = reason || "Unknown reason";
+      if (message === "Kyro stopped the player.") return;
+      log.warn(
+        `Music player in guild "${player.guildId}" was lost (${message}).`,
+      );
+      this.emit("playerLost", player.guildId, message);
+    });
   }
 }
 
