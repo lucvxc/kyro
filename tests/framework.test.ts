@@ -30,12 +30,52 @@ import {
 } from "../src/core/Discord.ts";
 import type { Entry } from "../src/commands/Cmd.ts";
 import { Music } from "../src/plugins/music/Music.ts";
-import { missingPermissions } from "../src/guild/Permissions.ts";
+import {
+  getMemberPermissions,
+  missingPermissions,
+} from "../src/guild/Permissions.ts";
 import { Guard } from "../src/commands/Guard.ts";
 import { findChannel, findRole, findUser } from "../src/guild/Lookup.ts";
 import { Moderation } from "../src/commands/Moderation.ts";
 
 describe("Discordeno migration boundary", () => {
+  test("calculates permissions when REST guilds omit channel collections", async () => {
+    const roleId = 2n;
+    const member = { id: 3n, roles: [roleId] } as never;
+    const guild = {
+      id: 1n,
+      ownerId: 9n,
+      roles: new Map([
+        [
+          roleId,
+          {
+            id: roleId,
+            permissions: {
+              bitfield: BitwisePermissionFlags.MANAGE_MESSAGES,
+            },
+          },
+        ],
+      ]),
+    } as unknown as Guild;
+    const bot = {
+      helpers: {
+        getChannel: async () => ({ permissionOverwrites: [] }),
+      },
+    } as never;
+
+    const permissions = await getMemberPermissions(
+      bot,
+      guild.id,
+      4n,
+      3n,
+      guild,
+      member,
+    );
+    expect(
+      (permissions! & BitwisePermissionFlags.MANAGE_MESSAGES) !== 0n,
+    ).toBeTrue();
+  });
+
   test("finds users and roles from natural message input", () => {
     const user = {
       id: 123456789012345678n,

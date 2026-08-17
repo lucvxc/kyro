@@ -191,7 +191,10 @@ export class Context {
     return new RoleStats(role);
   }
   public async userStats(name: string): Promise<UserStats> {
-    const user = this.user(name) ?? this.author;
+    const selected = this.user(name) ?? this.author;
+    const user = await this.client.helpers
+      .getUser(selected.id)
+      .catch(() => selected);
     const member = this.guildId
       ? await this.client.helpers
           .getMember(this.guildId, user.id)

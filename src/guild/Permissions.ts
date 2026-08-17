@@ -25,24 +25,26 @@ export async function getMemberPermissions(
   cachedGuild?: Guild | null,
   cachedMember?: Member,
 ) {
-  const guild =
-    cachedGuild ?? (await bot.helpers.getGuild(guildId).catch(() => null));
+  let guild = cachedGuild;
+  if (!(guild as Partial<Guild> | null | undefined)?.roles)
+    guild = await bot.helpers.getGuild(guildId).catch(() => null);
   if (!guild) return undefined;
   if (guild.ownerId === userId) return BitwisePermissionFlags.ADMINISTRATOR;
 
   const member =
     cachedMember ??
-    guild.members.get(userId) ??
+    (guild as Partial<Guild>).members?.get(userId) ??
     (await bot.helpers.getMember(guildId, userId).catch(() => null));
   if (!member) return undefined;
 
-  let permissions = guild.roles.get(guildId)?.permissions.bitfield ?? 0n;
+  const roles = (guild as Partial<Guild>).roles;
+  let permissions = roles?.get(guildId)?.permissions.bitfield ?? 0n;
   for (const roleId of member.roles)
-    permissions |= guild.roles.get(roleId)?.permissions.bitfield ?? 0n;
+    permissions |= roles?.get(roleId)?.permissions.bitfield ?? 0n;
   if (has(permissions, "ADMINISTRATOR")) return permissions;
 
   const channel =
-    guild.channels.get(channelId) ??
+    (guild as Partial<Guild>).channels?.get(channelId) ??
     (await bot.helpers.getChannel(channelId).catch(() => null));
   return channel
     ? channelPermissions(permissions, channel, guildId, member)
