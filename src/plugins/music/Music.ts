@@ -5,7 +5,7 @@ import { Manager, type Track as MoonTrack } from "moonlink.js";
 import type { Context } from "../../commands/Context.ts";
 import { UserError } from "../../commands/Errors.ts";
 import { log } from "../../core/Log.ts";
-import type { DiscordRuntime } from "../../core/Discord.ts";
+import { runtimeStats, type DiscordRuntime } from "../../core/Discord.ts";
 import { DiscordConnector } from "./Connector.ts";
 import { Player, track } from "./Player.ts";
 import { Search } from "./Search.ts";
@@ -90,7 +90,10 @@ export class Music extends EventEmitter<MusicEvents> {
     return this.manager.readyNodes;
   }
   public voiceChannel(guildId: bigint, userId: bigint): string | undefined {
-    return this.#voiceStates.get(`${guildId}:${userId}`)?.channelId?.toString();
+    return (
+      this.#voiceStates.get(`${guildId}:${userId}`) ??
+      runtimeStats(this.#runtime.bot).voiceStates.get(guildId)?.get(userId)
+    )?.channelId?.toString();
   }
 
   public start(): void {

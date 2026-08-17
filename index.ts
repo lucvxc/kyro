@@ -57,6 +57,7 @@ export {
   scheduler,
   jsk,
   nodelink,
+  musicFor,
   Music,
   MusicContext,
   Player,

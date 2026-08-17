@@ -107,6 +107,7 @@ export {
   song,
   songLength,
   nodelink,
+  musicFor,
   type AddedTracks,
   type Loop,
   type MusicEvents,

@@ -37,6 +37,8 @@ import {
 import { Guard } from "../src/commands/Guard.ts";
 import { findChannel, findRole, findUser } from "../src/guild/Lookup.ts";
 import { Moderation } from "../src/commands/Moderation.ts";
+import { dominant } from "../src/ui/Image.ts";
+import sharp from "sharp";
 
 describe("Discordeno migration boundary", () => {
   test("calculates permissions when REST guilds omit channel collections", async () => {
@@ -74,6 +76,48 @@ describe("Discordeno migration boundary", () => {
     expect(
       (permissions! & BitwisePermissionFlags.MANAGE_MESSAGES) !== 0n,
     ).toBeTrue();
+  });
+
+  test("uses voice states hydrated before the music plugin starts", () => {
+    const runtime = new DiscordRuntime({
+      token: "MTIzNDU2Nzg5MDEyMzQ1Njc4.test.test",
+      applicationId: 1n,
+      intents: GatewayIntents.Guilds | GatewayIntents.GuildVoiceStates,
+    });
+    runtimeStats(runtime.bot).voiceStates.set(
+      2n,
+      new Map([[3n, { guildId: 2n, userId: 3n, channelId: 4n } as never]]),
+    );
+    const music = new Music(runtime, {
+      nodes: [{ host: "localhost", password: "test", secure: false }],
+    });
+    expect(music.voiceChannel(2n, 3n)).toBe("4");
+  });
+
+  test("dominant colors ignore transparent pixels", async () => {
+    const image = await sharp({
+      create: {
+        width: 2,
+        height: 1,
+        channels: 4,
+        background: { r: 0, g: 0, b: 0, alpha: 0 },
+      },
+    })
+      .composite([
+        {
+          input: Buffer.from([220, 40, 80, 255]),
+          raw: { width: 1, height: 1, channels: 4 },
+          left: 1,
+          top: 0,
+        },
+      ])
+      .png()
+      .toBuffer();
+    const color = await dominant(image);
+    expect(color).not.toBe("#5865F2");
+    expect(Number.parseInt(color.slice(1, 3), 16)).toBeGreaterThan(
+      Number.parseInt(color.slice(3, 5), 16),
+    );
   });
 
   test("finds users and roles from natural message input", () => {

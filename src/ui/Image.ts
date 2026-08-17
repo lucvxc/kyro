@@ -1,4 +1,5 @@
 export type ImageInput = string | Uint8Array;
+
 const colors = new Map<string, string>();
 let sharp: Promise<typeof import("sharp").default> | undefined;
 
@@ -12,34 +13,95 @@ export async function dominant(
   }
 
   try {
-    let source = input;
-    if (typeof input === "string" && /^https?:\/\//i.test(input)) {
-      const url = new URL(input);
-      if (url.searchParams.has("size")) url.searchParams.set("size", "128");
-      const response = await fetch(url, { signal: AbortSignal.timeout(2_500) });
-      if (!response.ok)
-        throw new Error(`Image request failed with ${response.status}.`);
-      source = new Uint8Array(await response.arrayBuffer());
-    }
+    const source =
+      typeof input === "string" && /^https?:\/\//i.test(input)
+        ? await download(input)
+        : input;
     const image = await (sharp ??= import("sharp").then(
       (module) => module.default,
     ));
-    const stats = await image(source).resize(64, 64, { fit: "inside" }).stats();
-    const { r, g, b } = stats.dominant;
-    const color = `#${[r, g, b]
-      .map((value) => Math.round(value).toString(16).padStart(2, "0"))
+    const { data } = await image(source)
+      .resize(72, 72, { fit: "inside" })
+      .ensureAlpha()
+      .raw()
+      .toBuffer({ resolveWithObject: true });
+    const buckets = new Map<
+      number,
+      {
+        score: number;
+        weight: number;
+        red: number;
+        green: number;
+        blue: number;
+      }
+    >();
+
+    for (let index = 0; index < data.length; index += 4) {
+      const alpha = data[index + 3]!;
+      if (alpha < 32) continue;
+      const red = data[index]!;
+      const green = data[index + 1]!;
+      const blue = data[index + 2]!;
+      const max = Math.max(red, green, blue);
+      const min = Math.min(red, green, blue);
+      const saturation = max ? (max - min) / max : 0;
+      const brightness = max / 255;
+      const weight = alpha / 255;
+      const score =
+        weight * (0.4 + saturation * 0.6) * (0.55 + brightness * 0.45);
+      const key = ((red >> 4) << 8) | ((green >> 4) << 4) | (blue >> 4);
+      const bucket = buckets.get(key) ?? {
+        score: 0,
+        weight: 0,
+        red: 0,
+        green: 0,
+        blue: 0,
+      };
+      bucket.score += score;
+      bucket.weight += weight;
+      bucket.red += red * weight;
+      bucket.green += green * weight;
+      bucket.blue += blue * weight;
+      buckets.set(key, bucket);
+    }
+
+    const selected = [...buckets.values()].sort(
+      (left, right) => right.score - left.score,
+    )[0];
+    if (!selected) return fallback;
+    const color = `#${[selected.red, selected.green, selected.blue]
+      .map((value) =>
+        Math.round(value / selected.weight)
+          .toString(16)
+          .padStart(2, "0"),
+      )
       .join("")
       .toUpperCase()}`;
-    if (typeof input === "string") {
-      colors.set(input, color);
-      if (colors.size > 500) colors.delete(colors.keys().next().value!);
-    }
+    if (typeof input === "string") remember(input, color);
     return color;
   } catch {
-    if (typeof input === "string") {
-      colors.set(input, fallback);
-      if (colors.size > 500) colors.delete(colors.keys().next().value!);
-    }
     return fallback;
   }
+}
+
+async function download(input: string) {
+  const url = new URL(input);
+  if (url.searchParams.has("size")) url.searchParams.set("size", "256");
+  let lastError: unknown;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const response = await fetch(url, { signal: AbortSignal.timeout(8_000) });
+      if (!response.ok)
+        throw new Error(`Image request failed with ${response.status}.`);
+      return new Uint8Array(await response.arrayBuffer());
+    } catch (error) {
+      lastError = error;
+    }
+  }
+  throw lastError;
+}
+
+function remember(url: string, color: string) {
+  colors.set(url, color);
+  if (colors.size > 500) colors.delete(colors.keys().next().value!);
 }
