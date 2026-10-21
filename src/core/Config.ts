@@ -1,6 +1,7 @@
 import type { Options } from "../Kyro.ts";
 import { existsSync } from "node:fs";
 import { isAbsolute } from "node:path";
+import { builtinCommands } from "../commands/Builtins.ts";
 
 export interface ConfigIssue {
   path: string;
@@ -20,6 +21,7 @@ export function validateConfig(options: Options): void {
   const client = options.client ?? options;
   const config = options.config ?? options;
   const issues: ConfigIssue[] = [];
+  const builtins = new Set<string>(builtinCommands);
   if (!client.token?.trim())
     issues.push({ path: "token", message: "is required" });
   if (!client.appID?.trim())
@@ -43,6 +45,12 @@ export function validateConfig(options: Options): void {
     issues.push({ path: "guildID", message: "must be a Discord snowflake" });
   if (config.prefix !== undefined && !config.prefix)
     issues.push({ path: "prefix", message: "cannot be empty" });
+  for (const [index, command] of (config.builtins ?? []).entries())
+    if (!builtins.has(command))
+      issues.push({
+        path: `builtins[${index}]`,
+        message: `must be help, reload, or version`,
+      });
   if (
     config.cooldown !== undefined &&
     (!Number.isFinite(config.cooldown) || config.cooldown < 0)

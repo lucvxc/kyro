@@ -10,6 +10,7 @@ import {
   type User,
 } from "discordeno";
 import { Registry } from "../src/commands/Registry.ts";
+import { addBuiltins } from "../src/commands/Builtins.ts";
 import { compileSlash } from "../src/commands/Compiler.ts";
 import { container } from "../src/ui/Container.ts";
 import { button, modal, select } from "../src/ui/Control.ts";
@@ -745,6 +746,23 @@ describe("Discordeno migration boundary", () => {
     expect(result.replies).toEqual(["Hello Kyro"]);
   });
 
+  test("keeps built-in commands disabled unless selected", () => {
+    const registry = new Registry();
+    addBuiltins(registry, {} as never, []);
+    expect(registry.size).toBe(0);
+
+    addBuiltins(registry, {} as never, ["help", "version"]);
+    expect(registry.get("help", "message")?.name).toBe("help");
+    expect(registry.get("kyro version", "message")?.name).toBe("kyro version");
+    expect(registry.get("kyro reload", "message")).toBeUndefined();
+
+    const custom = new Registry();
+    custom.add({ name: "help", description: "Custom help", run() {} });
+    addBuiltins(custom, {} as never, ["help"]);
+    expect(custom.size).toBe(1);
+    expect(custom.get("help", "slash")?.description).toBe("Custom help");
+  });
+
   test("reports all invalid configuration fields together", () => {
     expect(() =>
       validateConfig({
@@ -753,6 +771,14 @@ describe("Discordeno migration boundary", () => {
         intents: GatewayIntents.Guilds,
       }),
     ).toThrow(ConfigurationError);
+    expect(() =>
+      validateConfig({
+        token: "token",
+        appID: "123456789012345",
+        intents: GatewayIntents.Guilds,
+        builtins: ["unknown" as never],
+      }),
+    ).toThrow("builtins[0]: must be help, reload, or version");
   });
 
   test("tracks and drains active framework work", async () => {

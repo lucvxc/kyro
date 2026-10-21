@@ -5,6 +5,7 @@ export {
   type KyroConfig,
   type LifecycleHooks,
 } from "./Kyro.ts";
+export type { BuiltinCommand } from "./commands/Builtins.ts";
 export {
   DiscordRuntime,
   freshMemberCount,

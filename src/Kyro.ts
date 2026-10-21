@@ -24,14 +24,12 @@ import { Loader as EvtLoader } from "./events/Loader.ts";
 import { Loader as CmpLoader } from "./components/Loader.ts";
 import { Router as CmpRouter } from "./components/Router.ts";
 import { log } from "./core/Log.ts";
-import { help } from "./commands/Help.ts";
 import type { DrizzleDB } from "./db/Drizzle.ts";
 import { Loader as PluginLoader } from "./plugins/Loader.ts";
 import type { Plugin } from "./plugins/Plugin.ts";
-import { reload as reloadCommand } from "./commands/Reload.ts";
 import type { Middleware } from "./commands/Middleware.ts";
 import type { AliasLookup, PrefixResolver } from "./commands/RouterTypes.ts";
-import { version as versionCommand } from "./commands/Version.ts";
+import { addBuiltins, type BuiltinCommand } from "./commands/Builtins.ts";
 import {
   deviceProperties,
   isDeviceStatus,
@@ -83,6 +81,8 @@ export interface KyroConfig {
   guildID?: string;
   guilds?: readonly string[];
   sync?: "global" | "guild" | "none";
+  builtins?: readonly BuiltinCommand[];
+  /** @deprecated Use `builtins: ["help"]` instead. */
   help?: boolean;
   plugins?: (string | Plugin)[];
   middleware?: Middleware[];
@@ -284,14 +284,10 @@ export class Kyro {
         await this.#hook("beforeLoad", options.hooks?.beforeLoad);
         if (this.db) log.info("Database connected.");
         await cmdLoader?.load();
-        if (config.help === true && !this.commands.get("help", "message")) {
-          this.commands.add(help(this.commands));
-        }
         await evtLoader?.load();
         await cmpLoader?.load();
         await pluginLoader?.load(this);
-        this.commands.add(reloadCommand(this));
-        this.commands.add(versionCommand(this));
+        this.#addBuiltins(config);
         this.#validateIntents();
         this.commands.seal();
         log.info(
@@ -338,10 +334,7 @@ export class Kyro {
       await evtLoader?.load();
       await cmpLoader?.reload();
       await pluginLoader?.reload(this);
-      if (config.help === true && !this.commands.get("help", "message"))
-        this.commands.add(help(this.commands));
-      this.commands.add(reloadCommand(this));
-      this.commands.add(versionCommand(this));
+      this.#addBuiltins(config);
       this.commands.seal();
       router.attach();
       cmpRouter?.attach();
@@ -410,6 +403,12 @@ export class Kyro {
       errors: log.errors,
       lastSync: this.#registrar.lastSync,
     };
+  }
+
+  #addBuiltins(config: KyroConfig): void {
+    const enabled = new Set(config.builtins ?? []);
+    if (config.help === true) enabled.add("help");
+    addBuiltins(this.commands, this, enabled);
   }
 
   async #hook(

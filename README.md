@@ -208,7 +208,7 @@ Request the smallest set of intents your application needs. Privileged intents m
 | `prefix`              | `"!"`         | Message prefix, an async prefix resolver, or multiple prefixes returned by a resolver. |
 | `getAlias`            | none          | Async application-specific alias lookup for message input.                             |
 | `cooldown`            | `0`           | Global command/component cooldown in seconds. Zero disables it.                        |
-| `help`                | `false`       | Adds Kyro's generated message help command.                                            |
+| `builtins`            | `[]`          | Framework commands to enable: `help`, `reload`, or `version`.                          |
 | `middleware`          | `[]`          | Global command middleware, in declaration order.                                       |
 | `plugins`             | `[]`          | Plugin objects or absolute plugin module paths.                                        |
 | `ownerIDs`            | `[]`          | Application owner IDs used by owner-only framework functionality.                      |
@@ -270,6 +270,28 @@ bot.command(
 ```
 
 ## Commands
+
+### Built-in commands
+
+Kyro does not add any framework commands by default. Enable only the ones your bot needs:
+
+```ts
+const bot = new Kyro({
+  // ...
+  builtins: ["help", "reload"],
+  ownerIDs: ["295998232989925376"],
+});
+```
+
+`commands` remains the path to your bot's command directory. `builtins` controls commands supplied by Kyro itself.
+
+| Config name | Command        | Alias       | Who can use it | What it does                                       |
+| ----------- | -------------- | ----------- | -------------- | -------------------------------------------------- |
+| `help`      | `help`         | `h`         | Everyone       | Lists registered commands and shows command help.  |
+| `reload`    | `kyro reload`  | `ky reload` | `ownerIDs`     | Reloads files, plugins, routing, and command sync. |
+| `version`   | `kyro version` | none        | Everyone       | Shows framework, runtime, guild, and error info.   |
+
+An empty array—or leaving `builtins` out—keeps all three disabled. The old `help: true` option still works for existing bots, but new projects should use `builtins: ["help"]`.
 
 `cmd()` defines slash, message, or hybrid commands:
 

@@ -127,6 +127,7 @@ export type {
   BotProfileStyle,
   ClientConfig,
   KyroConfig,
+  BuiltinCommand,
   PresenceConfig,
   DeviceStatus,
   ActivityType,
